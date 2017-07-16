@@ -1,0 +1,34 @@
+package reporter
+
+import (
+	"testing"
+	"fmt"
+	"github.com/fadion/aria/token"
+)
+
+func TestError(t *testing.T) {
+	errors = []string{}
+	Error(PARSE, token.Location{1, 1}, "Test error 1")
+	Error(PARSE, token.Location{1, 1}, "Test error 2")
+
+	if len(errors) != 2 {
+		t.Errorf("Expected %d but got %d", 2, len(errors))
+	}
+}
+
+func TestGetErrors(t *testing.T) {
+	errors = []string{}
+	Error(PARSE, token.Location{1, 1}, "Test error 1")
+	Error(RUNTIME, token.Location{2, 1}, "Test error 2")
+
+	expected := []string{
+		fmt.Sprintf("%s [Line %d]: %s", PARSE, 1, "Test error 1"),
+		fmt.Sprintf("%s [Line %d]: %s", RUNTIME, 2, "Test error 2"),
+	}
+
+	for i, k := range errors {
+		if k != expected[i] {
+			t.Errorf("Expected %s but got %s", expected[i], k)
+		}
+	}
+}
