@@ -1,6 +1,6 @@
 # Aria Language
 
-Aria is an expressive, interpreted, toy language built as an exercise on designing and interpreting a programming language. It has a noiseless syntax, free of useless semi colons, braces or parantheses, and treats everything as an expression. Technically, it features a hand written lexer and parser, a recursive decent one (Pratt), and a tree-walk interpreter. I have never set any goals for it to be either fast, nor bulletproof, so don't expect neither of them.
+Aria is an expressive, interpreted, toy language built as an exercise on designing and interpreting a programming language. It has a noiseless syntax, free of useless semi colons, braces or parantheses, and treats everything as an expression. Technically, it's built with a hand written lexer and parser, a recursive decent one (Pratt), and a tree-walk interpreter. I have never set any goals for it to be either fast, nor bulletproof, so don't expect neither of them.
 
 ## Usage
 
@@ -33,7 +33,9 @@ let name = "John"
 let age = 40
 ```
 
-Once declared, a variable is locked to that value and can't be changed. You guessed it right, they're immutable! We could argue all day, but immutability makes for safier code. Variables have to start with an alphabetic character and then continue either with alphanumeric, underscores, question mark or exclamation mark.
+Once declared, a variable is locked to that value and can't be changed. You guessed it right, they're immutable! We could argue all day, but immutability advocates for safier code. It isn't that hard to pass a modified value to a new variable, isn't it?
+
+Variables have to start with an alphabetic character and then continue either with alphanumeric, underscores, question mark or exclamation mark.
 
 As anything is an expression, except for variable declaration, there are some pretty funny consequences. Everything can be passed to a variable as a value, even block statements like Ifs or Fors:
 
@@ -45,13 +47,13 @@ else
 end
 ```
 
-Sometimes it's even nicer to inline the If completely, something you can do with almost every block expression. I'm not sure if that's actually that readable, but it's an option:
+Sometimes it's even nicer to inline the If completely, something you can do with almost every block expression. I'm not sure if that's actually readable for anyone, but it's an option:
 
 ```
 let old = if age > 40 then true else false end
 ```
 
-I'm sure you've noticed there are no semi colons, braces or stuff like that. To me, it makes for code that's easier to read and scan. Don't confuse it with languages like Python however; in here, whitespace has absolutely no importance. Blocks of code are either inferred where they start, or delimited with keywords like `do`, `then` and `end`.
+You've noticed there are no semi colons, braces or stuff like that? To me, it makes for code that's easier to read and scan. Don't confuse it with languages like Python however; in here, whitespace has absolutely no importance. Blocks of code are either inferred where they start, or delimited with keywords like `do`, `then` and `end`.
 
 ## Data Types
 
@@ -69,7 +71,7 @@ let concat = "Hello" + " " + "World"
 let subscript = "aname"[2]
 ```
 
-String concatenation is handled with the `+` operator and is generally safe: trying to concat a string with some other data type will result in a runtime error. Additionally, strings are treated as enumerables. They support subscript, iteration in `for in` loops and most of the array functions.
+String concatenation is handled with the `+` operator but trying to concat a string with some other data type will result in a runtime error. Additionally, strings are treated as enumerables. They support subscript, iteration in `for in` loops and most of the array functions.
 
 For the sake of it, there are some escape sequences too: \n, \t, \r, \a, \b, \f and \v. I'm sure you can figure out by yourself what every of them does.
 
@@ -116,7 +118,7 @@ They support subscript with a 0-based index, combining with the `+` operator and
  
 ### Dictionary
  
-Dictionaries are hashes with a foced string key and a value of any data type. Unlike arrays, internally their order is irrelevant, so you can't rely on index-based subscripting. They only support key-based subscripting.
+Dictionaries are hashes with a forced string key and a value of any data type. Unlike arrays, internally their order is irrelevant, so you can't rely on index-based subscripting. They only support key-based subscripting.
  
 ```
 let user = ["name": "John", "age": 40]
@@ -153,7 +155,7 @@ let add = fn x, y
 end
 ```
 
-I've omitted the parantheses too! Of course, you can write the function as `fn (x, y)` too, but where's the beauty in that? Calling the function needs the parantheses though:
+I've omitted the parantheses too! Of course, you can write the function as `fn (x, y)`, but where's the beauty in that? Calling the function needs the parantheses though:
 
 ```
 let sum = add(1335, 2)
@@ -178,7 +180,7 @@ end(2)
 
 ## Conditionals
 
-Aria provides to two types of conditional expressions: 1) An `if/else` that doesn't support multiple `else if` statements and that's good for simple checks, and 2) A `switch` for anything else. Every block of conditional code has it's own scope, like any other block in Aria; meaning that it can access the previously declared variables, but anything declared inside of them doesn't persist to the rest of the code.
+Aria provides two types of conditional expressions: 1) An `if/else` that doesn't support multiple `else if` statements and that's good for simple checks, and 2) A `switch` for anything else. Every block of conditional code has it's own scope, like any other block in Aria; meaning that it can access the previously declared variables, but anything declared inside of them doesn't persist to the rest of the code.
 
 An `if` is pretty simple:
 
@@ -188,7 +190,7 @@ if 1 == 1
 end
 ```
 
-It can have the expected `else` block to:
+With the ever present `else` block:
 
 ```
 if 1 == 2
@@ -198,7 +200,7 @@ else
 end
 ```
 
-`Switch` expressions on the other hand are more interesting. They can have multiple cases with multiple conditions and breaks automatically on each successfull case. When was the last time you didn't need to break?
+`Switch` expressions on the other hand are more interesting. They can have multiple cases with multiple conditions that break automatically on each successful case. When was the last time you didn't need to break? Exactly!
 
 ```
 let a = 5
@@ -212,7 +214,7 @@ default
 end
 ```
 
-Not only that, but a `switch` can behave as a typical if/else when no control condition is provided:
+Not only that, but a `switch` can behave as a typical if/else when no control condition is provided. It basically becomes a `switch true`.
 
 ```
 let a = "John"
@@ -265,7 +267,7 @@ The range operator is a special type of sugar to generate an array of integers o
 
 ```
 let numbers = 0..9
-let huge = 100000..99999999
+let huge = 999..100
 let alphabet = "a".."z"
 ```
 
@@ -294,7 +296,7 @@ let background = Color.white
 let font_color = Color.hexToRGB(Color.grey)
 ```
 
-There can't be any other statement in modules except `let`, but it those variables can have any expression possible in Aria. The dot syntax to calling a module property or function may remind you of classes, but still, they're not!
+There can't be any other statement in modules except `let`, but those variables can have any expression possible. The dot syntax of calling a module property or function may remind you of classes, but still, they're not!
 
 Keep in mind that the Aria interpreter is single pass and as such, it will only recognize calls to a module that has already been declared. 
 
@@ -380,7 +382,7 @@ Although this is a language made purely for fun and experimentation, it doesn't 
 
 In the near future, hopefully, I plan to:
 
-- Improve the Standard Library with more functions and some higher order ones like map, filter, reduce, etc, for arrays.
+- Improve the Standard Library with more functions.
 - Write more tests!
 - Write some useful benchmarks with non-trivial programs.
 - Find a way to support closures and recursion.
