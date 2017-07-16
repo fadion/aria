@@ -32,3 +32,15 @@ func TestGetErrors(t *testing.T) {
 		}
 	}
 }
+
+func TestClearErrors(t *testing.T) {
+	errors = []string{}
+	Error(PARSE, token.Location{1, 1}, "Test error 1")
+	Error(PARSE, token.Location{1, 1}, "Test error 2")
+
+	ClearErrors()
+
+	if len(errors) != 0 {
+		t.Errorf("Expected %d but got %d", 0, len(errors))
+	}
+}

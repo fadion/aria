@@ -30,3 +30,8 @@ func HasErrors() bool {
 func GetErrors() []string {
 	return errors
 }
+
+// Clear the errors.
+func ClearErrors() {
+	errors = []string{}
+}
