@@ -394,3 +394,5 @@ In the near future, hopefully, I plan to:
 Aria was developed by Fadion Dashi, a freelance web and mobile developer from Tirana.
 
 The implementation is based on the fantastic [Writing an Interpreter in Go](https://interpreterbook.com/). If you're even vaguely interested in interpreters, with Golang or not, I highly suggest that book.
+
+The `reader.Buffer` package is a "fork" of Golang's `bytes.Buffer`, in which I had to add a method that reads a rune without moving the internal cursor. I hate doing that, but unfortunately couldn't find a way out of it. That package has its own BSD-style (license)[https://github.com/golang/go/blob/master/LICENSE].
