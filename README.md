@@ -28,7 +28,7 @@ aria repl
 
 As you'd expect, there's a way to declaring variables:
 
-```
+```swift
 let name = "John"
 let age = 40
 ```
@@ -39,7 +39,7 @@ Variables have to start with an alphabetic character and then continue either wi
 
 As anything is an expression, except for variable declaration, there are some pretty funny consequences. Everything can be passed to a variable as a value, even block statements like Ifs or Fors:
 
-```
+```swift
 let old = if age > 40
   true
 else
@@ -49,7 +49,7 @@ end
 
 Sometimes it's even nicer to inline the If completely, something you can do with almost every block expression. I'm not sure if that's actually readable for anyone, but it's an option:
 
-```
+```swift
 let old = if age > 40 then true else false end
 ```
 
@@ -63,7 +63,7 @@ Aria supports 6 data types: `String`, `Integer`, `Float`, `Boolean`, `Array` and
 
 Strings are UTF-8 encoded, meaning that you can stuff in there anything, even emojis.
 
-```
+```swift
 let weather = "Hot"
 let code = "if\nthen\t\"yes\""
 let price = "円500"
@@ -81,7 +81,7 @@ Integers and Floats use mostly the same operators, with some minor differences. 
 
 Integers can be represented also as: binary with the 0b prefix, hexadecimal with the 0x prefix and octal with the 0o prefix. They'll be checked for validity at runtime.
 
-```
+```swift
 let dec = 27
 let oct = 0o33
 let hex = 0x1B
@@ -96,7 +96,7 @@ let pi = 3.14_159_265
 
 Just `true` or `false`, nothing else!
 
-```
+```swift
 let mad = true
 let genius = false
 ```
@@ -105,7 +105,7 @@ let genius = false
 
 Arrays are ordered collections of any data types. You can mix and match strings with integers, or floats with other arrays.
  
- ```
+ ```swift
  let multi = [5, "Hi", ["Hello", "World"]]
  let names = ["John", "Ben", 1337]
  let john = names[0]
@@ -120,7 +120,7 @@ They support subscript with a 0-based index, combining with the `+` operator and
  
 Dictionaries are hashes with a forced string key and a value of any data type. Unlike arrays, internally their order is irrelevant, so you can't rely on index-based subscripting. They only support key-based subscripting.
  
-```
+```swift
 let user = ["name": "John", "age": 40]
 user["name"]
 ```
@@ -149,7 +149,7 @@ Not all operators will work with any data type and I'm sure you don't expect tha
 
 Functions in Aria are pure expressions that are passed to variables or as arguments to other functions. A function is essentially treated the same as an integer, string or any other expression.
 
-```
+```swift
 let add = fn x, y
   x + y
 end
@@ -157,13 +157,13 @@ end
 
 I've omitted the parantheses too! Of course, you can write the function as `fn (x, y)`, but where's the beauty in that? Calling the function needs the parantheses though:
 
-```
+```swift
 let sum = add(1335, 2)
 ```
 
 Notice the lack of a `return` statement. I doubt you'll ever need it, but if you do, it is there. Let's see a stupid example that also inlines the function.
 
-```
+```swift
 let mad_genius? = fn mad, genius do return mad && genius end
 mad_genius?(true, false)
 ```
@@ -172,7 +172,7 @@ Yes, you can inline functions just by adding a `do` keyword. It's up to you how 
 
 Finally, there's the self-executing function syntax for all of you Javascripters:
 
-```
+```swift
 let pow_2 = fn x
   x ** 2
 end(2)
@@ -184,7 +184,7 @@ Aria provides two types of conditional expressions: 1) An `if/else` that doesn't
 
 An `if` is pretty simple:
 
-```
+```swift
 if 1 == 1
   IO.puts("YES!")
 end
@@ -192,7 +192,7 @@ end
 
 With the ever present `else` block:
 
-```
+```swift
 if 1 == 2
   IO.puts("Not calling me.")
 else
@@ -202,7 +202,7 @@ end
 
 `Switch` expressions on the other hand are more interesting. They can have multiple cases with multiple conditions that break automatically on each successful case. When was the last time you didn't need to break? Exactly!
 
-```
+```swift
 let a = 5
 switch a
 case 2, 3
@@ -216,7 +216,7 @@ end
 
 Not only that, but a `switch` can behave as a typical if/else when no control condition is provided. It basically becomes a `switch true`.
 
-```
+```swift
 let a = "John"
 switch
 case a == "John"
@@ -232,7 +232,7 @@ end
 
 There's an abundance of `for` loop variations around so Aria takes the short way: a single `for in` loop that's useful to iterate arrays, strings or dictionaries, but that does nothing else.
 
-```
+```swift
 for v in [1, 2, 3, 4]
   IO.puts(v)
 end
@@ -240,7 +240,7 @@ end
 
 Obviously, the result of the loop can be pass to a variable, and that's what makes them interesting to manipulate enumerables.
 
-```
+```swift
 let plus_one = for v in [1, 2, 3, 4]
   v + 1
 end
@@ -248,13 +248,13 @@ end
 
 Passing two arguments for arrays or strings will return the current index and value. For dictionaries, the first argument will be the key.
 
-```
+```swift
 for i, v in "abcd"
   IO.puts(i + ":" + v)
 end
 ```
 
-```
+```swift
 for k, v in ["name": "John", "age": 40]
   IO.puts(k)
   IO.puts(v)
@@ -265,7 +265,7 @@ end
 
 The range operator is a special type of sugar to generate an array of integers or strings. Without a flexible `for` loop, it surely comes in handy.
 
-```
+```swift
 let numbers = 0..9
 let huge = 999..100
 let alphabet = "a".."z"
@@ -273,7 +273,7 @@ let alphabet = "a".."z"
 
 More interesting is using them in a `for in` loop:
 
-```
+```swift
 for v in 10..20
   IO.puts(v)
 end
@@ -283,7 +283,7 @@ end
 
 Modules are very simple containers of data and nothing more. They're not an imitation of classes, as they can't be initialized, don't have any type of access control, inheritance or whatever. If you need to think in Object Oriented terms, they're like a class with only static properties and methods. They're good to give some structure to a program, but not to represent cars, trees and cats.
 
-```
+```swift
 module Color
   let white = "#fff"
   let grey = "#666"
