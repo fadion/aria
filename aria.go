@@ -84,7 +84,6 @@ func main() {
 					color.Unset()
 
 					source, _ := input.ReadBytes('\n')
-
 					lex := lexer.New(reader.New(source))
 					if reporter.HasErrors() {
 						printErrors()
@@ -105,7 +104,9 @@ func main() {
 						continue
 					}
 
-					fmt.Println(object.Inspect())
+					if object != nil {
+						fmt.Println(object.Inspect())
+					}
 				}
 
 				return nil
