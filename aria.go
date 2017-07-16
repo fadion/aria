@@ -42,21 +42,21 @@ func main() {
 
 				lex := lexer.New(reader.New(source))
 				if reporter.HasErrors() {
-					printErrors(reporter.GetErrors())
+					printErrors()
 					return nil
 				}
 
 				parse := parser.New(lex)
 				program := parse.Parse()
 				if reporter.HasErrors() {
-					printErrors(reporter.GetErrors())
+					printErrors()
 					return nil
 				}
 
 				runner := interpreter.New()
 				runner.Interpret(program, interpreter.NewScope())
 				if reporter.HasErrors() {
-					printErrors(reporter.GetErrors())
+					printErrors()
 					return nil
 				}
 
@@ -87,21 +87,21 @@ func main() {
 
 					lex := lexer.New(reader.New(source))
 					if reporter.HasErrors() {
-						printErrors(reporter.GetErrors())
+						printErrors()
 						continue
 					}
 
 					parse := parser.New(lex)
 					program := parse.Parse()
 					if reporter.HasErrors() {
-						printErrors(reporter.GetErrors())
+						printErrors()
 						continue
 					}
 
 					runner := interpreter.New()
 					object := runner.Interpret(program, scope)
 					if reporter.HasErrors() {
-						printErrors(reporter.GetErrors())
+						printErrors()
 						continue
 					}
 
@@ -120,9 +120,10 @@ func main() {
 	app.Run(os.Args)
 }
 
-func printErrors(errors []string) {
+func printErrors() {
 	color.White("Oops, found some errors:")
-	for _, v := range errors {
+	for _, v := range reporter.GetErrors() {
 		color.Red(v)
 	}
+	reporter.ClearErrors()
 }
