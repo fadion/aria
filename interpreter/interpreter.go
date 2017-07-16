@@ -167,6 +167,13 @@ func (i *Interpreter) runModuleProperties(node *ast.BlockStatement, scope *Scope
 // Interpret a let statement.
 func (i *Interpreter) runLet(node *ast.Let, scope *Scope) DataType {
 	object := i.Interpret(node.Value, scope)
+
+	// On empty value, return before saving
+	// the variable into the scope.
+	if object == nil {
+		return nil
+	}
+
 	// Check if the variable has been already
 	// declared.
 	if _, ok := scope.Read(node.Name.Value); ok {
