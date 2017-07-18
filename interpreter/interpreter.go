@@ -2,10 +2,10 @@ package interpreter
 
 import (
 	"fmt"
+	"github.com/fadion/aria/ast"
+	"github.com/fadion/aria/reporter"
 	"math"
 	"strings"
-	"github.com/fadion/aria/reporter"
-	"github.com/fadion/aria/ast"
 )
 
 // Interpreter.
@@ -891,7 +891,7 @@ func (i *Interpreter) runRangeStringInfix(left, right string) (DataType, error) 
 		}
 	} else {
 		// z -> a
-		for i := len(alphabet) - 1; i >= 0; i -- {
+		for i := len(alphabet) - 1; i >= 0; i-- {
 			v := int32(alphabet[i])
 			if v <= leftByte && v >= rightByte {
 				result = append(result, &StringType{Value: string(v)})

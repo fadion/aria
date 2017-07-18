@@ -1,11 +1,11 @@
 package parser
 
 import (
-	"testing"
-	"github.com/fadion/aria/reader"
-	"github.com/fadion/aria/lexer"
 	"github.com/fadion/aria/ast"
+	"github.com/fadion/aria/lexer"
+	"github.com/fadion/aria/reader"
 	"github.com/fadion/aria/reporter"
+	"testing"
 )
 
 func TestString(t *testing.T) {
@@ -532,7 +532,6 @@ func TestOperatorPrecedence(t *testing.T) {
 			"a >> b + c",
 			"(a >> (b + c))",
 		},
-
 	}
 
 	for _, test := range tests {

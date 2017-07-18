@@ -1,9 +1,9 @@
 package lexer
 
 import (
-	"testing"
-	"github.com/fadion/aria/token"
 	"github.com/fadion/aria/reader"
+	"github.com/fadion/aria/token"
+	"testing"
 )
 
 func TestOperators(t *testing.T) {
@@ -11,7 +11,7 @@ func TestOperators(t *testing.T) {
 let b = true && false || 0 >= 1 < 5 && !true
 let c = 10 & 5 >> 1 | 0 & ~1`
 	tests := []struct {
-		Type    token.TokenType
+		Type   token.TokenType
 		Lexeme string
 	}{
 		{token.LET, "let"},
@@ -81,7 +81,7 @@ let c = 10 & 5 >> 1 | 0 & ~1`
 func TestDataTypes(t *testing.T) {
 	input := `1 5 true 5.20 3.4789 false "yes"`
 	tests := []struct {
-		Type    token.TokenType
+		Type   token.TokenType
 		Lexeme string
 	}{
 		{token.INTEGER, "1"},
@@ -106,7 +106,7 @@ func TestDataTypes(t *testing.T) {
 func TestDelimiters(t *testing.T) {
 	input := `(1, 2, a) ["yes", 5.1, b] [a: b, c: d] a.b a..b`
 	tests := []struct {
-		Type    token.TokenType
+		Type   token.TokenType
 		Lexeme string
 	}{
 		{token.LPAREN, "("},
@@ -153,7 +153,7 @@ func TestDelimiters(t *testing.T) {
 func TestKeywords(t *testing.T) {
 	input := `let var fn function do end not if else right for in left then return middle switch not case module yes`
 	tests := []struct {
-		Type    token.TokenType
+		Type   token.TokenType
 		Lexeme string
 	}{
 		{token.LET, "let"},
@@ -203,7 +203,7 @@ let c = fn x, y, z
   "hi" + x + y + z
 end`
 	tests := []struct {
-		Type    token.TokenType
+		Type   token.TokenType
 		Lexeme string
 	}{
 		{token.LET, "let"},

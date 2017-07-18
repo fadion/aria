@@ -3,7 +3,7 @@ package parser
 import "github.com/fadion/aria/token"
 
 const (
-	_           int = iota
+	_ int = iota
 	LOWEST
 	BOOLEAN
 	BITWISE

@@ -1,8 +1,8 @@
 package lexer
 
 import (
-	"testing"
 	"github.com/fadion/aria/token"
+	"testing"
 )
 
 func TestSymbolInsert(t *testing.T) {

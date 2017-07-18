@@ -3,8 +3,8 @@ package interpreter
 import (
 	"bytes"
 	"fmt"
-	"strings"
 	"github.com/fadion/aria/ast"
+	"strings"
 )
 
 const (

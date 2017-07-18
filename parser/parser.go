@@ -2,13 +2,13 @@ package parser
 
 import (
 	"fmt"
-	"strconv"
-	"reflect"
-	"strings"
-	"github.com/fadion/aria/lexer"
-	"github.com/fadion/aria/token"
 	"github.com/fadion/aria/ast"
+	"github.com/fadion/aria/lexer"
 	"github.com/fadion/aria/reporter"
+	"github.com/fadion/aria/token"
+	"reflect"
+	"strconv"
+	"strings"
 )
 
 // Parser
@@ -22,7 +22,7 @@ type Parser struct {
 
 type (
 	prefixParseFn func() ast.Expression
-	infixParseFn func(ast.Expression) ast.Expression
+	infixParseFn  func(ast.Expression) ast.Expression
 )
 
 // Initialize a parser.

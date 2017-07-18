@@ -1,8 +1,8 @@
 package interpreter
 
 import (
-	"math"
 	"fmt"
+	"math"
 )
 
 // Math.pi() -> Float

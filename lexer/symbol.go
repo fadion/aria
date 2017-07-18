@@ -3,7 +3,7 @@ package lexer
 import "github.com/fadion/aria/token"
 
 // Symbol.
-type Symbol struct {}
+type Symbol struct{}
 
 // Store of symbols.
 var table = make(map[string]token.TokenType)

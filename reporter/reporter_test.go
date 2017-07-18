@@ -1,9 +1,9 @@
 package reporter
 
 import (
-	"testing"
 	"fmt"
 	"github.com/fadion/aria/token"
+	"testing"
 )
 
 func TestError(t *testing.T) {

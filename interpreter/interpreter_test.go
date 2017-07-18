@@ -1,11 +1,11 @@
 package interpreter
 
 import (
-	"testing"
 	"github.com/fadion/aria/lexer"
-	"github.com/fadion/aria/reader"
 	"github.com/fadion/aria/parser"
+	"github.com/fadion/aria/reader"
 	"github.com/fadion/aria/reporter"
+	"testing"
 )
 
 func TestInterpreterString(t *testing.T) {

@@ -1,11 +1,11 @@
 package lexer
 
 import (
-	"fmt"
 	"bytes"
-	"github.com/fadion/aria/token"
-	"github.com/fadion/aria/reporter"
+	"fmt"
 	"github.com/fadion/aria/reader"
+	"github.com/fadion/aria/reporter"
+	"github.com/fadion/aria/token"
 )
 
 // Lexer.
