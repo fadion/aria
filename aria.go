@@ -1,17 +1,17 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"bufio"
-	"io/ioutil"
-	"github.com/fatih/color"
-	"github.com/urfave/cli"
+	"fmt"
+	"github.com/fadion/aria/interpreter"
 	"github.com/fadion/aria/lexer"
+	"github.com/fadion/aria/parser"
 	"github.com/fadion/aria/reader"
 	"github.com/fadion/aria/reporter"
-	"github.com/fadion/aria/parser"
-	"github.com/fadion/aria/interpreter"
+	"github.com/fatih/color"
+	"github.com/urfave/cli"
+	"io/ioutil"
+	"os"
 )
 
 func main() {
