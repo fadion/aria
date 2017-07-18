@@ -607,9 +607,9 @@ func (p *Parser) parseArrayOrDictionary() ast.Expression {
 	// expected a COLON. Otherwise, it's an array.
 	if p.peekMatch(token.COLON) {
 		return p.parseDictionary()
-	} else {
-		return p.parseArray()
 	}
+
+	return p.parseArray()
 }
 
 // [IDENT1, IDENT2]

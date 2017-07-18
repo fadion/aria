@@ -43,7 +43,7 @@ func (r *Reader) Peek() (rune, error) {
 	return rn, nil
 }
 
-// Unread the previosuly read character.
+// Unread the previously read character.
 func (r *Reader) Unread() error {
 	if err := r.Source.UnreadRune(); err != nil {
 		return err

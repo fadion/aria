@@ -288,12 +288,12 @@ func (i *Interpreter) runSwitch(node *ast.Switch, scope *Scope) DataType {
 
 	if thecase != nil {
 		return i.Interpret(thecase.Body, NewScopeFrom(scope))
-	} else {
-		// Run the default case only if no winning
-		// case was found.
-		if node.Default != nil {
-			return i.Interpret(node.Default, NewScopeFrom(scope))
-		}
+	}
+
+	// Run the default case only if no winning
+	// case was found.
+	if node.Default != nil {
+		return i.Interpret(node.Default, NewScopeFrom(scope))
 	}
 
 	return nil
@@ -434,9 +434,9 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 			// Return immediately with a value. No need for
 			// further calculation.
 			return i.runLibraryFunction(node, libFunc, scope)
-		} else {
-			fn = i.Interpret(nodeType, scope)
 		}
+
+		fn = i.Interpret(nodeType, scope)
 	case *ast.Identifier:
 		fn = i.Interpret(nodeType, scope)
 	}
@@ -693,9 +693,9 @@ func (i *Interpreter) runIntegerInfix(operator string, left, right DataType) (Da
 		// as an Integer object. Otherwise it will be a Float object.
 		if math.Trunc(value) == value {
 			return &IntegerType{Value: int64(value)}, nil
-		} else {
-			return &FloatType{Value: value}, nil
 		}
+
+		return &FloatType{Value: value}, nil
 	case "%":
 		return &IntegerType{Value: leftVal % rightVal}, nil
 	case "**": // Exponentiation

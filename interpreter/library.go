@@ -59,7 +59,7 @@ func (l *Library) Get(function string) (libraryFunc, bool) {
 	_, ok := l.store[function]
 	if ok {
 		return l.store[function], true
-	} else {
-		return nil, false
 	}
+
+	return nil, false
 }

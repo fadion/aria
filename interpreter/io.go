@@ -13,7 +13,7 @@ func ioPuts(args ...DataType) (DataType, error) {
 
 	fmt.Println(args[0].Inspect())
 
-	// Return a dummy string just to surpress errors,
+	// Return a dummy string just to supress errors,
 	// as there's nothing to return.
 	return &StringType{Value: ""}, nil
 }
