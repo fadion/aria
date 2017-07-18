@@ -348,7 +348,7 @@ String.trim(String, subset String) -> String
 String.replace(String, search String, replace String) -> String
 String.join(Array, glue String) -> String
 String.split(String, separator String) -> Array
-String.has(String, search String) -> Boolean 
+String.contains?(String, search String) -> Boolean 
 ```
 
 ### Enum

@@ -186,7 +186,7 @@ func stringSplit(args ...DataType) (DataType, error) {
 
 // String.has(string, search [string]) -> Bool
 // Check if a string has a substring.
-func stringHas(args ...DataType) (DataType, error) {
+func stringContains(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("String.has expects exactly 2 arguments")
 	}

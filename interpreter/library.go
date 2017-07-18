@@ -50,7 +50,7 @@ func (l *Library) Register() {
 	l.store["String.replace"] = stringReplace
 	l.store["String.join"] = stringJoin
 	l.store["String.split"] = stringSplit
-	l.store["String.has"] = stringHas
+	l.store["String.contains?"] = stringContains
 
 	l.store["IO.puts"] = ioPuts
 	l.store["IO.write"] = ioWrite
