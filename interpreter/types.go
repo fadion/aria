@@ -31,13 +31,13 @@ var (
 	FALSE = &BooleanType{Value: false}
 )
 
-// Data Type interface.
+// DataType interface.
 type DataType interface {
 	Type() string
 	Inspect() string
 }
 
-// Module.
+// ModuleType for modules.
 type ModuleType struct {
 	Name *ast.Identifier
 	Body *ast.BlockStatement
@@ -56,7 +56,7 @@ func (t *ModuleType) Inspect() string {
 	return out.String()
 }
 
-// Integer.
+// IntegerType for integers.
 type IntegerType struct {
 	Value int64
 }
@@ -64,7 +64,7 @@ type IntegerType struct {
 func (t *IntegerType) Type() string    { return INTEGER_TYPE }
 func (t *IntegerType) Inspect() string { return fmt.Sprintf("%d", t.Value) }
 
-// Floating point number.
+// FloatType for floating point numbers.
 type FloatType struct {
 	Value float64
 }
@@ -72,7 +72,7 @@ type FloatType struct {
 func (t *FloatType) Type() string    { return FLOAT_TYPE }
 func (t *FloatType) Inspect() string { return fmt.Sprintf("%f", t.Value) }
 
-// String.
+// StringType for strings.
 type StringType struct {
 	Value string
 }
@@ -80,7 +80,7 @@ type StringType struct {
 func (t *StringType) Type() string    { return STRING_TYPE }
 func (t *StringType) Inspect() string { return "\"" + t.Value + "\"" }
 
-// Boolean.
+// BooleanType for boolean.
 type BooleanType struct {
 	Value bool
 }
@@ -88,7 +88,7 @@ type BooleanType struct {
 func (t *BooleanType) Type() string    { return BOOLEAN_TYPE }
 func (t *BooleanType) Inspect() string { return fmt.Sprintf("%t", t.Value) }
 
-// Array.
+// ArrayType for arrays.
 type ArrayType struct {
 	Elements []DataType
 }
@@ -109,7 +109,7 @@ func (t *ArrayType) Inspect() string {
 	return out.String()
 }
 
-// Dictionary.
+// DictionaryType for dictionaries.
 type DictionaryType struct {
 	Pairs map[*StringType]DataType
 }
@@ -130,13 +130,13 @@ func (t *DictionaryType) Inspect() string {
 	return out.String()
 }
 
-// NIL.
+// NilType for nil.
 type NilType struct{}
 
 func (t *NilType) Type() string    { return NIL_TYPE }
 func (t *NilType) Inspect() string { return "nil" }
 
-// Function.
+// FunctionType for functions.
 type FunctionType struct {
 	Parameters []*ast.Identifier
 	Body       *ast.BlockStatement
@@ -162,7 +162,7 @@ func (t *FunctionType) Inspect() string {
 	return out.String()
 }
 
-// Return.
+// ReturnType for return.
 type ReturnType struct {
 	Value DataType
 }
@@ -170,13 +170,13 @@ type ReturnType struct {
 func (t *ReturnType) Type() string    { return RETURN_TYPE }
 func (t *ReturnType) Inspect() string { return t.Value.Inspect() }
 
-// Break.
+// BreakType for break.
 type BreakType struct{}
 
 func (t *BreakType) Type() string    { return BREAK_TYPE }
 func (t *BreakType) Inspect() string { return BREAK_TYPE }
 
-// Continue.
+// ContinueType for continue.
 type ContinueType struct{}
 
 func (t *ContinueType) Type() string    { return CONTINUE_TYPE }

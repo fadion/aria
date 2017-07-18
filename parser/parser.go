@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-// Parser
+// Parser represents the parser.
 type Parser struct {
 	lex             *lexer.Lexer
 	token           token.Token
@@ -25,7 +25,7 @@ type (
 	infixParseFn  func(ast.Expression) ast.Expression
 )
 
-// Initialize a parser.
+// New initializes a parser.
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{lex: l}
 

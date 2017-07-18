@@ -1,19 +1,20 @@
 package token
 
-// A language token.
+// Token represents a language token.
 type Token struct {
 	Type     TokenType
 	Lexeme   string
 	Location Location
 }
 
-// Token location.
+// Location of the token in source code.
 type Location struct {
 	Row int
 	Col int
 }
 
-// String alias.
+// TokenType is a type of token aliased
+// as string.
 type TokenType string
 
 // Tokens.

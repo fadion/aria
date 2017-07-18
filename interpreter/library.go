@@ -1,6 +1,6 @@
 package interpreter
 
-// Standard library.
+// Library represents the standard library.
 type Library struct {
 	store map[string]libraryFunc
 }
@@ -8,14 +8,14 @@ type Library struct {
 // Alias to a func.
 type libraryFunc func(args ...DataType) (DataType, error)
 
-// Initializes a Library.
+// NewLibrary initializes a Library.
 func NewLibrary() *Library {
 	return &Library{
 		store: map[string]libraryFunc{},
 	}
 }
 
-// Bootstrap the registration process.
+// Register bootstraps the registration process.
 func (l *Library) Register() {
 	l.store["Math.pi"] = mathPi
 	l.store["Math.ceil"] = mathCeil
@@ -54,7 +54,7 @@ func (l *Library) Register() {
 	l.store["IO.write"] = ioWrite
 }
 
-// Get a function from the library.
+// Get returns a function from the library.
 func (l *Library) Get(function string) (libraryFunc, bool) {
 	_, ok := l.store[function]
 	if ok {

@@ -4,7 +4,7 @@ import (
 	"io"
 )
 
-// Reader.
+// Reader represents the source reader.
 type Reader struct {
 	// Using a very slightly modified version of
 	// bytes.Buffer. Added a NextRune() method that
@@ -12,12 +12,12 @@ type Reader struct {
 	Source *Buffer
 }
 
-// Initialise a reader.
+// New initialises a reader.
 func New(contents []byte) *Reader {
 	return &Reader{Source: NewBuffer(contents)}
 }
 
-// Advance the cursor by one position.
+// Advance moves the cursor forward by one position.
 func (r *Reader) Advance() (rune, error) {
 	rn, _, err := r.Source.ReadRune()
 	if err == io.EOF {
@@ -30,7 +30,7 @@ func (r *Reader) Advance() (rune, error) {
 	return rn, nil
 }
 
-// Get the next character but don't advance the cursor.
+// Peek gets the next character but doesn't advance the cursor.
 func (r *Reader) Peek() (rune, error) {
 	rn, _, err := r.Source.NextRune()
 	if err == io.EOF {
@@ -43,7 +43,8 @@ func (r *Reader) Peek() (rune, error) {
 	return rn, nil
 }
 
-// Unread the previously read character.
+// Unread returns the cursor to the previously
+// read character.
 func (r *Reader) Unread() error {
 	if err := r.Source.UnreadRune(); err != nil {
 		return err

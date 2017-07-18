@@ -1,20 +1,20 @@
 package interpreter
 
-// Scope.
+// Scope represents the variable scope.
 type Scope struct {
 	store  map[string]DataType
 	parent *Scope
 }
 
-// Initializes an empty scope.
+// NewScope initializes an empty scope.
 func NewScope() *Scope {
 	return &Scope{
 		store: make(map[string]DataType),
 	}
 }
 
-// Initializes a scope by inheriting from
-// a parent.
+// NewScopeFrom initializes a scope by inheriting
+// from a parent.
 func NewScopeFrom(parent *Scope) *Scope {
 	return &Scope{
 		store:  make(map[string]DataType),
@@ -22,7 +22,7 @@ func NewScopeFrom(parent *Scope) *Scope {
 	}
 }
 
-// Read a variable from the scope.
+// Read returns a variable from the scope.
 func (s *Scope) Read(name string) (DataType, bool) {
 	value, ok := s.store[name]
 	if !ok && s.parent != nil {
@@ -32,7 +32,7 @@ func (s *Scope) Read(name string) (DataType, bool) {
 	return value, ok
 }
 
-// Write a variable to the scope.
+// Write saves a variable to the scope.
 func (s *Scope) Write(name string, value DataType) {
 	s.store[name] = value
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/fadion/aria/token"
 )
 
-// Lexer.
+// Lexer represents the lexer.
 type Lexer struct {
 	reader *reader.Reader
 	char   rune
@@ -18,7 +18,7 @@ type Lexer struct {
 	symbol *Symbol
 }
 
-// Initialize a Lexer.
+// New initializes a Lexer.
 func New(reader *reader.Reader) *Lexer {
 	l := &Lexer{
 		reader: reader,
@@ -54,7 +54,7 @@ func New(reader *reader.Reader) *Lexer {
 	return l
 }
 
-// Get the next token.
+// NextToken returns the next token.
 func (l *Lexer) NextToken() token.Token {
 	// Ignore any number of sequential whitespace.
 	l.consumeWhitespace()

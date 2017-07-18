@@ -336,6 +336,8 @@ func (b *Buffer) ReadRune() (r rune, size int, err error) {
 	return r, n, nil
 }
 
+// NextRune reads and returns the next rune without
+// moving the internal cursor.
 func (b *Buffer) NextRune() (r rune, size int, err error) {
 	b.lastRead = opInvalid
 	if b.off >= len(b.buf) {

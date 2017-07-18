@@ -6,26 +6,26 @@ import (
 	"strings"
 )
 
-// An AST node.
+// A Node on the AST.
 type Node interface {
 	TokenLexeme() string
 	TokenLocation() token.Location
 	Inspect() string
 }
 
-// A statement.
+// A Statement of code.
 type Statement interface {
 	Node
 	statement()
 }
 
-// An expression.
+// An Expression of code.
 type Expression interface {
 	Node
 	expression()
 }
 
-// Root node.
+// Program as the root node.
 type Program struct {
 	Statements []Statement
 }
@@ -109,7 +109,7 @@ func (e *Integer) TokenLexeme() string           { return e.Token.Lexeme }
 func (e *Integer) TokenLocation() token.Location { return e.Token.Location }
 func (e *Integer) Inspect() string               { return e.Token.Lexeme }
 
-// Floating point numeric literal.
+// Float as a floating point literal.
 type Float struct {
 	Token token.Token
 	Value float64
@@ -150,7 +150,7 @@ func (e *Array) Inspect() string {
 	return out.String()
 }
 
-// Array/Dictionary subscript.
+// Subscript for arrays and dictionaries.
 type Subscript struct {
 	Token token.Token
 	Left  Expression
@@ -253,7 +253,7 @@ func (e *If) Inspect() string {
 	return out.String()
 }
 
-// Switch control structure.
+// Switch conditional.
 type Switch struct {
 	Token   token.Token
 	Control Expression
@@ -289,7 +289,7 @@ func (e *Switch) Inspect() string {
 	return out.String()
 }
 
-// A switch case.
+// A SwitchCase on a switch.
 type SwitchCase struct {
 	Token  token.Token
 	Values *ExpressionList
@@ -342,7 +342,7 @@ func (e *For) Inspect() string {
 	return out.String()
 }
 
-// Module.
+// Module block.
 type Module struct {
 	Token token.Token
 	Name  *Identifier
@@ -364,7 +364,8 @@ func (e *Module) Inspect() string {
 	return out.String()
 }
 
-// Module access.
+// ModuleAccess to access module properties
+// and methods.
 type ModuleAccess struct {
 	Token     token.Token
 	Object    *Identifier
@@ -406,7 +407,7 @@ func (e *Function) Inspect() string {
 	return out.String()
 }
 
-// A function call.
+// FunctionCall calls a function.
 type FunctionCall struct {
 	Token     token.Token
 	Function  Expression
@@ -437,7 +438,7 @@ func (e *Break) TokenLexeme() string           { return e.Token.Lexeme }
 func (e *Break) TokenLocation() token.Location { return e.Token.Location }
 func (e *Break) Inspect() string               { return e.Token.Lexeme }
 
-// Break statement.
+// Continue statement.
 type Continue struct {
 	Token token.Token
 }
@@ -447,7 +448,8 @@ func (e *Continue) TokenLexeme() string           { return e.Token.Lexeme }
 func (e *Continue) TokenLocation() token.Location { return e.Token.Location }
 func (e *Continue) Inspect() string               { return e.Token.Lexeme }
 
-// A statement of expressions.
+// ExpressionStatement as a statement that
+// holds expressions.
 type ExpressionStatement struct {
 	Token      token.Token
 	Expression Expression
@@ -464,7 +466,7 @@ func (e *ExpressionStatement) Inspect() string {
 	return ""
 }
 
-// A block of statements.
+// BlockStatement that holds several statements.
 type BlockStatement struct {
 	Token      token.Token
 	Statements []Statement
@@ -483,7 +485,7 @@ func (e *BlockStatement) Inspect() string {
 	return out.String()
 }
 
-// A list of expressions.
+// ExpressionList holds a list of expressions.
 type ExpressionList struct {
 	Token    token.Token
 	Elements []Expression
@@ -505,7 +507,7 @@ func (e *ExpressionList) Inspect() string {
 	return out.String()
 }
 
-// A list of identifiers.
+// IdentifierList holds a list of identifiers.
 type IdentifierList struct {
 	Token    token.Token
 	Elements []*Identifier
@@ -527,7 +529,8 @@ func (e *IdentifierList) Inspect() string {
 	return out.String()
 }
 
-// Prefix expression.
+// PrefixExpression as an expression with a prefix
+// operator.
 type PrefixExpression struct {
 	Token    token.Token
 	Operator string
@@ -548,7 +551,8 @@ func (e *PrefixExpression) Inspect() string {
 	return out.String()
 }
 
-// Infix expression.
+// InfixExpression with two expressions on the left
+// and right, combined by an operator.
 type InfixExpression struct {
 	Token    token.Token
 	Left     Expression

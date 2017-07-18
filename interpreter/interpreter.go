@@ -8,13 +8,13 @@ import (
 	"strings"
 )
 
-// Interpreter.
+// Interpreter represents the interpreter.
 type Interpreter struct {
 	modules map[string]*ModuleType
 	library *Library
 }
 
-// Initialise an Interpreter.
+// New initializes an Interpreter.
 func New() *Interpreter {
 	lib := NewLibrary()
 	lib.Register()
@@ -25,7 +25,7 @@ func New() *Interpreter {
 	}
 }
 
-// Run the interpreter.
+// Interpret runs the interpreter.
 func (i *Interpreter) Interpret(node ast.Node, scope *Scope) DataType {
 	switch node := node.(type) {
 	case *ast.Program:
