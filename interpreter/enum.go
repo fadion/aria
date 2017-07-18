@@ -6,7 +6,7 @@ import (
 
 // Enum.size(array) -> Integer
 // Size of the array.
-func enum_size(args ...DataType) (DataType, error) {
+func enumSize(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("Enum.size expects exactly 1 argument")
 	}
@@ -23,7 +23,7 @@ func enum_size(args ...DataType) (DataType, error) {
 
 // Enum.reverse(array) -> Array
 // Reverse the elements of the array.
-func enum_reverse(args ...DataType) (DataType, error) {
+func enumReverse(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("Enum.reverse expects exactly 1 argument")
 	}
@@ -48,7 +48,7 @@ func enum_reverse(args ...DataType) (DataType, error) {
 
 // Enum.first(array) -> any
 // Get the first element of the array.
-func enum_first(args ...DataType) (DataType, error) {
+func enumFirst(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("Enum.first expects exactly 1 argument")
 	}
@@ -71,7 +71,7 @@ func enum_first(args ...DataType) (DataType, error) {
 
 // Enum.last(array) -> any
 // Get the last element of the array.
-func enum_last(args ...DataType) (DataType, error) {
+func enumLast(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("Enum.last expects exactly 1 argument")
 	}
@@ -94,7 +94,7 @@ func enum_last(args ...DataType) (DataType, error) {
 
 // Enum.insert(array, element [any]) -> Array
 // Insert an element at the end of the array.
-func enum_insert(args ...DataType) (DataType, error) {
+func enumInsert(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("Enum.insert expects exactly 2 arguments")
 	}
@@ -110,7 +110,7 @@ func enum_insert(args ...DataType) (DataType, error) {
 
 // Enum.delete(array, index [integer]) -> Array
 // Delete an element from the array.
-func enum_delete(args ...DataType) (DataType, error) {
+func enumDelete(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("Enum.delete expects exactly 2 arguments")
 	}

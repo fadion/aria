@@ -6,7 +6,7 @@ import (
 
 // IO.puts(any)
 // Write a string to stdout and a newline.
-func io_puts(args ...DataType) (DataType, error) {
+func ioPuts(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("IO.puts expects exactly 1 argument")
 	}
@@ -20,7 +20,7 @@ func io_puts(args ...DataType) (DataType, error) {
 
 // IO.write(any)
 // Write a string to stdout.
-func io_write(args ...DataType) (DataType, error) {
+func ioWrite(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("IO.puts expects exactly 1 argument")
 	}

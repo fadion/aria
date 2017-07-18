@@ -6,7 +6,7 @@ import (
 
 // Dict.size(dictionary) -> Integer
 // Size of the dictionary.
-func dict_size(args ...DataType) (DataType, error) {
+func dictSize(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("Dict.size expects exactly 1 argument")
 	}
@@ -21,7 +21,7 @@ func dict_size(args ...DataType) (DataType, error) {
 
 // Dict.has(dictionary, key [string]) -> Boolean
 // Check if the dictionary has a key.
-func dict_has(args ...DataType) (DataType, error) {
+func dictHas(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("Dict.has expects exactly 2 arguments")
 	}
@@ -49,7 +49,7 @@ func dict_has(args ...DataType) (DataType, error) {
 
 // Dict.insert(dictionary, key [string], value [any]) -> Dictionary
 // Insert a key:value in the dictionary.
-func dict_insert(args ...DataType) (DataType, error) {
+func dictInsert(args ...DataType) (DataType, error) {
 	if len(args) != 3 {
 		return nil, fmt.Errorf("Dict.size expects exactly 3 arguments")
 	}
@@ -71,7 +71,7 @@ func dict_insert(args ...DataType) (DataType, error) {
 
 // Dict.delete(dictionary, key [string]) -> Dictionary
 // Delete a key from the dictionary.
-func dict_delete(args ...DataType) (DataType, error) {
+func dictDelete(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("Dict.size expects exactly 2 arguments")
 	}

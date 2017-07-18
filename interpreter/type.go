@@ -7,7 +7,7 @@ import (
 
 // Type.of(any) -> String
 // Get the type of a value.
-func type_of(args ...DataType) (DataType, error) {
+func typeOf(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("Type.of expects exactly 1 argument")
 	}
@@ -17,7 +17,7 @@ func type_of(args ...DataType) (DataType, error) {
 
 // Type.toString(any) -> String
 // Convert a value to string.
-func type_toString(args ...DataType) (DataType, error) {
+func typeToString(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("Type.toString expects exactly 1 argument")
 	}
@@ -38,7 +38,7 @@ func type_toString(args ...DataType) (DataType, error) {
 
 // Type.toInt(any) -> Integer
 // Convert a value to integer.
-func type_toInt(args ...DataType) (DataType, error) {
+func typeToInt(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("Type.toInt expects exactly 1 argument")
 	}
@@ -67,7 +67,7 @@ func type_toInt(args ...DataType) (DataType, error) {
 
 // Type.toFloat(any) -> Float
 // Convert a value to float.
-func type_toFloat(args ...DataType) (DataType, error) {
+func typeToFloat(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("Type.toFloat expects exactly 1 argument")
 	}

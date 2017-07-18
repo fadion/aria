@@ -7,7 +7,7 @@ import (
 
 // Math.pi() -> Float
 // Pi constant.
-func math_pi(args ...DataType) (DataType, error) {
+func mathPi(args ...DataType) (DataType, error) {
 	if len(args) > 0 {
 		return nil, fmt.Errorf("Math.pi doesn't expect arguments")
 	}
@@ -17,7 +17,7 @@ func math_pi(args ...DataType) (DataType, error) {
 
 // Math.ceil(float) -> Integer
 // Round up the float.
-func math_ceil(args ...DataType) (DataType, error) {
+func mathCeil(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("Math.ceil expects exactly 1 argument")
 	}
@@ -32,7 +32,7 @@ func math_ceil(args ...DataType) (DataType, error) {
 
 // Math.floor(float) -> Integer
 // Round down the float.
-func math_floor(args ...DataType) (DataType, error) {
+func mathFloor(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("Math.floor expects exactly 1 argument")
 	}
@@ -47,7 +47,7 @@ func math_floor(args ...DataType) (DataType, error) {
 
 // Math.max(float | integer, float | integer) -> Float | Integer
 // Get the biggest value between two floats or integers.
-func math_max(args ...DataType) (DataType, error) {
+func mathMax(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("Math.max expects exactly 2 arguments")
 	}
@@ -80,7 +80,7 @@ func math_max(args ...DataType) (DataType, error) {
 
 // Math.min(float | integer, float | integer) -> Float | Integer
 // Get the smallest value between two floats or integers.
-func math_min(args ...DataType) (DataType, error) {
+func mathMin(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("Math.min expects exactly 2 arguments")
 	}

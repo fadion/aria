@@ -7,7 +7,7 @@ import (
 
 // String.count(string) -> Integer
 // Count the number of characters in a string.
-func string_count(args ...DataType) (DataType, error) {
+func stringCount(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("String.count expects exactly 1 argument")
 	}
@@ -22,7 +22,7 @@ func string_count(args ...DataType) (DataType, error) {
 
 // String.lower(string) -> String
 // Make all the characters of a string lowercase.
-func string_lower(args ...DataType) (DataType, error) {
+func stringLower(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("String.lower expects exactly 1 argument")
 	}
@@ -37,7 +37,7 @@ func string_lower(args ...DataType) (DataType, error) {
 
 // String.upper(string) -> String
 // Make all the characters of a string uppercase.
-func string_upper(args ...DataType) (DataType, error) {
+func stringUpper(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("String.upper expects exactly 1 argument")
 	}
@@ -52,7 +52,7 @@ func string_upper(args ...DataType) (DataType, error) {
 
 // String.capitalize(string) -> String
 // Make the first character of words uppercase.
-func string_capitalize(args ...DataType) (DataType, error) {
+func stringCapitalize(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("String.capitalize expects exactly 1 argument")
 	}
@@ -67,7 +67,7 @@ func string_capitalize(args ...DataType) (DataType, error) {
 
 // String.trim(string, subset [string]) -> String
 // Remove all subset characters from the string.
-func string_trim(args ...DataType) (DataType, error) {
+func stringTrim(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("String.trim expects exactly 2 arguments")
 	}
@@ -88,7 +88,7 @@ func string_trim(args ...DataType) (DataType, error) {
 
 // String.replace(string, search [string], replace [string]) -> String
 // Replace a substring with another string.
-func string_replace(args ...DataType) (DataType, error) {
+func stringReplace(args ...DataType) (DataType, error) {
 	if len(args) != 3 {
 		return nil, fmt.Errorf("String.replace expects exactly 3 arguments")
 	}
@@ -114,7 +114,7 @@ func string_replace(args ...DataType) (DataType, error) {
 
 // String.join(array, glue [string]) -> String
 // Join every element of the array with glue in a string.
-func string_join(args ...DataType) (DataType, error) {
+func stringJoin(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("String.join expects exactly 2 arguments")
 	}
@@ -145,7 +145,7 @@ func string_join(args ...DataType) (DataType, error) {
 
 // String.split(string, separator) -> Array
 // Split a string by the separator into an array.
-func string_split(args ...DataType) (DataType, error) {
+func stringSplit(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("String.split expects exactly 2 arguments")
 	}
@@ -171,7 +171,7 @@ func string_split(args ...DataType) (DataType, error) {
 
 // String.has(string, search [string]) -> Bool
 // Check if a string has a substring.
-func string_has(args ...DataType) (DataType, error) {
+func stringHas(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("String.has expects exactly 2 arguments")
 	}

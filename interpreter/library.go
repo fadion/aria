@@ -1,6 +1,6 @@
 package interpreter
 
-// Standart library.
+// Standard library.
 type Library struct {
 	store map[string]libraryFunc
 }
@@ -17,41 +17,41 @@ func NewLibrary() *Library {
 
 // Bootstrap the registration process.
 func (l *Library) Register() {
-	l.store["Math.pi"] = math_pi
-	l.store["Math.ceil"] = math_ceil
-	l.store["Math.floor"] = math_floor
-	l.store["Math.max"] = math_max
-	l.store["Math.min"] = math_min
+	l.store["Math.pi"] = mathPi
+	l.store["Math.ceil"] = mathCeil
+	l.store["Math.floor"] = mathFloor
+	l.store["Math.max"] = mathMax
+	l.store["Math.min"] = mathMin
 
-	l.store["Type.of"] = type_of
-	l.store["Type.toString"] = type_toString
-	l.store["Type.toInt"] = type_toInt
-	l.store["Type.toFloat"] = type_toFloat
+	l.store["Type.of"] = typeOf
+	l.store["Type.toString"] = typeToString
+	l.store["Type.toInt"] = typeToInt
+	l.store["Type.toFloat"] = typeToFloat
 
-	l.store["Enum.size"] = enum_size
-	l.store["Enum.reverse"] = enum_reverse
-	l.store["Enum.first"] = enum_first
-	l.store["Enum.last"] = enum_last
-	l.store["Enum.insert"] = enum_insert
-	l.store["Enum.delete"] = enum_delete
+	l.store["Enum.size"] = enumSize
+	l.store["Enum.reverse"] = enumReverse
+	l.store["Enum.first"] = enumFirst
+	l.store["Enum.last"] = enumLast
+	l.store["Enum.insert"] = enumInsert
+	l.store["Enum.delete"] = enumDelete
 
-	l.store["Dict.size"] = dict_size
-	l.store["Dict.has"] = dict_has
-	l.store["Dict.insert"] = dict_insert
-	l.store["Dict.delete"] = dict_delete
+	l.store["Dict.size"] = dictSize
+	l.store["Dict.has"] = dictHas
+	l.store["Dict.insert"] = dictInsert
+	l.store["Dict.delete"] = dictDelete
 
-	l.store["String.count"] = string_count
-	l.store["String.lower"] = string_lower
-	l.store["String.upper"] = string_upper
-	l.store["String.capitalize"] = string_capitalize
-	l.store["String.trim"] = string_trim
-	l.store["String.replace"] = string_replace
-	l.store["String.join"] = string_join
-	l.store["String.split"] = string_split
-	l.store["String.has"] = string_has
+	l.store["String.count"] = stringCount
+	l.store["String.lower"] = stringLower
+	l.store["String.upper"] = stringUpper
+	l.store["String.capitalize"] = stringCapitalize
+	l.store["String.trim"] = stringTrim
+	l.store["String.replace"] = stringReplace
+	l.store["String.join"] = stringJoin
+	l.store["String.split"] = stringSplit
+	l.store["String.has"] = stringHas
 
-	l.store["IO.puts"] = io_puts
-	l.store["IO.write"] = io_write
+	l.store["IO.puts"] = ioPuts
+	l.store["IO.write"] = ioWrite
 }
 
 // Get a function from the library.
