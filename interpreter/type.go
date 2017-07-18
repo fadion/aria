@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-// Type.of(any) -> String
+// Type.of(Any) -> String
 // Get the type of a value.
 func typeOf(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
@@ -15,7 +15,7 @@ func typeOf(args ...DataType) (DataType, error) {
 	return &StringType{Value: args[0].Type()}, nil
 }
 
-// Type.toString(any) -> String
+// Type.toString(Any) -> String
 // Convert a value to string.
 func typeToString(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
@@ -36,7 +36,7 @@ func typeToString(args ...DataType) (DataType, error) {
 	}
 }
 
-// Type.toInt(any) -> Integer
+// Type.toInt(Any) -> Integer
 // Convert a value to integer.
 func typeToInt(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
@@ -65,7 +65,7 @@ func typeToInt(args ...DataType) (DataType, error) {
 	}
 }
 
-// Type.toFloat(any) -> Float
+// Type.toFloat(Any) -> Float
 // Convert a value to float.
 func typeToFloat(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
@@ -91,5 +91,27 @@ func typeToFloat(args ...DataType) (DataType, error) {
 		return &FloatType{Value: object.Value}, nil
 	default:
 		return nil, fmt.Errorf("Type.toFloat can't convert '%s' to Integer", object.Type())
+	}
+}
+
+// Type.toArray(Any) -> String
+// Convert a value to string.
+func typeToArray(args ...DataType) (DataType, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("Type.toArray expects exactly 1 argument")
+	}
+
+	switch object := args[0].(type) {
+	case *StringType:
+		result := []DataType{}
+		for _, k := range object.Value {
+			result = append(result, &StringType{Value: string(k)})
+		}
+
+		return &ArrayType{Elements: result}, nil
+	case *IntegerType, *FloatType:
+		return &ArrayType{Elements: []DataType{object}}, nil
+	default:
+		return nil, fmt.Errorf("Type.toArray can't convert '%s' to Array", object.Type())
 	}
 }

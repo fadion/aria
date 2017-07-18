@@ -27,6 +27,7 @@ func (l *Library) Register() {
 	l.store["Type.toString"] = typeToString
 	l.store["Type.toInt"] = typeToInt
 	l.store["Type.toFloat"] = typeToFloat
+	l.store["Type.toArray"] = typeToArray
 
 	l.store["Enum.size"] = enumSize
 	l.store["Enum.reverse"] = enumReverse

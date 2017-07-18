@@ -333,6 +333,7 @@ Type.of(Any) -> String
 Type.toString(Any) -> String
 Type.toInt(Any) -> Integer
 Type.toFloat(Any) -> Float
+Type.toArray(Any) -> Array
 ```
 
 ### String
