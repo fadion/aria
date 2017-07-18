@@ -108,8 +108,6 @@ func main() {
 						fmt.Println(object.Inspect())
 					}
 				}
-
-				return nil
 			},
 		},
 	}
