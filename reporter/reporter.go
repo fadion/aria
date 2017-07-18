@@ -8,6 +8,7 @@ import (
 // String alias.
 type ErrorType string
 
+// Error types.
 const (
 	PARSE   ErrorType = "Parse Error"
 	RUNTIME ErrorType = "Runtime Error"

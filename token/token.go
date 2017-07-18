@@ -16,6 +16,7 @@ type Location struct {
 // String alias.
 type TokenType string
 
+// Tokens.
 const (
 	// Literals
 	IDENTIFIER = "IDENTIFIER"

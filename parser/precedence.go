@@ -2,6 +2,7 @@ package parser
 
 import "github.com/fadion/aria/token"
 
+// Precedence.
 const (
 	_ int = iota
 	LOWEST

@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// Data types.
 const (
 	INTEGER_TYPE    = "Integer"
 	FLOAT_TYPE      = "Float"
