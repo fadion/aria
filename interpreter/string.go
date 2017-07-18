@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// String.count(string) -> Integer
+// String.count(String) -> Integer
 // Count the number of unicode characters in a string.
 func stringCount(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
@@ -20,7 +20,7 @@ func stringCount(args ...DataType) (DataType, error) {
 	return &IntegerType{Value: int64(len([]rune(object)))}, nil
 }
 
-// String.countBytes(string) -> Integer
+// String.countBytes(String) -> Integer
 // Count the number of bytes in a string.
 func stringCountBytes(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
@@ -35,7 +35,7 @@ func stringCountBytes(args ...DataType) (DataType, error) {
 	return &IntegerType{Value: int64(len(object))}, nil
 }
 
-// String.lower(string) -> String
+// String.lower(String) -> String
 // Make all the characters of a string lowercase.
 func stringLower(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
@@ -50,7 +50,7 @@ func stringLower(args ...DataType) (DataType, error) {
 	return &StringType{Value: strings.ToLower(object)}, nil
 }
 
-// String.upper(string) -> String
+// String.upper(String) -> String
 // Make all the characters of a string uppercase.
 func stringUpper(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
@@ -65,7 +65,7 @@ func stringUpper(args ...DataType) (DataType, error) {
 	return &StringType{Value: strings.ToUpper(object)}, nil
 }
 
-// String.capitalize(string) -> String
+// String.capitalize(String) -> String
 // Make the first character of words uppercase.
 func stringCapitalize(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
@@ -80,7 +80,7 @@ func stringCapitalize(args ...DataType) (DataType, error) {
 	return &StringType{Value: strings.Title(object)}, nil
 }
 
-// String.trim(string, subset [string]) -> String
+// String.trim(String, subset String) -> String
 // Remove all subset characters from the string.
 func stringTrim(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
@@ -101,7 +101,7 @@ func stringTrim(args ...DataType) (DataType, error) {
 	return &StringType{Value: strings.Trim(object, subset)}, nil
 }
 
-// String.replace(string, search [string], replace [string]) -> String
+// String.replace(String, search String, replace String) -> String
 // Replace a substring with another string.
 func stringReplace(args ...DataType) (DataType, error) {
 	if len(args) != 3 {
@@ -127,7 +127,7 @@ func stringReplace(args ...DataType) (DataType, error) {
 	return &StringType{Value: strings.Replace(object, search, replace, -1)}, nil
 }
 
-// String.join(array, glue [string]) -> String
+// String.join(Array, glue String) -> String
 // Join every element of the array with glue in a string.
 func stringJoin(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
@@ -158,7 +158,7 @@ func stringJoin(args ...DataType) (DataType, error) {
 	return &StringType{Value: strings.Join(result, glue)}, nil
 }
 
-// String.split(string, separator) -> Array
+// String.split(String, separator String) -> Array
 // Split a string by the separator into an array.
 func stringSplit(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
@@ -184,7 +184,7 @@ func stringSplit(args ...DataType) (DataType, error) {
 	return &ArrayType{Elements: result}, nil
 }
 
-// String.has(string, search [string]) -> Bool
+// String.contains?(String, search String) -> Bool
 // Check if a string has a substring.
 func stringContains(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
@@ -203,4 +203,26 @@ func stringContains(args ...DataType) (DataType, error) {
 	search := args[1].(*StringType).Value
 
 	return &BooleanType{Value: strings.Contains(object, search)}, nil
+}
+
+// String.reverse(String) -> Bool
+// Reverse the characters of a string.
+func stringReverse(args ...DataType) (DataType, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("String.reverse expects exactly 1 argument")
+	}
+
+	if args[0].Type() != STRING_TYPE {
+		return nil, fmt.Errorf("String.reverse expects a String")
+	}
+
+	object := args[0].(*StringType).Value
+	// Implemented from:
+	// https://github.com/golang/example/blob/master/stringutil/reverse.go
+	rev := []rune(object)
+	for i, j := 0, len(rev)-1; i < len(rev)/2; i, j = i+1, j-1 {
+		rev[i], rev[j] = rev[j], rev[i]
+	}
+
+	return &StringType{Value: string(rev)}, nil
 }
