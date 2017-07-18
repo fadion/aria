@@ -6,8 +6,23 @@ import (
 )
 
 // String.count(string) -> Integer
-// Count the number of characters in a string.
+// Count the number of unicode characters in a string.
 func stringCount(args ...DataType) (DataType, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("String.count expects exactly 1 argument")
+	}
+
+	if args[0].Type() != STRING_TYPE {
+		return nil, fmt.Errorf("String.count expects a String")
+	}
+
+	object := args[0].(*StringType).Value
+	return &IntegerType{Value: int64(len([]rune(object)))}, nil
+}
+
+// String.countBytes(string) -> Integer
+// Count the number of bytes in a string.
+func stringCountBytes(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
 		return nil, fmt.Errorf("String.count expects exactly 1 argument")
 	}

@@ -339,6 +339,7 @@ Type.toFloat(Any) -> Float
 
 ```
 String.count(String) -> Integer
+String.countBytes(String) -> Integer
 String.lower(String) -> String
 String.upper(String) -> String
 String.capitalize(String) -> String

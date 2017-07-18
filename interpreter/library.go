@@ -41,6 +41,7 @@ func (l *Library) Register() {
 	l.store["Dict.delete"] = dictDelete
 
 	l.store["String.count"] = stringCount
+	l.store["String.countBytes"] = stringCountBytes
 	l.store["String.lower"] = stringLower
 	l.store["String.upper"] = stringUpper
 	l.store["String.capitalize"] = stringCapitalize
