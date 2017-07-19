@@ -165,11 +165,15 @@ func enumMap(args ...DataType) (DataType, error) {
 	}
 
 	runner := New()
-	result := []DataType{}
+	array := []DataType{}
 	for _, v := range object {
 		function.Scope.Write(function.Parameters[0].Value, v)
-		result = append(result, runner.Interpret(function.Body, function.Scope))
+		result := runner.Interpret(function.Body, function.Scope)
+
+		if result != nil {
+			array = append(array, result)
+		}
 	}
 
-	return &ArrayType{Elements: result}, nil
+	return &ArrayType{Elements: array}, nil
 }
