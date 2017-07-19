@@ -345,13 +345,14 @@ String.lower(String) -> String
 String.upper(String) -> String
 String.capitalize(String) -> String
 String.trim(String, subset String) -> String
+String.reverse(String) -> String 
 String.replace(String, search String, replace String) -> String
+String.slice(String, start Integer, length Integer) -> String 
 String.join(Array, glue String) -> String
 String.split(String, separator String) -> Array
 String.contains?(String, search String) -> Boolean 
 String.starts?(String, prefix String) -> Boolean 
-String.reverse(String) -> String 
-String.slice(String, start Integer, length Integer) -> String 
+String.ends?(String, suffix String) -> Boolean 
 String.match?(String, regex String) -> Boolean 
 ```
 

@@ -305,3 +305,24 @@ func stringStarts(args ...DataType) (DataType, error) {
 
 	return &BooleanType{Value: strings.HasPrefix(object, prefix)}, nil
 }
+
+// String.ends?(String, suffix String) -> Bool
+// Check if a string ends with a suffic.
+func stringEnds(args ...DataType) (DataType, error) {
+	if len(args) != 2 {
+		return nil, fmt.Errorf("String.starts? expects exactly 2 arguments")
+	}
+
+	if args[0].Type() != STRING_TYPE {
+		return nil, fmt.Errorf("String.starts? expects a String")
+	}
+
+	if args[1].Type() != STRING_TYPE {
+		return nil, fmt.Errorf("String.starts? expects a String as suffix")
+	}
+
+	object := args[0].(*StringType).Value
+	suffix := args[1].(*StringType).Value
+
+	return &BooleanType{Value: strings.HasSuffix(object, suffix)}, nil
+}

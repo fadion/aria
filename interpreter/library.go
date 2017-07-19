@@ -55,6 +55,7 @@ func (l *Library) Register() {
 	l.store["String.slice"] = stringSlice
 	l.store["String.match?"] = stringMatch
 	l.store["String.starts?"] = stringStarts
+	l.store["String.ends?"] = stringEnds
 
 	l.store["IO.puts"] = ioPuts
 	l.store["IO.write"] = ioWrite
