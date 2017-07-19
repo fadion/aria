@@ -19,7 +19,7 @@ var errors []string
 
 // Error adds a new error to the store.
 func Error(errortype ErrorType, location token.Location, message string) {
-	errors = append(errors, fmt.Sprintf("%s [Line %d]: %s", errortype, location.Row, message))
+	errors = append(errors, fmt.Sprintf("%s [Line %d:%d]: %s", errortype, location.Row, location.Col, message))
 }
 
 // HasErrors checks if there are errors.

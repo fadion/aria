@@ -22,8 +22,8 @@ func TestGetErrors(t *testing.T) {
 	Error(RUNTIME, token.Location{2, 1}, "Test error 2")
 
 	expected := []string{
-		fmt.Sprintf("%s [Line %d]: %s", PARSE, 1, "Test error 1"),
-		fmt.Sprintf("%s [Line %d]: %s", RUNTIME, 2, "Test error 2"),
+		fmt.Sprintf("%s [Line %d:%d]: %s", PARSE, 1, 1, "Test error 1"),
+		fmt.Sprintf("%s [Line %d:%d]: %s", RUNTIME, 2, 1, "Test error 2"),
 	}
 
 	for i, k := range errors {
