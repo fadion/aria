@@ -93,6 +93,8 @@ let big = 27_000_000
 let arch = 2 ** 32
 let ratio = 1.61
 let pi = 3.14_159_265
+let sci = 0.1e3
+let negsci = 25e-5
 ```
 
 ### Boolean

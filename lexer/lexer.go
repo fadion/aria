@@ -331,6 +331,7 @@ func (l *Lexer) consumeNumeric() {
 	// it's numeric.
 	out.WriteRune(l.char)
 	floatFound := false
+	scientificFound := false
 
 loop:
 	for {
@@ -343,6 +344,14 @@ loop:
 		case l.char == '.' && l.isNumber(l.peek()): // Float.
 			floatFound = true
 			out.WriteRune('.')
+		case l.char == 'e' && (l.isNumber(l.peek()) || l.peek() == '-'): // Scientific notation.
+			// Numbers in scientific notation are
+			// treated as floats for easy of use.
+			floatFound = true
+			scientificFound = true
+			out.WriteRune('e')
+		case l.char == '-' && scientificFound: // Negative scientific notation.
+			out.WriteRune('-')
 		case l.char == '.' && l.peek() == '.': // Range operator.
 			l.rewind()
 			break loop
