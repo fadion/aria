@@ -247,3 +247,33 @@ func enumEmpty(args ...DataType) (DataType, error) {
 
 	return &BooleanType{Value: isempty}, nil
 }
+
+// Enum.random(Array) -> Any
+// Get a random element from the array.
+func enumRandom(args ...DataType) (DataType, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("Enum.random expects exactly 1 argument")
+	}
+
+	elements := []DataType{}
+
+	switch object := args[0].(type) {
+	case *ArrayType:
+		elements = object.Elements
+	case *StringType:
+		for _, v := range object.Value {
+			elements = append(elements, &StringType{Value: string(v)})
+		}
+	default:
+		return nil, fmt.Errorf("Enum.random expects an Array or String")
+	}
+
+	if len(elements) == 0 {
+		return nil, fmt.Errorf("Random value can't be retrieved from an empty enumerable")
+	}
+
+	rand.Seed(time.Now().UnixNano())
+	random := rand.Intn(len(elements))
+
+	return elements[random], nil
+}
