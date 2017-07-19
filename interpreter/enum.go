@@ -323,3 +323,33 @@ func enumFind(args ...DataType) (DataType, error) {
 
 	return NIL, nil
 }
+
+// Enum.contains?(Array, search Any) -> Boolean
+// Check if the array contains the search.
+func enumContains(args ...DataType) (DataType, error) {
+	if len(args) != 2 {
+		return nil, fmt.Errorf("Enum.contains? expects exactly 2 arguments")
+	}
+
+	object := []DataType{}
+	search := args[1]
+
+	switch obj := args[0].(type) {
+	case *ArrayType:
+		object = obj.Elements
+	case *StringType:
+		for _, v := range obj.Value {
+			object = append(object, &StringType{Value: string(v)})
+		}
+	default:
+		return nil, fmt.Errorf("Enum.contains? expects an Array or String")
+	}
+
+	for _, v := range object {
+		if v.Type() == search.Type() && v.Inspect() == search.Inspect() {
+			return &BooleanType{Value: true}, nil
+		}
+	}
+
+	return &BooleanType{Value: false}, nil
+}

@@ -41,6 +41,7 @@ func (l *Library) Register() {
 	l.store["Enum.empty?"] = enumEmpty
 	l.store["Enum.random"] = enumRandom
 	l.store["Enum.find"] = enumFind
+	l.store["Enum.contains?"] = enumContains
 
 	l.store["Dict.size"] = dictSize
 	l.store["Dict.contains?"] = dictContains
