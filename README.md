@@ -350,6 +350,7 @@ String.join(Array, glue String) -> String
 String.split(String, separator String) -> Array
 String.contains?(String, search String) -> Boolean 
 String.reverse(String) -> String 
+String.slice(String, start Integer, length Integer) -> String 
 ```
 
 ### Enum

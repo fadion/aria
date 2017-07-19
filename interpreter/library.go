@@ -52,6 +52,7 @@ func (l *Library) Register() {
 	l.store["String.split"] = stringSplit
 	l.store["String.contains?"] = stringContains
 	l.store["String.reverse"] = stringReverse
+	l.store["String.slice"] = stringSlice
 
 	l.store["IO.puts"] = ioPuts
 	l.store["IO.write"] = ioWrite

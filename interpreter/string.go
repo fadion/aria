@@ -205,7 +205,7 @@ func stringContains(args ...DataType) (DataType, error) {
 	return &BooleanType{Value: strings.Contains(object, search)}, nil
 }
 
-// String.reverse(String) -> Bool
+// String.reverse(String) -> String
 // Reverse the characters of a string.
 func stringReverse(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
@@ -225,4 +225,35 @@ func stringReverse(args ...DataType) (DataType, error) {
 	}
 
 	return &StringType{Value: string(rev)}, nil
+}
+
+// String.slice(String, start Integer, length Integer) -> String
+// Take a "length" part of the string from "start".
+func stringSlice(args ...DataType) (DataType, error) {
+	if len(args) != 3 {
+		return nil, fmt.Errorf("String.slice expects exactly 1 argument")
+	}
+
+	if args[0].Type() != STRING_TYPE {
+		return nil, fmt.Errorf("String.slice expects a String")
+	}
+
+	if args[1].Type() != INTEGER_TYPE {
+		return nil, fmt.Errorf("String.slice expects an Integer as start")
+	}
+
+	if args[2].Type() != INTEGER_TYPE {
+		return nil, fmt.Errorf("String.slice expects an Integer as length")
+	}
+
+	object := args[0].(*StringType).Value
+	start := args[1].(*IntegerType).Value
+	length := args[2].(*IntegerType).Value
+	end := start + length
+
+	if start < 0 || end > int64(len(object)) {
+		return nil, fmt.Errorf("Length out of bounds")
+	}
+
+	return &StringType{Value: object[start:end]}, nil
 }
