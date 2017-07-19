@@ -36,6 +36,7 @@ func (l *Library) Register() {
 	l.store["Enum.insert"] = enumInsert
 	l.store["Enum.delete"] = enumDelete
 	l.store["Enum.map"] = enumMap
+	l.store["Enum.filter"] = enumFilter
 
 	l.store["Dict.size"] = dictSize
 	l.store["Dict.has"] = dictHas

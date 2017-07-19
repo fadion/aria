@@ -370,6 +370,7 @@ Enum.last(Array|String) -> Any
 Enum.insert(Array, value Any) -> Array
 Enum.delete(Array, index Integer) -> Array
 Enum.map(Array|String, fn Function) -> Array
+Enum.filter(Array|String, fn Function) -> Array
 ```
 
 ### Dict
