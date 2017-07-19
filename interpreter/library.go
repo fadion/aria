@@ -43,6 +43,7 @@ func (l *Library) Register() {
 	l.store["Enum.find"] = enumFind
 	l.store["Enum.contains?"] = enumContains
 	l.store["Enum.unique"] = enumUnique
+	l.store["Enum.reduce"] = enumReduce
 
 	l.store["Dict.size"] = dictSize
 	l.store["Dict.contains?"] = dictContains

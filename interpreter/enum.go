@@ -136,7 +136,7 @@ func enumDelete(args ...DataType) (DataType, error) {
 	}
 }
 
-// Enum.map(Array, fn Function) -> Array
+// Enum.map(Array, fn Function(element)) -> Array
 // Map a function to every element of the array.
 func enumMap(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
@@ -180,7 +180,7 @@ func enumMap(args ...DataType) (DataType, error) {
 	return &ArrayType{Elements: array}, nil
 }
 
-// Enum.filter(Array, fn Function) -> Array
+// Enum.filter(Array, fn Function(element)) -> Array
 // Filter with a function every element of the array.
 func enumFilter(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
@@ -278,7 +278,7 @@ func enumRandom(args ...DataType) (DataType, error) {
 	return elements[random], nil
 }
 
-// Enum.find(Array, fn Function) -> Array
+// Enum.find(Array, fn Function(element)) -> Array
 // Get the first value the function returns true.
 func enumFind(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
@@ -384,4 +384,45 @@ func enumUnique(args ...DataType) (DataType, error) {
 	}
 
 	return &ArrayType{Elements: unique}, nil
+}
+
+// Enum.reduce(Array, start Any, fn Function(element, accumulator)) -> Any
+// Run the function on each iteration and pass the result to the accumulator.
+func enumReduce(args ...DataType) (DataType, error) {
+	if len(args) != 3 {
+		return nil, fmt.Errorf("Enum.reduce expects exactly 3 arguments")
+	}
+
+	if args[2].Type() != FUNCTION_TYPE {
+		return nil, fmt.Errorf("Enum.reduce expects a Function")
+	}
+
+	object := []DataType{}
+
+	switch obj := args[0].(type) {
+	case *ArrayType:
+		object = obj.Elements
+	case *StringType:
+		for _, v := range obj.Value {
+			object = append(object, &StringType{Value: string(v)})
+		}
+	default:
+		return nil, fmt.Errorf("Enum.reduce expects an Array or String")
+	}
+
+	accumulator := args[1]
+	function := args[2].(*FunctionType)
+
+	if len(function.Parameters) != 2 {
+		return nil, fmt.Errorf("Enum.reduce expects a function with exactly 2 parameters")
+	}
+
+	runner := New()
+	for _, v := range object {
+		function.Scope.Write(function.Parameters[0].Value, v)
+		function.Scope.Write(function.Parameters[1].Value, accumulator)
+		accumulator = runner.Interpret(function.Body, function.Scope)
+	}
+
+	return accumulator, nil
 }

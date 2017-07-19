@@ -374,6 +374,7 @@ Enum.delete(Array, index Integer) -> Array
 Enum.random(Array|String) -> Any
 Enum.unique(Array|String) -> Array
 Enum.map(Array|String, fn Function(element)) -> Array
+Enum.reduce(Array|String, start Any, fn Function(element, accumulator)) -> Any
 Enum.filter(Array|String, fn Function(element)) -> Array
 Enum.find(Array|String, fn Function(element)) -> Any
 ```
