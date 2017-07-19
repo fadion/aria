@@ -368,3 +368,23 @@ func stringEnds(args ...DataType) (DataType, error) {
 
 	return &BooleanType{Value: strings.HasSuffix(object, suffix)}, nil
 }
+
+// String.first(String) -> String
+// First character of the string.
+func stringFirst(args ...DataType) (DataType, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("String.first expects exactly 1 argument")
+	}
+
+	if args[0].Type() != STRING_TYPE {
+		return nil, fmt.Errorf("String.first expects a String")
+	}
+
+	object := args[0].(*StringType).Value
+
+	if len(object) > 0 {
+		return &StringType{Value: string(object[0])}, nil
+	}
+
+	return &StringType{Value: ""}, nil
+}
