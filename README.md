@@ -394,6 +394,7 @@ Math.ceil(Float) -> Integer
 Math.floor(Float) -> Integer
 Math.max(Float|Integer, Float|Integer) -> Float|Integer
 Math.min(Float|Integer, Float|Integer) -> Float|Integer
+Math.random(min Integer, max Integer) -> Integer
 ```
 
 ## Future Plans

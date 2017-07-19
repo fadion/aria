@@ -3,6 +3,8 @@ package interpreter
 import (
 	"fmt"
 	"math"
+	"math/rand"
+	"time"
 )
 
 // Math.pi() -> Float
@@ -15,7 +17,7 @@ func mathPi(args ...DataType) (DataType, error) {
 	return &FloatType{Value: math.Pi}, nil
 }
 
-// Math.ceil(float) -> Integer
+// Math.ceil(Float) -> Integer
 // Round up the float.
 func mathCeil(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
@@ -30,7 +32,7 @@ func mathCeil(args ...DataType) (DataType, error) {
 	return &IntegerType{Value: int64(math.Ceil(arg1))}, nil
 }
 
-// Math.floor(float) -> Integer
+// Math.floor(Float) -> Integer
 // Round down the float.
 func mathFloor(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
@@ -45,7 +47,7 @@ func mathFloor(args ...DataType) (DataType, error) {
 	return &IntegerType{Value: int64(math.Floor(arg1))}, nil
 }
 
-// Math.max(float | integer, float | integer) -> Float | Integer
+// Math.max(Float | Integer, Float | Integer) -> Float | Integer
 // Get the biggest value between two floats or integers.
 func mathMax(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
@@ -78,7 +80,7 @@ func mathMax(args ...DataType) (DataType, error) {
 	}
 }
 
-// Math.min(float | integer, float | integer) -> Float | Integer
+// Math.min(Float | Integer, Float | Integer) -> Float | Integer
 // Get the smallest value between two floats or integers.
 func mathMin(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
@@ -109,4 +111,28 @@ func mathMin(args ...DataType) (DataType, error) {
 	default:
 		return nil, fmt.Errorf("Math.min can't compare '%s' with '%s'", args[0].Type(), args[1].Type())
 	}
+}
+
+// Math.random(min Integer, max Integer) -> Float | Integer
+// Generate a random number between min and max.
+func mathRandom(args ...DataType) (DataType, error) {
+	if len(args) != 2 {
+		return nil, fmt.Errorf("Math.random expects exactly 2 arguments")
+	}
+
+	if args[0].Type() != INTEGER_TYPE || args[1].Type() != INTEGER_TYPE {
+		return nil, fmt.Errorf("Math.random expects min and max as Integers")
+	}
+
+	min := int(args[0].(*IntegerType).Value)
+	max := int(args[1].(*IntegerType).Value)
+
+	if max < min {
+		return nil, fmt.Errorf("Max should be higher than min")
+	}
+
+	rand.Seed(time.Now().UnixNano())
+	random := rand.Intn(max - min) + min
+
+	return &IntegerType{Value: int64(random)}, nil
 }

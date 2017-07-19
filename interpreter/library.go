@@ -22,6 +22,7 @@ func (l *Library) Register() {
 	l.store["Math.floor"] = mathFloor
 	l.store["Math.max"] = mathMax
 	l.store["Math.min"] = mathMin
+	l.store["Math.random"] = mathRandom
 
 	l.store["Type.of"] = typeOf
 	l.store["Type.toString"] = typeToString

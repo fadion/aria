@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// Dict.size(dictionary) -> Integer
+// Dict.size(Dictionary) -> Integer
 // Size of the dictionary.
 func dictSize(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
@@ -19,7 +19,7 @@ func dictSize(args ...DataType) (DataType, error) {
 	return &IntegerType{Value: int64(len(object.Pairs))}, nil
 }
 
-// Dict.has(dictionary, key [string]) -> Boolean
+// Dict.has(Dictionary, key String) -> Boolean
 // Check if the dictionary has a key.
 func dictContains(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
@@ -47,7 +47,7 @@ func dictContains(args ...DataType) (DataType, error) {
 	return &BooleanType{Value: found}, nil
 }
 
-// Dict.insert(dictionary, key [string], value [any]) -> Dictionary
+// Dict.insert(Dictionary, key String, value Any) -> Dictionary
 // Insert a key:value in the dictionary.
 func dictInsert(args ...DataType) (DataType, error) {
 	if len(args) != 3 {
@@ -69,7 +69,7 @@ func dictInsert(args ...DataType) (DataType, error) {
 	return &DictionaryType{Pairs: object.Pairs}, nil
 }
 
-// Dict.delete(dictionary, key [string]) -> Dictionary
+// Dict.delete(Dictionary, key String) -> Dictionary
 // Delete a key from the dictionary.
 func dictDelete(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
@@ -95,7 +95,7 @@ func dictDelete(args ...DataType) (DataType, error) {
 	return &DictionaryType{Pairs: object.Pairs}, nil
 }
 
-// Dict.empty?(dictionary) -> Boolean
+// Dict.empty?(Dictionary) -> Boolean
 // Check if the dictionary is empty.
 func dictEmpty(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
