@@ -388,3 +388,23 @@ func stringFirst(args ...DataType) (DataType, error) {
 
 	return &StringType{Value: ""}, nil
 }
+
+// String.last(String) -> String
+// Last character of the string.
+func stringLast(args ...DataType) (DataType, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("String.last expects exactly 1 argument")
+	}
+
+	if args[0].Type() != STRING_TYPE {
+		return nil, fmt.Errorf("String.last expects a String")
+	}
+
+	object := args[0].(*StringType).Value
+
+	if len(object) > 0 {
+		return &StringType{Value: string(object[len(object) - 1])}, nil
+	}
+
+	return &StringType{Value: ""}, nil
+}

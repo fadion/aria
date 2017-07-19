@@ -60,6 +60,7 @@ func (l *Library) Register() {
 	l.store["String.starts?"] = stringStarts
 	l.store["String.ends?"] = stringEnds
 	l.store["String.first"] = stringFirst
+	l.store["String.last"] = stringLast
 
 	l.store["IO.puts"] = ioPuts
 	l.store["IO.write"] = ioWrite

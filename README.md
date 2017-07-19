@@ -353,6 +353,7 @@ String.slice(String, start Integer, length Integer) -> String
 String.join(Array, glue String) -> String
 String.split(String, separator String) -> Array
 String.first(String) -> String
+String.last(String) -> String
 String.contains?(String, search String) -> Boolean 
 String.starts?(String, prefix String) -> Boolean 
 String.ends?(String, suffix String) -> Boolean 
