@@ -364,6 +364,7 @@ String.match?(String, regex String) -> Boolean
 
 ```
 Enum.size(Array|String) -> Integer
+Enum.empty?(Array|String) -> Boolean
 Enum.reverse(Array|String) -> Array
 Enum.first(Array|String) -> Any
 Enum.last(Array|String) -> Any

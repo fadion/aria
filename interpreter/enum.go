@@ -2,6 +2,8 @@ package interpreter
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
 )
 
 // Enum.size(Array) -> Integer
@@ -223,4 +225,25 @@ func enumFilter(args ...DataType) (DataType, error) {
 	}
 
 	return &ArrayType{Elements: array}, nil
+}
+
+// Enum.empty(Array) -> Boolean
+// Check if the array is empty.
+func enumEmpty(args ...DataType) (DataType, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("Enum.empty expects exactly 1 argument")
+	}
+
+	isempty := true
+
+	switch object := args[0].(type) {
+	case *ArrayType:
+		isempty = len(object.Elements) == 0
+	case *StringType:
+		isempty = len(object.Value) == 0
+	default:
+		return nil, fmt.Errorf("Enum.empty expects an Array or String")
+	}
+
+	return &BooleanType{Value: isempty}, nil
 }
