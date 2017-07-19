@@ -123,6 +123,27 @@ func stringTrimLeft(args ...DataType) (DataType, error) {
 	return &StringType{Value: strings.TrimLeft(object, subset)}, nil
 }
 
+// String.trimLeft(String, subset String) -> String
+// Remove all subset characters from the end of the string.
+func stringTrimRight(args ...DataType) (DataType, error) {
+	if len(args) != 2 {
+		return nil, fmt.Errorf("String.trimRight expects exactly 2 arguments")
+	}
+
+	if args[0].Type() != STRING_TYPE {
+		return nil, fmt.Errorf("String.trimRight expects a String")
+	}
+
+	if args[1].Type() != STRING_TYPE {
+		return nil, fmt.Errorf("String.trimRight expects a String as subset")
+	}
+
+	object := args[0].(*StringType).Value
+	subset := args[1].(*StringType).Value
+
+	return &StringType{Value: strings.TrimRight(object, subset)}, nil
+}
+
 // String.replace(String, search String, replace String) -> String
 // Replace a substring with another string.
 func stringReplace(args ...DataType) (DataType, error) {

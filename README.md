@@ -346,6 +346,7 @@ String.upper(String) -> String
 String.capitalize(String) -> String
 String.trim(String, subset String) -> String
 String.trimLeft(String, subset String) -> String
+String.trimRight(String, subset String) -> String
 String.reverse(String) -> String 
 String.replace(String, search String, replace String) -> String
 String.slice(String, start Integer, length Integer) -> String 

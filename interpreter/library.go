@@ -48,6 +48,7 @@ func (l *Library) Register() {
 	l.store["String.capitalize"] = stringCapitalize
 	l.store["String.trim"] = stringTrim
 	l.store["String.trimLeft"] = stringTrimLeft
+	l.store["String.trimRight"] = stringTrimRight
 	l.store["String.replace"] = stringReplace
 	l.store["String.join"] = stringJoin
 	l.store["String.split"] = stringSplit
