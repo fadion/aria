@@ -369,15 +369,15 @@ Enum.first(Array|String) -> Any
 Enum.last(Array|String) -> Any
 Enum.insert(Array, value Any) -> Array
 Enum.delete(Array, index Integer) -> Array
-Enum.map(Array|String, fn Function) -> Array
-Enum.filter(Array|String, fn Function) -> Array
+Enum.map(Array|String, fn Function(element)) -> Array
+Enum.filter(Array|String, fn Function(element)) -> Array
 ```
 
 ### Dict
 
 ```
 Dict.size(Dictionary) -> Integer
-Dict.has(Dictionary, key String) -> Boolean
+Dict.contains?(Dictionary, key String) -> Boolean
 Dict.insert(Dictionary, key String, value Any) -> Dictionary
 Dict.delete(Dictionary, key String) -> Dictionary
 ```

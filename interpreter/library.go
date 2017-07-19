@@ -39,7 +39,7 @@ func (l *Library) Register() {
 	l.store["Enum.filter"] = enumFilter
 
 	l.store["Dict.size"] = dictSize
-	l.store["Dict.has"] = dictHas
+	l.store["Dict.contains?"] = dictContains
 	l.store["Dict.insert"] = dictInsert
 	l.store["Dict.delete"] = dictDelete
 

@@ -21,7 +21,7 @@ func dictSize(args ...DataType) (DataType, error) {
 
 // Dict.has(dictionary, key [string]) -> Boolean
 // Check if the dictionary has a key.
-func dictHas(args ...DataType) (DataType, error) {
+func dictContains(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
 		return nil, fmt.Errorf("Dict.has expects exactly 2 arguments")
 	}
