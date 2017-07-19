@@ -277,3 +277,49 @@ func enumRandom(args ...DataType) (DataType, error) {
 
 	return elements[random], nil
 }
+
+// Enum.find(Array, fn Function) -> Array
+// Get the first value the function returns true.
+func enumFind(args ...DataType) (DataType, error) {
+	if len(args) != 2 {
+		return nil, fmt.Errorf("Enum.find expects exactly 2 arguments")
+	}
+
+	if args[1].Type() != FUNCTION_TYPE {
+		return nil, fmt.Errorf("Enum.find expects a Function")
+	}
+
+	object := []DataType{}
+
+	switch obj := args[0].(type) {
+	case *ArrayType:
+		object = obj.Elements
+	case *StringType:
+		for _, v := range obj.Value {
+			object = append(object, &StringType{Value: string(v)})
+		}
+	default:
+		return nil, fmt.Errorf("Enum.find expects an Array or String")
+	}
+
+	function := args[1].(*FunctionType)
+
+	if len(function.Parameters) != 1 {
+		return nil, fmt.Errorf("Enum.find expects a function with exactly 1 parameter")
+	}
+
+	runner := New()
+	for _, v := range object {
+		function.Scope.Write(function.Parameters[0].Value, v)
+		result := runner.Interpret(function.Body, function.Scope)
+
+		if result.Type() == BOOLEAN_TYPE {
+			found := result.(*BooleanType).Value
+			if found {
+				return v, nil
+			}
+		}
+	}
+
+	return NIL, nil
+}
