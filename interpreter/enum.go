@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// Enum.size(array) -> Integer
+// Enum.size(Array) -> Integer
 // Size of the array.
 func enumSize(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
@@ -21,7 +21,7 @@ func enumSize(args ...DataType) (DataType, error) {
 	}
 }
 
-// Enum.reverse(array) -> Array
+// Enum.reverse(Array) -> Array
 // Reverse the elements of the array.
 func enumReverse(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
@@ -46,7 +46,7 @@ func enumReverse(args ...DataType) (DataType, error) {
 	}
 }
 
-// Enum.first(array) -> any
+// Enum.first(Array) -> Any
 // Get the first element of the array.
 func enumFirst(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
@@ -69,7 +69,7 @@ func enumFirst(args ...DataType) (DataType, error) {
 	}
 }
 
-// Enum.last(array) -> any
+// Enum.last(Array) -> Any
 // Get the last element of the array.
 func enumLast(args ...DataType) (DataType, error) {
 	if len(args) != 1 {
@@ -92,7 +92,7 @@ func enumLast(args ...DataType) (DataType, error) {
 	}
 }
 
-// Enum.insert(array, element [any]) -> Array
+// Enum.insert(Arramy, element Any) -> Array
 // Insert an element at the end of the array.
 func enumInsert(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
@@ -108,7 +108,7 @@ func enumInsert(args ...DataType) (DataType, error) {
 	}
 }
 
-// Enum.delete(array, index [integer]) -> Array
+// Enum.delete(Array, index Integer) -> Array
 // Delete an element from the array.
 func enumDelete(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
@@ -132,4 +132,44 @@ func enumDelete(args ...DataType) (DataType, error) {
 	default:
 		return nil, fmt.Errorf("Enum.delete expects an Array")
 	}
+}
+
+// Enum.map(Array, fn Function) -> Array
+// Map a function to every element of the array.
+func enumMap(args ...DataType) (DataType, error) {
+	if len(args) != 2 {
+		return nil, fmt.Errorf("Enum.map expects exactly 2 arguments")
+	}
+
+	if args[1].Type() != FUNCTION_TYPE {
+		return nil, fmt.Errorf("Enum.map expects an Array")
+	}
+
+	object := []DataType{}
+
+	switch obj := args[0].(type) {
+	case *ArrayType:
+		object = obj.Elements
+	case *StringType:
+		for _, v := range obj.Value {
+			object = append(object, &StringType{Value: string(v)})
+		}
+	default:
+		return nil, fmt.Errorf("Enum.map expects an Array or String")
+	}
+
+	function := args[1].(*FunctionType)
+
+	if len(function.Parameters) != 1 {
+		return nil, fmt.Errorf("Enum.map expects a function with exactly 1 parameter")
+	}
+
+	runner := New()
+	result := []DataType{}
+	for _, v := range object {
+		function.Scope.Write(function.Parameters[0].Value, v)
+		result = append(result, runner.Interpret(function.Body, function.Scope))
+	}
+
+	return &ArrayType{Elements: result}, nil
 }
