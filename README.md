@@ -372,6 +372,7 @@ Enum.last(Array|String) -> Any
 Enum.insert(Array, value Any) -> Array
 Enum.delete(Array, index Integer) -> Array
 Enum.random(Array|String) -> Any
+Enum.unique(Array|String) -> Array
 Enum.map(Array|String, fn Function(element)) -> Array
 Enum.filter(Array|String, fn Function(element)) -> Array
 Enum.find(Array|String, fn Function(element)) -> Any

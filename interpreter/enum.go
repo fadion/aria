@@ -353,3 +353,35 @@ func enumContains(args ...DataType) (DataType, error) {
 
 	return &BooleanType{Value: false}, nil
 }
+
+// Enum.unique(Array) -> Array
+// Remove duplicates from the array.
+func enumUnique(args ...DataType) (DataType, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("Enum.unique expects exactly 1 argument")
+	}
+
+	object := []DataType{}
+
+	switch obj := args[0].(type) {
+	case *ArrayType:
+		object = obj.Elements
+	case *StringType:
+		for _, v := range obj.Value {
+			object = append(object, &StringType{Value: string(v)})
+		}
+	default:
+		return nil, fmt.Errorf("Enum.unique expects an Array or String")
+	}
+
+	unique := []DataType{}
+	found := map[string]DataType{}
+	for _, v := range object {
+		if _, ok := found[v.Inspect()]; !ok {
+			unique = append(unique, v)
+			found[v.Inspect()] = v
+		}
+	}
+
+	return &ArrayType{Elements: unique}, nil
+}
