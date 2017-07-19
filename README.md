@@ -349,6 +349,7 @@ String.replace(String, search String, replace String) -> String
 String.join(Array, glue String) -> String
 String.split(String, separator String) -> Array
 String.contains?(String, search String) -> Boolean 
+String.starts?(String, prefix String) -> Boolean 
 String.reverse(String) -> String 
 String.slice(String, start Integer, length Integer) -> String 
 String.match?(String, regex String) -> Boolean 

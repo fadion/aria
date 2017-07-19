@@ -54,6 +54,7 @@ func (l *Library) Register() {
 	l.store["String.reverse"] = stringReverse
 	l.store["String.slice"] = stringSlice
 	l.store["String.match?"] = stringMatch
+	l.store["String.starts?"] = stringStarts
 
 	l.store["IO.puts"] = ioPuts
 	l.store["IO.write"] = ioWrite

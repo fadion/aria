@@ -189,15 +189,15 @@ func stringSplit(args ...DataType) (DataType, error) {
 // Check if a string has a substring.
 func stringContains(args ...DataType) (DataType, error) {
 	if len(args) != 2 {
-		return nil, fmt.Errorf("String.has expects exactly 2 arguments")
+		return nil, fmt.Errorf("String.contains? expects exactly 2 arguments")
 	}
 
 	if args[0].Type() != STRING_TYPE {
-		return nil, fmt.Errorf("String.has expects a String")
+		return nil, fmt.Errorf("String.contains? expects a String")
 	}
 
 	if args[1].Type() != STRING_TYPE {
-		return nil, fmt.Errorf("String.has expects a String as search")
+		return nil, fmt.Errorf("String.contains? expects a String as search")
 	}
 
 	object := args[0].(*StringType).Value
@@ -283,4 +283,25 @@ func stringMatch(args ...DataType) (DataType, error) {
 	}
 
 	return &BooleanType{Value: regx.Find([]byte(object)) != nil}, nil
+}
+
+// String.starts?(String, prefix String) -> Bool
+// Check if a string starts with a prefix.
+func stringStarts(args ...DataType) (DataType, error) {
+	if len(args) != 2 {
+		return nil, fmt.Errorf("String.starts? expects exactly 2 arguments")
+	}
+
+	if args[0].Type() != STRING_TYPE {
+		return nil, fmt.Errorf("String.starts? expects a String")
+	}
+
+	if args[1].Type() != STRING_TYPE {
+		return nil, fmt.Errorf("String.starts? expects a String as prefix")
+	}
+
+	object := args[0].(*StringType).Value
+	prefix := args[1].(*StringType).Value
+
+	return &BooleanType{Value: strings.HasPrefix(object, prefix)}, nil
 }
