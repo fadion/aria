@@ -3,6 +3,7 @@ package interpreter
 import (
 	"fmt"
 	"strings"
+	"regexp"
 )
 
 // String.count(String) -> Integer
@@ -231,7 +232,7 @@ func stringReverse(args ...DataType) (DataType, error) {
 // Take a "length" part of the string from "start".
 func stringSlice(args ...DataType) (DataType, error) {
 	if len(args) != 3 {
-		return nil, fmt.Errorf("String.slice expects exactly 1 argument")
+		return nil, fmt.Errorf("String.slice expects exactly 3 arguments")
 	}
 
 	if args[0].Type() != STRING_TYPE {
@@ -256,4 +257,30 @@ func stringSlice(args ...DataType) (DataType, error) {
 	}
 
 	return &StringType{Value: object[start:end]}, nil
+}
+
+// String.match(String, regex String) -> Boolean
+// Matches the string with a regular expression.
+func stringMatch(args ...DataType) (DataType, error) {
+	if len(args) != 2 {
+		return nil, fmt.Errorf("String.match expects exactly 2 arguments")
+	}
+
+	if args[0].Type() != STRING_TYPE {
+		return nil, fmt.Errorf("String.match expects a String")
+	}
+
+	if args[1].Type() != STRING_TYPE {
+		return nil, fmt.Errorf("String.match expects a String regex")
+	}
+
+	object := args[0].(*StringType).Value
+	match := args[1].(*StringType).Value
+
+	regx, err := regexp.Compile(match)
+	if err != nil {
+		return nil, fmt.Errorf("Check the syntax of the regular expression")
+	}
+
+	return &BooleanType{Value: regx.Find([]byte(object)) != nil}, nil
 }
