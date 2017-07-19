@@ -94,3 +94,19 @@ func dictDelete(args ...DataType) (DataType, error) {
 
 	return &DictionaryType{Pairs: object.Pairs}, nil
 }
+
+// Dict.empty?(dictionary) -> Boolean
+// Check if the dictionary is empty.
+func dictEmpty(args ...DataType) (DataType, error) {
+	if len(args) != 1 {
+		return nil, fmt.Errorf("Dict.empty expects exactly 1 argument")
+	}
+
+	if args[0].Type() != DICTIONARY_TYPE {
+		return nil, fmt.Errorf("Dict.empty expects a Dictionary")
+	}
+
+	object := args[0].(*DictionaryType)
+
+	return &BooleanType{Value: len(object.Pairs) == 0}, nil
+}

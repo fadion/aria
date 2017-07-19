@@ -45,6 +45,7 @@ func (l *Library) Register() {
 	l.store["Dict.contains?"] = dictContains
 	l.store["Dict.insert"] = dictInsert
 	l.store["Dict.delete"] = dictDelete
+	l.store["Dict.empty?"] = dictEmpty
 
 	l.store["String.count"] = stringCount
 	l.store["String.countBytes"] = stringCountBytes

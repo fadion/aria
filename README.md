@@ -381,6 +381,7 @@ Enum.find(Array|String, fn Function(element)) -> Any
 ```
 Dict.size(Dictionary) -> Integer
 Dict.contains?(Dictionary, key String) -> Boolean
+Dict.empty?(Dictionary) -> Boolean
 Dict.insert(Dictionary, key String, value Any) -> Dictionary
 Dict.delete(Dictionary, key String) -> Dictionary
 ```
