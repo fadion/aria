@@ -333,8 +333,8 @@ func (p *Parser) parseIf() ast.Expression {
 
 	p.advance()
 
-	// Remove the optional THEN.
-	if p.match(token.THEN) {
+	// Remove the optional THEN or DO.
+	if p.match(token.THEN, token.DO) {
 		p.advance()
 	}
 
