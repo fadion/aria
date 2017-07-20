@@ -152,7 +152,7 @@ Not all operators will work with any data type and I'm sure you don't expect tha
 
 ## Functions
 
-Functions in Aria are pure expressions that are passed to variables or as arguments to other functions. A function is essentially treated the same as an integer, string or any other expression.
+Aria treats functions them as first class, like any sane language should. It checks all the boxes: they can be passed to variables, as arguments to other functions, and as elements to data structures. The only thing missing for the moment are closures, meaning that a function within a function can't access the parent's variables. This doesn't allow for some interesting techniques like currying, but I'm working on it.
 
 ```swift
 let add = fn x, y
@@ -166,21 +166,34 @@ I've omitted the parantheses too! Of course, you can write the function as `fn (
 let sum = add(1335, 2)
 ```
 
-Notice the lack of a `return` statement. I doubt you'll ever need it, but if you do, it is there. Let's see a stupid example that also inlines the function.
+Notice the lack of a `return` statement. Functions are expressions, so the last line is considered its return value. In most cases, especially with small functions, you don't have to bother with `return`. However, there are scenarios with multiple return points that need to explicitly tell the interpreter what to return. Let's see the classical factorial example, which is a double win as it shows recursion too.
 
 ```swift
-let mad_genius? = fn mad, genius do return mad && genius end
-mad_genius?(true, false)
-```
+let fac = fn n
+  if n == 0
+    return 1
+  end
+  
+  n * fac(n - 1)
+end
+``` 
 
-Yes, you can inline functions just by adding a `do` keyword. It's up to you how readable that is.
+The last statement doesn't need a `return`, as it's the last line and will be automatically inferred. The `if`, on the other hand, is not, so it needs an explicit `return`. Hope it makes sense.
 
-Finally, there's the self-executing function syntax for all of you Javascripters:
+If you're into this kind of things, functions can self-execute:
 
 ```swift
 let pow_2 = fn x
   x ** 2
 end(2)
+```
+
+And even passed as elements into data structures:
+
+```swift
+let add = fn x, y do x + y end
+let list = [1, 2, add]
+list[2](5, 7) 
 ```
 
 ## Conditionals
@@ -328,11 +341,12 @@ Although this is a language made purely for fun and experimentation, it doesn't 
 In the near future, hopefully, I plan to:
 
 - Improve the Standard Library with more functions.
+- Find a way to support closures and ~~recursion~~.
+- Add importing of other files.
+- Pipe operator!
+- Support optional values for null returns.
 - Write more tests!
 - Write some useful benchmarks with non-trivial programs.
-- Find a way to support closures and recursion.
-- Support optional values for null returns. Although right now there's only a few things that can return null and immutability makes it far more sane, I would still be a nice thing to have.
-- Fixing bugs, which I'm sure there are plenty.
 
 ## Credits
 

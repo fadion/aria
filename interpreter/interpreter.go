@@ -12,6 +12,7 @@ import (
 type Interpreter struct {
 	modules map[string]*ModuleType
 	library *Library
+	functions map[string]string
 }
 
 // New initializes an Interpreter.
@@ -22,6 +23,7 @@ func New() *Interpreter {
 	return &Interpreter{
 		modules: map[string]*ModuleType{},
 		library: lib,
+		functions: map[string]string{},
 	}
 }
 
@@ -172,6 +174,13 @@ func (i *Interpreter) runLet(node *ast.Let, scope *Scope) DataType {
 	// the variable into the scope.
 	if object == nil {
 		return nil
+	}
+
+	// Save the function name and result for
+	// later reference.
+	switch object.(type) {
+	case *FunctionType:
+		i.functions[object.Inspect()] = node.Name.Value
 	}
 
 	// Check if the variable has been already
@@ -437,7 +446,7 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 		}
 
 		fn = i.Interpret(nodeType, scope)
-	case *ast.Identifier:
+	default:
 		fn = i.Interpret(nodeType, scope)
 	}
 
@@ -457,6 +466,14 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 	} else if len(node.Arguments.Elements) < len(function.Parameters) {
 		i.reportError(node, "Too few arguments in function call")
 		return nil
+	}
+
+	// Write the function's name to its scope so
+	// it can reference itself. If it's not found
+	// in the "functions" map, it means it's a function
+	// not declared with a "let" statement.
+	if v, ok := i.functions[fn.Inspect()]; ok {
+		function.Scope.Write(v, function)
 	}
 
 	// Interpret every single argument and pass it
