@@ -491,7 +491,7 @@ type ExpressionList struct {
 	Elements []Expression
 }
 
-func (e *ExpressionList) statement()                    {}
+func (e *ExpressionList) expression()                   {}
 func (e *ExpressionList) TokenLexeme() string           { return e.Token.Lexeme }
 func (e *ExpressionList) TokenLocation() token.Location { return e.Token.Location }
 func (e *ExpressionList) Inspect() string {

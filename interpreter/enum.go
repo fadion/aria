@@ -172,9 +172,11 @@ func enumMap(args ...DataType) (DataType, error) {
 		function.Scope.Write(function.Parameters[0].Value, v)
 		result := runner.Interpret(function.Body, function.Scope)
 
-		if result != nil {
-			array = append(array, result)
+		if result == nil {
+			return nil, nil
 		}
+
+		array = append(array, result)
 	}
 
 	return &ArrayType{Elements: array}, nil
@@ -216,7 +218,11 @@ func enumFilter(args ...DataType) (DataType, error) {
 		function.Scope.Write(function.Parameters[0].Value, v)
 		result := runner.Interpret(function.Body, function.Scope)
 
-		if result != nil && result.Type() == BOOLEAN_TYPE {
+		if result == nil {
+			return nil, nil
+		}
+
+		if result.Type() == BOOLEAN_TYPE {
 			filter := result.(*BooleanType).Value
 			if filter {
 				array = append(array, v)
@@ -312,6 +318,10 @@ func enumFind(args ...DataType) (DataType, error) {
 	for _, v := range object {
 		function.Scope.Write(function.Parameters[0].Value, v)
 		result := runner.Interpret(function.Body, function.Scope)
+
+		if result == nil {
+			return nil, nil
+		}
 
 		if result.Type() == BOOLEAN_TYPE {
 			found := result.(*BooleanType).Value
@@ -421,7 +431,13 @@ func enumReduce(args ...DataType) (DataType, error) {
 	for _, v := range object {
 		function.Scope.Write(function.Parameters[0].Value, v)
 		function.Scope.Write(function.Parameters[1].Value, accumulator)
-		accumulator = runner.Interpret(function.Body, function.Scope)
+		result := runner.Interpret(function.Body, function.Scope)
+
+		if result == nil {
+			return nil, nil
+		}
+
+		accumulator = result
 	}
 
 	return accumulator, nil

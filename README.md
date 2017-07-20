@@ -152,7 +152,7 @@ Not all operators will work with any data type and I'm sure you don't expect tha
 
 ## Functions
 
-Aria treats functions them as first class, like any sane language should. It checks all the boxes: they can be passed to variables, as arguments to other functions, and as elements to data structures. The only thing missing for the moment are closures, meaning that a function within a function can't access the parent's variables. This doesn't allow for some interesting techniques like currying, but I'm working on it.
+Aria treats functions as first class, like any sane language should. It checks all the boxes: they can be passed to variables, as arguments to other functions, and as elements to data structures. The only thing missing for the moment are closures, meaning that a function within a function can't access the parent's variables. This doesn't allow for some interesting techniques like currying, but I'm working on it.
 
 ```swift
 let add = fn x, y

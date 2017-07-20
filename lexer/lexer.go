@@ -101,7 +101,7 @@ func (l *Lexer) NextToken() token.Token {
 		case '*': // **
 			l.advance()
 			l.assignToken(token.POWER, "**")
-		default:
+		default: // *
 			l.assignToken(token.ASTERISK, string(l.char))
 		}
 	case l.char == '/':
@@ -355,7 +355,7 @@ loop:
 		case l.char == '.' && l.peek() == '.': // Range operator.
 			l.rewind()
 			break loop
-		case l.char == 0: // Don't rewind on an EOF
+		case l.char == 0 || l.char == '\n': // Don't rewind on an EOF or newline.
 			break loop
 		default:
 			l.rewind()
