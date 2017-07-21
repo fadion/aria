@@ -62,6 +62,8 @@ func (i *Interpreter) Interpret(node ast.Node, scope *Scope) DataType {
 		return i.runPrefix(node, scope)
 	case *ast.InfixExpression:
 		return i.runInfix(node, scope)
+	case *ast.Pipe:
+		return i.runPipe(node, scope)
 	case *ast.If:
 		return i.runIf(node, scope)
 	case *ast.Switch:
@@ -597,6 +599,28 @@ func (i *Interpreter) runStringSubscript(array, index DataType) (DataType, error
 	return &StringType{Value: string(arrayObj[idx])}, nil
 }
 
+// Interpret Pipe operator: FUNCTION_CALL() |> FUNCTION_CALL()
+func (i *Interpreter) runPipe(node *ast.Pipe, scope *Scope) DataType {
+	left := i.Interpret(node.Left, scope)
+	// Convert the type object back to an expression
+	// so it can be passed to the FunctionCall arguments.
+	argument := i.typeToExpression(left)
+	if argument == nil {
+		return nil
+	}
+
+	// The right side operator should be a function.
+	switch rightFunc := node.Right.(type) {
+	case *ast.FunctionCall:
+		// Prepend the left-hand interpreted value
+		// to the function arguments.
+		rightFunc.Arguments.Elements = append([]ast.Expression{argument}, rightFunc.Arguments.Elements...)
+		return i.Interpret(rightFunc, scope)
+	}
+
+	return nil
+}
+
 // Interpret prefix operators: (OP)OBJ
 func (i *Interpreter) runPrefix(node *ast.PrefixExpression, scope *Scope) DataType {
 	object := i.Interpret(node.Right, scope)
@@ -1030,6 +1054,43 @@ func (i *Interpreter) isTruthy(object DataType) bool {
 	default:
 		return false
 	}
+}
+
+// Convert a type to an ast.Expression.
+func (i *Interpreter) typeToExpression(object DataType) ast.Expression {
+	switch value := object.(type) {
+	case *IntegerType:
+		return &ast.Integer{Value: value.Value}
+	case *FloatType:
+		return &ast.Float{Value: value.Value}
+	case *StringType:
+		return &ast.String{Value: value.Value}
+	case *ArrayType:
+		array := &ast.Array{}
+		array.List = &ast.ExpressionList{}
+		for _, v := range value.Elements {
+			result := i.typeToExpression(v)
+			if result == nil {
+				return nil
+			}
+			array.List.Elements = append(array.List.Elements, result)
+		}
+		return array
+	case *DictionaryType:
+		dict := &ast.Dictionary{}
+		dict.Pairs = map[ast.Expression]ast.Expression{}
+		for k, v := range value.Pairs {
+			key := &ast.String{Value: k.Value}
+			result := i.typeToExpression(v)
+			if result == nil {
+				return nil
+			}
+			dict.Pairs[key] = result
+		}
+		return dict
+	}
+
+	return nil
 }
 
 // Report an error in the current location.

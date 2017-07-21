@@ -139,6 +139,7 @@ You can't expect to run some calculations without a good batch of operators, rig
 By order of precedence:
 
 ```
+Pipe: |>
 Boolean: && || (AND, OR)
 Bitwise: & | ~ (Bitwise AND, OR, NOT)
 Equality: == != (Equal, Not equal)
@@ -297,6 +298,40 @@ for v in 10..20
 end
 ```
 
+## Pipe Operator
+
+The pipe operator, inspired by [Elixir](https://elixir-lang.org/), is a very expressive way of chaining functions calls. Instead of very unreadable code like the one below:
+
+```swift
+subtract(pow(add(2, 1)))
+```
+
+You'll be writing beauties like this one:
+
+```swift
+add(2, 1) |> pow() |> substract()
+```
+
+The pipe starts from left to right, evaluating each left expression and passing it automatically as the first parameter to the function on the right side. Basically, the result of `add` is passed to `pow`, and finally the result of `pow` to `substract`.
+
+It gets even more interesting when combined with standart library's functions:
+
+```swift
+["hello", "world"] |> String.join(" ") |> String.capitalize()
+```
+
+Enumerable functions too:
+
+```swift
+Enum.map([1, 2, 3], fn x do x + 1 end) |> Enum.filter(fn x do x % 2 == 1 end)
+
+// or even nicer
+
+[1, 2, 3] |> Enum.map(fn x do x + 1 end) |> Enum.filter(fn x do x % 2 == 1 end)
+```
+
+The only gotcha for the moment is that piped expressions can't span multiple lines, but it's something I'm looking into.
+
 ## Immutability
 
 Now that you've seen most of the language constructs, it's time to fight the dragon. Enforced immutability is something you may not agree with immediately, but it makes a lot of sense the more you think about it. What you'll win is increased clarity and programs that are easier to reason about.
@@ -393,9 +428,10 @@ Although this is a language made purely for fun and experimentation, it doesn't 
 In the near future, hopefully, I plan to:
 
 - Improve the Standard Library with more functions.
-- Find a way to support closures and ~~recursion~~.
+- Support closures and ~~recursion~~.
+- Add a short syntax for functions in the form of `x -> x`.
 - Add importing of other files.
-- Pipe operator!
+- ~~Add the pipe operator!~~
 - Support optional values for null returns.
 - Write more tests!
 - Write some useful benchmarks with non-trivial programs.

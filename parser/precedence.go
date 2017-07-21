@@ -4,8 +4,9 @@ import "github.com/fadion/aria/token"
 
 // Precedence.
 const (
-	_ int = iota
+	_           int = iota
 	LOWEST
+	PIPE
 	BOOLEAN
 	BITWISE
 	ASSIGNEMENT
@@ -45,4 +46,5 @@ var precedences = map[token.TokenType]int{
 	token.BITNOT:     BITWISE,
 	token.BITSHLEFT:  BITSHIFT,
 	token.BITSHRIGHT: BITSHIFT,
+	token.PIPE:       PIPE,
 }

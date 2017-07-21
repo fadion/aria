@@ -131,6 +131,9 @@ func (l *Lexer) NextToken() token.Token {
 		case '|': // ||
 			l.advance()
 			l.assignToken(token.OR, "||")
+		case '>': // |>
+			l.advance()
+			l.assignToken(token.PIPE, "|>")
 		default: // |
 			l.assignToken(token.BITOR, string(l.char))
 		}

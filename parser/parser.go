@@ -53,6 +53,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerInfix(token.DOT, p.parseModuleAccess)
 	p.registerInfix(token.LPAREN, p.parseFunctionCall)
 	p.registerInfix(token.LBRACK, p.parseSubscript)
+	p.registerInfix(token.PIPE, p.parsePipe)
 	p.registerInfix(token.PLUS, p.parseInfix)
 	p.registerInfix(token.MINUS, p.parseInfix)
 	p.registerInfix(token.SLASH, p.parseInfix)
@@ -697,6 +698,20 @@ func (p *Parser) parseSubscript(left ast.Expression) ast.Expression {
 	}
 
 	p.advance()
+
+	return expression
+}
+
+// IDENT() |> IDENT()
+func (p *Parser) parsePipe(left ast.Expression) ast.Expression {
+	expression := &ast.Pipe{
+		Token:    p.token,
+		Left:     left,
+	}
+
+	precedence := p.precedence()
+	p.advance()
+	expression.Right = p.parseExpression(precedence)
 
 	return expression
 }

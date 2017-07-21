@@ -48,6 +48,7 @@ const (
 	OR         = "||"
 	AND        = "&&"
 	BANG       = "!"
+	PIPE       = "|>"
 
 	// Delimiters
 	COMMA   = ","

@@ -171,6 +171,26 @@ func (e *Subscript) Inspect() string {
 	return out.String()
 }
 
+// Pipe operator.
+type Pipe struct {
+	Token token.Token
+	Left     Expression
+	Right    Expression
+}
+
+func (e *Pipe) expression()                   {}
+func (e *Pipe) TokenLexeme() string           { return e.Token.Lexeme }
+func (e *Pipe) TokenLocation() token.Location { return e.Token.Location }
+func (e *Pipe) Inspect() string {
+	var out bytes.Buffer
+
+	out.WriteString(e.Left.Inspect())
+	out.WriteString(" |> ")
+	out.WriteString(e.Right.Inspect())
+
+	return out.String()
+}
+
 // Dictionary literal.
 type Dictionary struct {
 	Token token.Token
