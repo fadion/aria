@@ -10,21 +10,23 @@ import (
 
 // Lexer represents the lexer.
 type Lexer struct {
-	reader *reader.Reader
-	char   rune
-	row    int
-	col    int
-	token  token.Token
-	symbol *Symbol
+	reader   *reader.Reader
+	char     rune
+	row      int
+	col      int
+	token    token.Token
+	rewinded bool
+	symbol   *Symbol
 }
 
 // New initializes a Lexer.
 func New(reader *reader.Reader) *Lexer {
 	l := &Lexer{
-		reader: reader,
-		row:    1,
-		col:    1,
-		symbol: &Symbol{},
+		reader:   reader,
+		row:      1,
+		col:      1,
+		rewinded: false,
+		symbol:   &Symbol{},
 	}
 
 	// List of valid keywords.
@@ -198,7 +200,13 @@ func (l *Lexer) advance() {
 		l.reportError(fmt.Sprintf("Invalid '%s' character in source file", string(rn)))
 	}
 
-	l.moveLocation()
+	// Don't move the location if it was a
+	// rewind, or it will report an incorrect
+	// line and column.
+	if !l.rewinded {
+		l.moveLocation()
+	}
+	l.rewinded = false
 	l.char = rn
 }
 
@@ -217,6 +225,8 @@ func (l *Lexer) rewind() {
 	if err := l.reader.Unread(); err != nil {
 		l.reportError("Unable to move to the previous character. This is an internal Lexer fail.")
 	}
+
+	l.rewinded = true
 }
 
 // Move row and column cursor.
@@ -358,7 +368,7 @@ loop:
 		case l.char == '.' && l.peek() == '.': // Range operator.
 			l.rewind()
 			break loop
-		case l.char == 0 || l.char == '\n': // Don't rewind on an EOF or newline.
+		case l.char == 0: // Don't rewind on EOF.
 			break loop
 		default:
 			l.rewind()
