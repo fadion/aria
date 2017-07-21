@@ -5,6 +5,19 @@
 
 Aria is an expressive, interpreted, toy language built as an exercise on designing and interpreting a programming language. It has a noiseless syntax, free of useless semi colons, braces or parantheses, and treats everything as an expression. Technically, it's built with a hand written lexer and parser, a recursive decent one (Pratt), and a tree-walk interpreter. I have never set any goals for it to be either fast, nor bulletproof, so don't expect neither of them.
 
+```swift
+let name = "aria language"
+let expressive? = fn x
+  if x != ""
+    return "expressive " + x
+  end
+  return "sorry, what?"
+end
+
+let pipe = name |> expressive?() |> String.capitalize()
+IO.puts(pipe) // "Expressive Aria Language"
+```
+
 ## Usage
 
 If you want to play with the language, but have no interest in toying with its code, you can download a built binary for your operating system. Just head to the [latest release](https://github.com/fadion/aria/releases/latest) and download one of the archives.
