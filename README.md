@@ -297,6 +297,58 @@ for v in 10..20
 end
 ```
 
+## Immutability
+
+Now that you've seen most of the language constructs, it's time to fight the dragon. Enforced immutability is something you may not agree with immediately, but it makes a lot of sense the more you think about it. What you'll win is increased clarity and programs that are easier to reason about.
+
+In Aria, this won't work:
+
+```swift
+let a = 10
+a = 15 // Parse error: Unexpected expression '='
+```
+
+It won't even parse, as assignement is allowed only in let statements, but not as an expression. What to do then? Very easy, just declare a new variable!
+
+Iterators are typical examples where mutability is seeked for. The dreaded `i` variable shows itself in almost every language's `for` loop. Aria keeps it simple with the `for in` loop that tracks the index and value. Even if it looks like it, the index and value aren't mutable values, but arguments to each iteration of the loop.
+
+```swift
+let numbers = [10, 5, 9]
+for k, v in numbers
+  IO.puts(v) 
+  IO.puts(numbers[k] // same thing
+end
+```
+
+But there may be more complicated scenarios, like wanting to modify an array's values. Sure, you can do it with the `for in` loop, but higher order functions play even better:
+
+```swift
+let plus_one = Enum.map([1, 2, 3], fn x
+  x + 1
+end)
+IO.puts(plus_one) // [2, 3, 4]
+```
+
+Filter is also useful to "clean" an array of unwanted values:
+
+```swift
+let even = Enum.filter(1..10, fn x
+  x % 2 == 0
+end)
+IO.puts(even) // [2, 4, 6, 8, 10]
+```
+
+What about accumulators? Let's say you want the product of all the elements of an array (factorial) and obviously, you'll need a mutable variable to hold it. That's what `reduce` is for:
+
+```swift
+let product = Enum.reduce(1..5, 1, fn x, acc
+  x * acc
+end)
+IO.puts(product)
+``` 
+
+All of these functions and others in the standard library can be mixed and matched to your needs. I'm sure you'll find plenty of scenarios where the current capabilities of the language can't hold up to the promise and fail to achieve something without mutable values. I'll try and fix those holes!
+
 ## Modules
 
 Modules are very simple containers of data and nothing more. They're not an imitation of classes, as they can't be initialized, don't have any type of access control, inheritance or whatever. If you need to think in Object Oriented terms, they're like a class with only static properties and methods. They're good to give some structure to a program, but not to represent cars, trees and cats.
