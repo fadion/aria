@@ -342,6 +342,10 @@ func (i *Interpreter) runSwitchCase(cases []*ast.SwitchCase, control DataType, s
 				if object.Value == control.(*BooleanType).Value {
 					return cs, nil
 				}
+			case *StringType:
+				if object.Value == control.(*StringType).Value {
+					return cs, nil
+				}
 			default:
 				return nil, fmt.Errorf("Type '%s' can't be used in a Switch case", object.Type())
 			}
