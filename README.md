@@ -314,7 +314,7 @@ add(2, 1) |> pow() |> substract()
 
 The pipe starts from left to right, evaluating each left expression and passing it automatically as the first parameter to the function on the right side. Basically, the result of `add` is passed to `pow`, and finally the result of `pow` to `substract`.
 
-It gets even more interesting when combined with standart library's functions:
+It gets even more interesting when combined with standard library's functions:
 
 ```swift
 ["hello", "world"] |> String.join(" ") |> String.capitalize()
