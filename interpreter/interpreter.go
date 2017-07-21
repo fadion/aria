@@ -13,6 +13,7 @@ type Interpreter struct {
 	modules map[string]*ModuleType
 	library *Library
 	functions map[string]string
+	moduleCache map[string]*Scope
 }
 
 // New initializes an Interpreter.
@@ -24,6 +25,7 @@ func New() *Interpreter {
 		modules: map[string]*ModuleType{},
 		library: lib,
 		functions: map[string]string{},
+		moduleCache: map[string]*Scope{},
 	}
 }
 
@@ -117,10 +119,14 @@ func (i *Interpreter) runModuleAccess(node *ast.ModuleAccess, scope *Scope) Data
 
 	// Check if the module exists.
 	if module, ok := i.modules[node.Object.Value]; ok {
-		// Run the properties so they can be put in scope
-		// for the functions.
-		// TODO: Cache the results.
-		i.runModuleProperties(module.Body, scope)
+		// Check the cache for already interpreted properties.
+		// Otherwise run them and pass their values to the scope.
+		if sc, ok := i.moduleCache[module.Name.Value]; ok {
+			scope = sc
+		} else {
+			i.runModuleProperties(module.Body, scope)
+			i.moduleCache[module.Name.Value] = scope
+		}
 
 		for _, statement := range module.Body.Statements {
 			switch sType := statement.(type) {
