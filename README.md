@@ -18,6 +18,29 @@ let pipe = name |> expressive?() |> String.capitalize()
 IO.puts(pipe) // "Expressive Aria Language"
 ```
 
+## Table of Contents
+
+* [Usage](#usage)
+    * [Run a Source File](#run-a-source-file)
+    * [REPL](#repl)
+* [Basic Syntax](#basic-syntax)
+* [Data Types](#data-types)
+    * [String](#string)
+    * [Integer & Float](#integer--float)
+    * [Boolean](#boolean)
+    * [Array](#array)
+    * [Dictionary](#dictionary)
+* [Operators](#operators)
+* [Functions](#functions)
+* [Conditionals](#conditionals)
+* [For Loop](#foor-loop)
+* [Range Operator](#range-operator)
+* [Pipe Operator](#pipe-operator)
+* [Immutability](#immutability)
+* [Modules](#modules)
+* [Comments](#comments)
+* [Standard Library](#standard-library)
+
 ## Usage
 
 If you want to play with the language, but have no interest in toying with its code, you can download a built binary for your operating system. Just head to the [latest release](https://github.com/fadion/aria/releases/latest) and download one of the archives.
