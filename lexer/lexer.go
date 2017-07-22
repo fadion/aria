@@ -98,7 +98,13 @@ func (l *Lexer) NextToken() token.Token {
 	case l.char == '+':
 		l.assignToken(token.PLUS, string(l.char))
 	case l.char == '-':
-		l.assignToken(token.MINUS, string(l.char))
+		switch l.peek() {
+		case '>': // ->
+			l.advance()
+			l.assignToken(token.ARROW, string("->"))
+		default:
+			l.assignToken(token.MINUS, string(l.char))
+		}
 	case l.char == '*':
 		switch l.peek() {
 		case '*': // **

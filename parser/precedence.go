@@ -6,6 +6,7 @@ import "github.com/fadion/aria/token"
 const (
 	_           int = iota
 	LOWEST
+	ARROW
 	PIPE
 	BOOLEAN
 	BITWISE
@@ -47,4 +48,5 @@ var precedences = map[token.TokenType]int{
 	token.BITSHLEFT:  BITSHIFT,
 	token.BITSHRIGHT: BITSHIFT,
 	token.PIPE:       PIPE,
+	token.ARROW:      ARROW,
 }

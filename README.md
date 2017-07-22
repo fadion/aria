@@ -34,6 +34,9 @@ IO.puts(pipe) // "Expressive Aria Language"
     * [Dictionary](#dictionary)
 * [Operators](#operators)
 * [Functions](#functions)
+    * [Return Statement](#return-statement)
+    * [Arrow Functions](#arrow-functions)
+    * [Tricks](#tricks)
 * [Conditionals](#conditionals)
     * [If](#if)
     * [Switch](#switch)
@@ -205,6 +208,8 @@ end
 pow(2) // Runtime error: Identifier 'y' not found in current scope
 ```
 
+### Return Statement
+
 Until now we haven't seen a single `return` statement. Functions are expressions, so the last line is considered its return value. In most cases, especially with small functions, you don't have to bother. However, there are scenarios with multiple return points that need to explicitly tell the interpreter. Let's see the classical factorial example, which is a double win as it shows recursion too.
 
 ```swift
@@ -219,7 +224,34 @@ end
 
 The last statement doesn't need a `return`, as it's the last line and will be automatically inferred. The `if`, on the other hand, is not, so it needs an explicit `return`. Hope it makes sense.
 
-If you're into this kind of things, functions can self-execute:
+### Arrow Functions
+
+Very useful when passing short functions as arguments, arrow functions provide a very clean syntax. They're handled internally exactly like normal functions. The only difference is that they're meant as a single line of code, while normal functions can handle blocks.
+
+This normal function:
+
+```swift
+let sub = fn x
+  x - 5
+end
+```
+
+Is equivalent to:
+
+```swift
+let sub = (x) -> x - 5
+```
+
+They're not that useful to just spare a couple lines of code. They shine when passed as arguments:
+
+```
+Enum.map([1, 2, 3, 4], (x) -> x * 2)
+Enum.reduce(1..10, 0, (x, acc) -> x + acc)
+```
+
+### Tricks
+
+As first class, functions have their share of tricks. First, they can self-execute and return their result immediately:
 
 ```swift
 let pow_2 = fn x
@@ -227,12 +259,21 @@ let pow_2 = fn x
 end(2)
 ```
 
-And even passed as elements into data structures:
+Not sure how useful, but they can be passed as elements to data structures, like arrays and dictionaries:
 
 ```swift
 let add = fn x, y do x + y end
 let list = [1, 2, add]
 list[2](5, 7) 
+```
+
+Finally, like you may have guessed from previous examples, they can be passed as parameters to other functions:
+
+```swift
+let add = fn x, factor
+  x + factor(x)
+end
+add(5, (x) -> x * 2)
 ```
 
 ## Conditionals
@@ -344,9 +385,7 @@ let map = fn x, f
   end
 end
 
-let plus_one = map([1, 2, 3, 4], fn x
-  x + 1
-end)
+let plus_one = map([1, 2, 3, 4], (x) -> x + 1)
 
 IO.puts(plus_one) // [2, 3, 4, 5]
 ```
@@ -413,11 +452,11 @@ It gets even more interesting when combined with standard library functions:
 Enumerable functions too:
 
 ```swift
-Enum.map([1, 2, 3], fn x do x + 1 end) |> Enum.filter(fn x do x % 2 == 1 end)
+Enum.map([1, 2, 3], (x) -> x + 1) |> Enum.filter((x) -> x % 2 == 1)
 
 // or even nicer
 
-[1, 2, 3] |> Enum.map(fn x do x + 1 end) |> Enum.filter(fn x do x % 2 == 1 end)
+[1, 2, 3] |> Enum.map((x) -> x + 1) |> Enum.filter((x) -> x % 2 == 1)
 ```
 
 Such a simple operator hides so much power and flexibility into making more readable code. Almost always, if you have a chain of functions, think that they could be put into a pipe.
@@ -448,18 +487,14 @@ end
 But there may be more complicated scenarios, like wanting to modify an array's values. Sure, you can do it with the `for in` loop as we've seen earlier, but higher order functions play even better:
 
 ```swift
-let plus_one = Enum.map([1, 2, 3], fn x
-  x + 1
-end)
+let plus_one = Enum.map([1, 2, 3], (x) -> x + 1)
 IO.puts(plus_one) // [2, 3, 4]
 ```
 
 What about accumulators? Let's say you want the product of all the integer elements of an array (factorial) and obviously, you'll need a mutable variable to hold it. Fortunately we have `reduce`:
 
 ```swift
-let product = Enum.reduce(1..5, 1, fn x, acc
-  x * acc
-end)
+let product = Enum.reduce(1..5, 1, (x, acc) -> x * acc)
 IO.puts(product)
 ```
 
@@ -551,7 +586,7 @@ In the near future, hopefully, I plan to:
 
 - Improve the Standard Library with more functions.
 - Support closures and ~~recursion~~.
-- Add a short syntax for functions in the form of `x -> x`.
+- ~~Add a short syntax for functions in the form of: (x) -> x~~.
 - ~~Add importing of other files~~.
 - ~~Add the pipe operator!~~
 - Support optional values for null returns.

@@ -29,51 +29,53 @@ type (
 func New(l *lexer.Lexer) *Parser {
 	p := &Parser{lex: l}
 
-	// Register prefix functions.
 	p.prefixFunctions = make(map[token.TokenType]prefixParseFn)
-	p.registerPrefix(token.MODULE, p.parseModule)
-	p.registerPrefix(token.IF, p.parseIf)
-	p.registerPrefix(token.SWITCH, p.parseSwitch)
-	p.registerPrefix(token.FOR, p.parseFor)
-	p.registerPrefix(token.FUNCTION, p.parseFunction)
-	p.registerPrefix(token.IMPORT, p.parseImport)
-	p.registerPrefix(token.LBRACK, p.parseArrayOrDictionary)
-	p.registerPrefix(token.IDENTIFIER, p.parseIdentifier)
-	p.registerPrefix(token.INTEGER, p.parseInteger)
-	p.registerPrefix(token.FLOAT, p.parseFloat)
-	p.registerPrefix(token.STRING, p.parseString)
-	p.registerPrefix(token.BOOLEAN, p.parseBoolean)
-	p.registerPrefix(token.NIL, p.parseNil)
-	p.registerPrefix(token.BANG, p.parsePrefix)
-	p.registerPrefix(token.BITNOT, p.parsePrefix)
-	p.registerPrefix(token.MINUS, p.parsePrefix)
-	p.registerPrefix(token.LPAREN, p.parseGroup)
+	p.infixFunctions = make(map[token.TokenType]infixParseFn)
+
+	// Register prefix functions.
+	p.prefix(token.MODULE, p.parseModule)
+	p.prefix(token.IF, p.parseIf)
+	p.prefix(token.SWITCH, p.parseSwitch)
+	p.prefix(token.FOR, p.parseFor)
+	p.prefix(token.FUNCTION, p.parseFunction)
+	p.prefix(token.IMPORT, p.parseImport)
+	p.prefix(token.LBRACK, p.parseArrayOrDictionary)
+	p.prefix(token.IDENTIFIER, p.parseIdentifier)
+	p.prefix(token.INTEGER, p.parseInteger)
+	p.prefix(token.FLOAT, p.parseFloat)
+	p.prefix(token.STRING, p.parseString)
+	p.prefix(token.BOOLEAN, p.parseBoolean)
+	p.prefix(token.NIL, p.parseNil)
+	p.prefix(token.BANG, p.parsePrefix)
+	p.prefix(token.BITNOT, p.parsePrefix)
+	p.prefix(token.MINUS, p.parsePrefix)
+	p.prefix(token.LPAREN, p.parseGroup)
 
 	// Register infix functions.
-	p.infixFunctions = make(map[token.TokenType]infixParseFn)
-	p.registerInfix(token.DOT, p.parseModuleAccess)
-	p.registerInfix(token.LPAREN, p.parseFunctionCall)
-	p.registerInfix(token.LBRACK, p.parseSubscript)
-	p.registerInfix(token.PIPE, p.parsePipe)
-	p.registerInfix(token.PLUS, p.parseInfix)
-	p.registerInfix(token.MINUS, p.parseInfix)
-	p.registerInfix(token.SLASH, p.parseInfix)
-	p.registerInfix(token.ASTERISK, p.parseInfix)
-	p.registerInfix(token.MODULO, p.parseInfix)
-	p.registerInfix(token.POWER, p.parseInfix)
-	p.registerInfix(token.EQ, p.parseInfix)
-	p.registerInfix(token.UNEQ, p.parseInfix)
-	p.registerInfix(token.LT, p.parseInfix)
-	p.registerInfix(token.LTE, p.parseInfix)
-	p.registerInfix(token.GT, p.parseInfix)
-	p.registerInfix(token.GTE, p.parseInfix)
-	p.registerInfix(token.OR, p.parseInfix)
-	p.registerInfix(token.AND, p.parseInfix)
-	p.registerInfix(token.BITAND, p.parseInfix)
-	p.registerInfix(token.BITOR, p.parseInfix)
-	p.registerInfix(token.BITSHLEFT, p.parseInfix)
-	p.registerInfix(token.BITSHRIGHT, p.parseInfix)
-	p.registerInfix(token.RANGE, p.parseInfix)
+	p.infix(token.DOT, p.parseModuleAccess)
+	p.infix(token.LPAREN, p.parseFunctionCall)
+	p.infix(token.LBRACK, p.parseSubscript)
+	p.infix(token.PIPE, p.parsePipe)
+	p.infix(token.ARROW, p.parseArrowFunction)
+	p.infix(token.RANGE, p.parseInfix)
+	p.infix(token.PLUS, p.parseInfix)
+	p.infix(token.MINUS, p.parseInfix)
+	p.infix(token.SLASH, p.parseInfix)
+	p.infix(token.ASTERISK, p.parseInfix)
+	p.infix(token.MODULO, p.parseInfix)
+	p.infix(token.POWER, p.parseInfix)
+	p.infix(token.EQ, p.parseInfix)
+	p.infix(token.UNEQ, p.parseInfix)
+	p.infix(token.LT, p.parseInfix)
+	p.infix(token.LTE, p.parseInfix)
+	p.infix(token.GT, p.parseInfix)
+	p.infix(token.GTE, p.parseInfix)
+	p.infix(token.OR, p.parseInfix)
+	p.infix(token.AND, p.parseInfix)
+	p.infix(token.BITAND, p.parseInfix)
+	p.infix(token.BITOR, p.parseInfix)
+	p.infix(token.BITSHLEFT, p.parseInfix)
+	p.infix(token.BITSHRIGHT, p.parseInfix)
 
 	// In the first advance, only the peek token
 	// is set. The second sets both the current and
@@ -113,12 +115,12 @@ func (p *Parser) peekMatch(t ...token.TokenType) bool {
 }
 
 // Register prefix function.
-func (p *Parser) registerPrefix(tokenType token.TokenType, fn prefixParseFn) {
+func (p *Parser) prefix(tokenType token.TokenType, fn prefixParseFn) {
 	p.prefixFunctions[tokenType] = fn
 }
 
 // Register infix function.
-func (p *Parser) registerInfix(tokenType token.TokenType, fn infixParseFn) {
+func (p *Parser) infix(tokenType token.TokenType, fn infixParseFn) {
 	p.infixFunctions[tokenType] = fn
 }
 
@@ -725,13 +727,51 @@ func (p *Parser) parseSubscript(left ast.Expression) ast.Expression {
 // IDENT() |> IDENT()
 func (p *Parser) parsePipe(left ast.Expression) ast.Expression {
 	expression := &ast.Pipe{
-		Token:    p.token,
-		Left:     left,
+		Token: p.token,
+		Left:  left,
 	}
 
 	precedence := p.precedence()
 	p.advance()
 	expression.Right = p.parseExpression(precedence)
+
+	return expression
+}
+
+// IDENT -> EXPRESSION
+func (p *Parser) parseArrowFunction(left ast.Expression) ast.Expression {
+	expression := &ast.Function{Token: p.token}
+	expression.Parameters = &ast.IdentifierList{}
+
+	switch exprType := left.(type) {
+	case *ast.Identifier:
+		// Handle a single argument.
+		expression.Parameters.Elements = append(expression.Parameters.Elements, exprType)
+	case *ast.ExpressionList:
+		// Handle a list of arguments.
+		// Loop through all the elements of the list
+		// to find identifiers.
+		for _, v := range exprType.Elements {
+			switch param := v.(type) {
+			case *ast.Identifier:
+				expression.Parameters.Elements = append(expression.Parameters.Elements, param)
+			default:
+				p.reportError("Arrow function expects a list of identifiers as arguments")
+				return nil
+			}
+		}
+	default:
+		p.reportError("Arrow function expects identifiers as arguments")
+		return nil
+	}
+
+	p.advance()
+
+	expression.Body = &ast.BlockStatement{
+		Statements: []ast.Statement{
+			p.parseExpressionStatement(),
+		},
+	}
 
 	return expression
 }
@@ -773,7 +813,7 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 
 // Check if a token is ignored in expression parsing.
 func (p *Parser) isIgnoredAsExpression(tok token.TokenType) bool {
-	ignored := []token.TokenType{token.NEWLINE, token.EOF, token.RBRACK, token.COLON, token.DO}
+	ignored := []token.TokenType{token.NEWLINE, token.EOF, token.RBRACK, token.COLON, token.DO, token.COMMA}
 	for _, v := range ignored {
 		if v == tok {
 			return true
@@ -814,10 +854,25 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 	return left
 }
 
-// Parse a group expression, ie: (IDENT1 + IDENT2)
+// Parse a group expression of expressions.
 func (p *Parser) parseGroup() ast.Expression {
 	p.advance()
 	expression := p.parseExpression(LOWEST)
+
+	// Look for a comma separated group of expressions.
+	if p.peekMatch(token.COMMA) {
+		p.advance()
+
+		list := &ast.ExpressionList{}
+		list.Elements = []ast.Expression{expression}
+		rest := p.parseDelimited(token.COMMA, token.RPAREN)
+
+		if rest != nil {
+			list.Elements = append(list.Elements, rest...)
+		}
+
+		return list
+	}
 
 	// Missing closing right parantheses.
 	if !p.peekMatch(token.RPAREN) {

@@ -49,6 +49,7 @@ const (
 	AND        = "&&"
 	BANG       = "!"
 	PIPE       = "|>"
+	ARROW      = "->"
 
 	// Delimiters
 	COMMA   = ","
