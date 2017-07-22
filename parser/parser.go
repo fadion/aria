@@ -36,6 +36,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.registerPrefix(token.SWITCH, p.parseSwitch)
 	p.registerPrefix(token.FOR, p.parseFor)
 	p.registerPrefix(token.FUNCTION, p.parseFunction)
+	p.registerPrefix(token.IMPORT, p.parseImport)
 	p.registerPrefix(token.LBRACK, p.parseArrayOrDictionary)
 	p.registerPrefix(token.IDENTIFIER, p.parseIdentifier)
 	p.registerPrefix(token.INTEGER, p.parseInteger)
@@ -596,6 +597,25 @@ func (p *Parser) parseFunctionCall(function ast.Expression) ast.Expression {
 
 	list.Elements = p.parseDelimited(token.COMMA, token.RPAREN)
 	expression.Arguments = list
+
+	return expression
+}
+
+// IMPORT STRING
+func (p *Parser) parseImport() ast.Expression {
+	expression := &ast.Import{Token: p.token}
+	p.advance()
+	file := p.parseExpression(LOWEST)
+
+	// Import needs a string as the filename
+	// to be imported.
+	switch fileString := file.(type) {
+	case *ast.String:
+		expression.File = fileString
+	default:
+		p.reportError("IMPORT expects a string as filename")
+		return nil
+	}
 
 	return expression
 }

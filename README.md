@@ -38,6 +38,7 @@ IO.puts(pipe) // "Expressive Aria Language"
 * [Pipe Operator](#pipe-operator)
 * [Immutability](#immutability)
 * [Modules](#modules)
+* [Imports](#imports)
 * [Comments](#comments)
 * [Standard Library](#standard-library)
 
@@ -441,6 +442,47 @@ There can't be any other statement in modules except `let`, but those variables 
 
 Keep in mind that the Aria interpreter is single pass and as such, it will only recognize calls to a module that has already been declared. 
 
+## Imports
+
+Source file imports are a good way of breaking down projects into smaller, easily digestible files. There's no special syntax or rules to imported files. They're included in the caller's scope and treated as if they were originally there.
+
+```swift
+// dog.ari
+let name = "Charlie"
+let bark_to = fn x
+  "woof-woof " + x
+end
+```
+
+```swift
+// main.ari
+import "dog"
+
+let phrase = name + " " + bark_to("John")
+IO.puts(phrase) // "Charlie woof-woof John"
+```
+
+The file is relatively referenced from the caller and this case, both `main.ari` and `dog.ari` reside in the same folder. As the long as the extension is `.ari`, there's no need to write it in the import statement.
+
+A more useful pattern would be to wrap imported files into a module. That would make for a more intuitive system and prevent scope leakage. The dog case above would be written simply into:
+
+```swift
+// dog.ari
+module Dog
+  let name = "Charlie"
+  let bark_to = fn x
+    "woof-woof " + x
+  end
+end
+```
+
+```swift
+// main.ari
+import "dog"
+
+let phrase = Dog.name + " " + Dog.bark_to("John")
+```
+
 ## Comments
 
 Nothing fancy in here! You can comment your code using both inline or block comments:
@@ -466,7 +508,7 @@ In the near future, hopefully, I plan to:
 - Improve the Standard Library with more functions.
 - Support closures and ~~recursion~~.
 - Add a short syntax for functions in the form of `x -> x`.
-- Add importing of other files.
+- ~~Add importing of other files~~.
 - ~~Add the pipe operator!~~
 - Support optional values for null returns.
 - Write more tests!

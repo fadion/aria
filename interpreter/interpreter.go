@@ -6,6 +6,11 @@ import (
 	"github.com/fadion/aria/reporter"
 	"math"
 	"strings"
+	"io/ioutil"
+	"github.com/fadion/aria/lexer"
+	"github.com/fadion/aria/reader"
+	"github.com/fadion/aria/parser"
+	"path/filepath"
 )
 
 // Interpreter represents the interpreter.
@@ -14,6 +19,7 @@ type Interpreter struct {
 	library *Library
 	functions map[string]string
 	moduleCache map[string]*Scope
+	importCache map[string]*ast.Program
 }
 
 // New initializes an Interpreter.
@@ -26,6 +32,7 @@ func New() *Interpreter {
 		library: lib,
 		functions: map[string]string{},
 		moduleCache: map[string]*Scope{},
+		importCache: map[string]*ast.Program{},
 	}
 }
 
@@ -86,6 +93,8 @@ func (i *Interpreter) Interpret(node ast.Node, scope *Scope) DataType {
 		return &BreakType{}
 	case *ast.Continue:
 		return &ContinueType{}
+	case *ast.Import:
+		return i.runImport(node, scope)
 	}
 
 	return nil
@@ -443,9 +452,8 @@ func (i *Interpreter) runForDictionary(node *ast.For, dictionary *DictionaryType
 func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType {
 	var fn DataType
 
-	// There are two possible types of function calls:
-	// 1. Regular functions: add(1, 2)
-	// 2. Module access: Store.get(10)
+	// ModuleAccess is handled differently from
+	// regular functions calls.
 	switch nodeType := node.Function.(type) {
 	case *ast.ModuleAccess:
 		// Standard library functions use the same dot
@@ -465,6 +473,12 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 	// An error, most probably on ModuleAccess, so return
 	// early to stop any runtime panic.
 	if fn == nil {
+		return nil
+	}
+
+	// Make sure it's a function we're calling.
+	if fn.Type() != FUNCTION_TYPE {
+		i.reportError(node, "Trying to call a non-function")
 		return nil
 	}
 
@@ -623,6 +637,39 @@ func (i *Interpreter) runPipe(node *ast.Pipe, scope *Scope) DataType {
 	}
 
 	return nil
+}
+
+// Import "filename" by reading, lexing and
+// parsing it all over.
+func (i *Interpreter) runImport(node *ast.Import, scope *Scope) DataType {
+	filename := i.prepareImportFilename(node.File.Value)
+
+	// Check the cache fist.
+	if cache, ok := i.importCache[filename]; ok {
+		return i.Interpret(cache, scope)
+	}
+
+	source, err := ioutil.ReadFile(i.prepareImportFilename(filename))
+	if err != nil {
+		i.reportError(node, fmt.Sprintf("Couldn't read imported file '%s'", node.File.Value))
+		return nil
+	}
+
+	lex := lexer.New(reader.New(source))
+	if reporter.HasErrors() {
+		return nil
+	}
+
+	parse := parser.New(lex)
+	program := parse.Parse()
+	if reporter.HasErrors() {
+		return nil
+	}
+
+	// Cache the parsed program.
+	i.importCache[filename] = program
+
+	return i.Interpret(program, scope)
 }
 
 // Interpret prefix operators: (OP)OBJ
@@ -1058,6 +1105,15 @@ func (i *Interpreter) isTruthy(object DataType) bool {
 	default:
 		return false
 	}
+}
+
+func (i *Interpreter) prepareImportFilename(file string) string {
+	ext := filepath.Ext(file)
+	if ext == "" {
+		file = file + ".ari"
+	}
+
+	return file
 }
 
 // Convert a type to an ast.Expression.

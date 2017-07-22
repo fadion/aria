@@ -79,6 +79,7 @@ const (
 	BREAK    = "BREAK"
 	CONTINUE = "CONTINUE"
 	MODULE   = "MODULE"
+	IMPORT   = "IMPORT"
 
 	// Misc
 	COMMENT = "COMMENT"

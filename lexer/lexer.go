@@ -49,6 +49,7 @@ func New(reader *reader.Reader) *Lexer {
 	l.symbol.Insert("break", token.BREAK)
 	l.symbol.Insert("continue", token.CONTINUE)
 	l.symbol.Insert("module", token.MODULE)
+	l.symbol.Insert("import", token.IMPORT)
 
 	// Move to the first token.
 	l.advance()

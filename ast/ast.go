@@ -174,8 +174,8 @@ func (e *Subscript) Inspect() string {
 // Pipe operator.
 type Pipe struct {
 	Token token.Token
-	Left     Expression
-	Right    Expression
+	Left  Expression
+	Right Expression
 }
 
 func (e *Pipe) expression()                   {}
@@ -467,6 +467,24 @@ func (e *Continue) statement()                    {}
 func (e *Continue) TokenLexeme() string           { return e.Token.Lexeme }
 func (e *Continue) TokenLocation() token.Location { return e.Token.Location }
 func (e *Continue) Inspect() string               { return e.Token.Lexeme }
+
+// Import a file.
+type Import struct {
+	Token token.Token
+	File *String
+}
+
+func (e *Import) expression()                   {}
+func (e *Import) TokenLexeme() string           { return e.Token.Lexeme }
+func (e *Import) TokenLocation() token.Location { return e.Token.Location }
+func (e *Import) Inspect() string               {
+	var out *bytes.Buffer
+
+	out.WriteString("Import ")
+	out.WriteString(e.File.Value)
+
+	return out.String()
+}
 
 // ExpressionStatement as a statement that
 // holds expressions.
