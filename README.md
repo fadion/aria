@@ -351,6 +351,16 @@ end)
 IO.puts(plus_one) // [2, 3, 4, 5]
 ```
 
+The `break` and `continue` keywords, well break or skip the iteration. They function exactly like you're used to.
+
+```swift
+for i in 1..10
+  if i == 5
+    continue
+  end
+end
+```
+
 ## Range Operator
 
 The range operator is a special type of sugar to quickly generate an array of integers or strings. 
