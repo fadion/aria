@@ -48,6 +48,7 @@ func (l *Library) Register() {
 	l.store["Dict.size"] = dictSize
 	l.store["Dict.contains?"] = dictContains
 	l.store["Dict.insert"] = dictInsert
+	l.store["Dict.update"] = dictUpdate
 	l.store["Dict.delete"] = dictDelete
 	l.store["Dict.empty?"] = dictEmpty
 

@@ -64,7 +64,54 @@ func dictInsert(args ...DataType) (DataType, error) {
 
 	object := args[0].(*DictionaryType)
 	key := args[1].(*StringType)
+
+	exists := false
+	for k, _ := range object.Pairs {
+		if k.Value == key.Value {
+			exists = true
+			break
+		}
+	}
+
+	if exists {
+		return nil, fmt.Errorf("Can't insert an existing key")
+	}
+
 	object.Pairs[key] = args[2]
+
+	return &DictionaryType{Pairs: object.Pairs}, nil
+}
+
+// Dict.update(Dictionary, key String, value Any) -> Dictionary
+// Update a key with a new value in the dictionary.
+func dictUpdate(args ...DataType) (DataType, error) {
+	if len(args) != 3 {
+		return nil, fmt.Errorf("Dict.update expects exactly 3 arguments")
+	}
+
+	if args[0].Type() != DICTIONARY_TYPE {
+		return nil, fmt.Errorf("Dict.update expects a Dictionary")
+	}
+
+	if args[1].Type() != STRING_TYPE {
+		return nil, fmt.Errorf("Dict.update expects a String key")
+	}
+
+	object := args[0].(*DictionaryType)
+	key := args[1].(*StringType)
+
+	exists := false
+	for k, _ := range object.Pairs {
+		if k.Value == key.Value {
+			object.Pairs[k] = args[2]
+			exists = true
+			break
+		}
+	}
+
+	if !exists {
+		return nil, fmt.Errorf("Can't update a non existing key")
+	}
 
 	return &DictionaryType{Pairs: object.Pairs}, nil
 }
