@@ -5,6 +5,8 @@
 
 Aria is an expressive, interpreted, toy language built as an exercise on designing and interpreting a programming language. It has a noiseless syntax, free of useless semi colons, braces or parantheses, and treats everything as an expression. Technically, it's built with a hand written lexer and parser, a recursive decent one (Pratt), and a tree-walk interpreter. I have never set any goals for it to be either fast, nor bulletproof, so don't expect neither of them.
 
+If features immutable variables, if and switch conditionals, functions, for loops, modules, the pipe operator, imports and many more. More importantly, it's getting expanded frequently with new features, more functions for the standard library and bug fixes. All of that while retaining it's expressiveness, clean syntax and easy of use.
+
 ```swift
 let name = "aria language"
 let expressive? = fn x
@@ -23,7 +25,7 @@ IO.puts(pipe) // "Expressive Aria Language"
 * [Usage](#usage)
     * [Run a Source File](#run-a-source-file)
     * [REPL](#repl)
-* [Basic Syntax](#basic-syntax)
+* [Variables](#variables)
 * [Data Types](#data-types)
     * [String](#string)
     * [Integer & Float](#integer--float)
@@ -64,36 +66,19 @@ As any serious language, Aria provides a REPL too:
 aria repl
 ```
 
-## Basic Syntax
+## Variables
 
-As you'd expect, there's a way to declaring variables:
+Variables are as you most probably expect them but with a twist. Let's see how they're declared first:
 
 ```swift
 let name = "John"
 let age = 40
+let married = false
 ```
 
-Once declared, a variable is locked to that value and can't be changed. You guessed it right, they're immutable! We could argue all day, but immutability advocates for safier code. It isn't that hard to pass a modified value to a new variable, isn't it?
+The twist is in them being immutable. Yes, once they're declared, their value is locked in and can't be changed or redeclared. Actually, `=` doesn't even parse as an expression except for `let` statements. I'll talk more on immutability later on.
 
-Variables have to start with an alphabetic character and then continue either with alphanumeric, underscores, question mark or exclamation mark.
-
-As anything is an expression, except for variable declaration, there are some pretty funny consequences. Everything can be passed to a variable as a value, even block statements like Ifs or Fors:
-
-```swift
-let old = if age > 40
-  true
-else
-  false
-end
-```
-
-Sometimes it's even nicer to inline the If completely, something you can do with almost every block expression. I'm not sure if that's actually readable for anyone, but it's an option:
-
-```swift
-let old = if age > 40 then true else false end
-```
-
-You've noticed there are no semi colons, braces or stuff like that? To me, it makes for code that's easier to read and scan. Don't confuse it with languages like Python however; in here, whitespace has absolutely no importance. Blocks of code are either inferred where they start, or delimited with keywords like `do`, `then` and `end`.
+Variable names have to start with an alphabetic character and continue either with alphanumeric, underscores, questions marks or exclamation marks. When you see a question mark, don't confuse them with optionals like in some other languages. In here they have no special lexical meaning except that they allow for some nice variable names like `is_empty?` or `do_it!`.
 
 ## Data Types
 
@@ -186,7 +171,7 @@ Bitshift: << >> (Bitshift left and right)
 Arithmetic: + - * / % ** (addition, substraction, multiplication, division, modulo, power)
 ```
 
-Not all operators will work with any data type and I'm sure you don't expect that. I've touched on some of them for the special cases, like the `+` for string concatenation or array combining. I'm sure you'll figure them out.
+Arithmetic operators can mostly be used with Integers and Floats, except for `+` in Strings for concatenation, Arrays and Dictionaries to combine. Equality operators can also be used in Strings, Arrays and Dictionaries. Comparison can also be used on Strings where it compares it's length in characters.
 
 ## Functions
 
@@ -198,13 +183,23 @@ let add = fn x, y
 end
 ```
 
-I've omitted the parantheses too! Of course, you can write the function as `fn (x, y)`, but where's the beauty in that? Calling the function needs the parantheses though:
+Some people may be used so much to parantheses that find it hard to read without them. For those people, I've left parantheses optional. The above function definition could be also written as `fn (x, y)`. Calling the function needs the parantheses though:
 
 ```swift
 let sum = add(1335, 2)
 ```
 
-Notice the lack of a `return` statement. Functions are expressions, so the last line is considered its return value. In most cases, especially with small functions, you don't have to bother with `return`. However, there are scenarios with multiple return points that need to explicitly tell the interpreter what to return. Let's see the classical factorial example, which is a double win as it shows recursion too.
+The function's scope is completely isolated from the rest of the code. It can only access its own arguments and nothing else. This won't work:
+
+```swift
+let y = 8
+let pow = fn x
+  x ** y
+end
+pow(2) // Runtime error: Identifier 'y' not found in current scope
+```
+
+Until now we haven't seen a single `return` statement. Functions are expressions, so the last line is considered its return value. In most cases, especially with small functions, you don't have to bother. However, there are scenarios with multiple return points that need to explicitly tell the interpreter. Let's see the classical factorial example, which is a double win as it shows recursion too.
 
 ```swift
 let fac = fn n
@@ -236,17 +231,9 @@ list[2](5, 7)
 
 ## Conditionals
 
-Aria provides two types of conditional expressions: 1) An `if/else` that doesn't support multiple `else if` statements and that's good for simple checks, and 2) A `switch` for anything else. Every block of conditional code has it's own scope, like any other block in Aria; meaning that it can access the previously declared variables, but anything declared inside of them doesn't persist to the rest of the code.
+Aria provides two types of conditional statements. The `if/else` is limited to just an `if` and/or `else` block, without support for multiple `else if` blocks. That's because it advocates the use of the much better looking and flexible `switch` statement.
 
-An `if` is pretty simple:
-
-```swift
-if 1 == 1
-  IO.puts("YES!")
-end
-```
-
-With the ever present `else` block:
+An `if/else` block looks pretty familiar:
 
 ```swift
 if 1 == 2
@@ -256,7 +243,14 @@ else
 end
 ```
 
-`Switch` expressions on the other hand are more interesting. They can have multiple cases with multiple conditions that break automatically on each successful case. When was the last time you didn't need to break? Exactly!
+Sometimes it's useful to inline it for simple checks:
+
+```swift
+let married = true
+let free_time = if married then 0 else 100_000_000 end
+```
+
+`Switch` expressions on the other hand are more interesting. They can have multiple cases with multiple conditions that break automatically on each successful case. There's no need to explicitly call `break`, which makes them way more attractive.
 
 ```swift
 let a = 5
@@ -286,7 +280,7 @@ end
 
 ## For Loop
 
-There's an abundance of `for` loop variations around so Aria takes the short way: a single `for in` loop that's useful to iterate arrays, strings or dictionaries, but that does nothing else.
+There's an abundance of `for` loop variations around so Aria takes the short way: a single `for in` loop that's useful to iterate arrays, strings or dictionaries, but that does nothing else. It looks boring, but it does more than meets the eye.
 
 ```swift
 for v in [1, 2, 3, 4]
@@ -294,12 +288,13 @@ for v in [1, 2, 3, 4]
 end
 ```
 
-Obviously, the result of the loop can be pass to a variable, and that's what makes them interesting to manipulate enumerables.
+Obviously, the result of the loop can be passed to a variable, and that's what makes them interesting to manipulate enumerables.
 
 ```swift
 let plus_one = for v in [1, 2, 3, 4]
   v + 1
 end
+IO.puts(plus_one) // [2, 3, 4, 5]
 ```
 
 Passing two arguments for arrays or strings will return the current index and value. For dictionaries, the first argument will be the key.
@@ -317,9 +312,25 @@ for k, v in ["name": "John", "age": 40]
 end
 ```
 
+With that power, you could build a function like `map` in no time:
+
+```swift
+let map = fn x, f
+  for v in x
+    f(v)
+  end
+end
+
+let plus_one = map([1, 2, 3, 4], fn x
+  x + 1
+end)
+
+IO.puts(plus_one) // [2, 3, 4, 5]
+```
+
 ## Range Operator
 
-The range operator is a special type of sugar to generate an array of integers or strings. Without a flexible `for` loop, it surely comes in handy.
+The range operator is a special type of sugar to quickly generate an array of integers or strings. 
 
 ```swift
 let numbers = 0..9
@@ -327,7 +338,7 @@ let huge = 999..100
 let alphabet = "a".."z"
 ```
 
-More interesting is using them in a `for in` loop:
+As it creates an enumerable, it can be put into a `for in` loop or any other function that expects an array.
 
 ```swift
 for v in 10..20
@@ -335,9 +346,18 @@ for v in 10..20
 end
 ```
 
+Although its bounds are inclusive, meaning that the left and right expressions are included in the generated array, nothing stops you from doing calculations. This is completely valid:
+
+```swift
+let numbers = [1, 2, 3, 4]
+for i in 0..Enum.size(numbers) - 1
+  IO.puts(i)
+end
+```
+
 ## Pipe Operator
 
-The pipe operator, inspired by [Elixir](https://elixir-lang.org/), is a very expressive way of chaining functions calls. Instead of very unreadable code like the one below:
+The pipe operator, inspired by [Elixir](https://elixir-lang.org/), is a very expressive way of chaining functions calls. Instead of ugly code like the one below, where the order of operations is from the inner function to the outers ones:
 
 ```swift
 subtract(pow(add(2, 1)))
@@ -351,7 +371,7 @@ add(2, 1) |> pow() |> substract()
 
 The pipe starts from left to right, evaluating each left expression and passing it automatically as the first parameter to the function on the right side. Basically, the result of `add` is passed to `pow`, and finally the result of `pow` to `substract`.
 
-It gets even more interesting when combined with standard library's functions:
+It gets even more interesting when combined with standard library functions:
 
 ```swift
 ["hello", "world"] |> String.join(" ") |> String.capitalize()
@@ -367,11 +387,11 @@ Enum.map([1, 2, 3], fn x do x + 1 end) |> Enum.filter(fn x do x % 2 == 1 end)
 [1, 2, 3] |> Enum.map(fn x do x + 1 end) |> Enum.filter(fn x do x % 2 == 1 end)
 ```
 
-The only gotcha for the moment is that piped expressions can't span multiple lines, but it's something I'm looking into.
+Such a simple operator hides so much power and flexibility into making more readable code. Almost always, if you have a chain of functions, think that they could be put into a pipe.
 
 ## Immutability
 
-Now that you've seen most of the language constructs, it's time to fight the dragon. Enforced immutability is something you may not agree with immediately, but it makes a lot of sense the more you think about it. What you'll win is increased clarity and programs that are easier to reason about.
+Now that you've seen most of the language constructs, it's time to fight the dragon. Enforced immutability is something you may not agree with immediately, but it makes a lot of sense the more you think about it. What you'll earn is increased clarity and programs that are easier to reason about. Sure, you'll lose some flexiblity, but it can be easily rewon.
 
 In Aria, this won't work:
 
@@ -380,19 +400,19 @@ let a = 10
 a = 15 // Parse error: Unexpected expression '='
 ```
 
-It won't even parse, as assignement is allowed only in let statements, but not as an expression. What to do then? Very easy, just declare a new variable!
+It won't even parse, as assignement is allowed only in let statements, but not as an expression. What to do then? Very easy, just declare a new variable! The only downside to creating lots of variables, especially those derived from existing ones, is that you're allocating new memory blocks. Modern languages optimize the process by reusing parts of the existing variables, but that would be too complicated for the purpose of this language.
 
-Iterators are typical examples where mutability is seeked for. The dreaded `i` variable shows itself in almost every language's `for` loop. Aria keeps it simple with the `for in` loop that tracks the index and value. Even if it looks like it, the index and value aren't mutable values, but arguments to each iteration of the loop.
+Iterators are typical examples where mutability is seeked for. The dreaded `i` variable shows itself in almost every language's `for` loop. Aria keeps it simple with the `for in` loop that tracks the index and value. Even if it looks like it, the index and value aren't mutable, but instead arguments to each iteration of the loop.
 
 ```swift
 let numbers = [10, 5, 9]
 for k, v in numbers
   IO.puts(v) 
-  IO.puts(numbers[k] // same thing
+  IO.puts(numbers[k]) // same thing
 end
 ```
 
-But there may be more complicated scenarios, like wanting to modify an array's values. Sure, you can do it with the `for in` loop, but higher order functions play even better:
+But there may be more complicated scenarios, like wanting to modify an array's values. Sure, you can do it with the `for in` loop as we've seen earlier, but higher order functions play even better:
 
 ```swift
 let plus_one = Enum.map([1, 2, 3], fn x
@@ -401,23 +421,14 @@ end)
 IO.puts(plus_one) // [2, 3, 4]
 ```
 
-Filter is also useful to "clean" an array of unwanted values:
-
-```swift
-let even = Enum.filter(1..10, fn x
-  x % 2 == 0
-end)
-IO.puts(even) // [2, 4, 6, 8, 10]
-```
-
-What about accumulators? Let's say you want the product of all the elements of an array (factorial) and obviously, you'll need a mutable variable to hold it. That's what `reduce` is for:
+What about accumulators? Let's say you want the product of all the integer elements of an array (factorial) and obviously, you'll need a mutable variable to hold it. Fortunately we have `reduce`:
 
 ```swift
 let product = Enum.reduce(1..5, 1, fn x, acc
   x * acc
 end)
 IO.puts(product)
-``` 
+```
 
 All of these functions and others in the standard library can be mixed and matched to your needs. I'm sure you'll find plenty of scenarios where the current capabilities of the language can't hold up to the promise and fail to achieve something without mutable values. I'll try and fix those holes!
 
@@ -485,7 +496,7 @@ let phrase = Dog.name + " " + Dog.bark_to("John")
 
 ## Comments
 
-Nothing fancy in here! You can comment your code using both inline or block comments:
+Nothing ground breaking in here. You can write either single line or multi line comments:
 
 ```
 // an inline comment
