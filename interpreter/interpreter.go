@@ -446,6 +446,13 @@ func (i *Interpreter) runForArray(node *ast.For, array *ArrayType, scope *Scope)
 			return nil
 		}
 
+		// Handle break and continue keywords.
+		if result.Type() == BREAK_TYPE {
+			break
+		} else if result.Type() == CONTINUE_TYPE {
+			continue
+		}
+
 		out = append(out, result)
 	}
 
@@ -473,6 +480,13 @@ func (i *Interpreter) runForDictionary(node *ast.For, dictionary *DictionaryType
 		result := i.Interpret(node.Body, scope)
 		if result == nil {
 			return nil
+		}
+
+		// Handle break and continue keywords.
+		if result.Type() == BREAK_TYPE {
+			break
+		} else if result.Type() == CONTINUE_TYPE {
+			continue
 		}
 
 		out = append(out, result)
