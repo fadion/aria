@@ -166,7 +166,7 @@ You can't expect to run some calculations without a good batch of operators, rig
 
 By order of precedence:
 
-```
+```swift
 Pipe: |>
 Boolean: && || (AND, OR)
 Bitwise: & | ~ (Bitwise AND, OR, NOT)
@@ -488,7 +488,7 @@ let bark_to = fn x
 end
 ```
 
-```swift
+```javascript
 // main.ari
 import "dog"
 
@@ -510,7 +510,7 @@ module Dog
 end
 ```
 
-```swift
+```javascript
 // main.ari
 import "dog"
 
