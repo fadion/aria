@@ -328,35 +328,68 @@ func (i *Interpreter) runSwitch(node *ast.Switch, scope *Scope) DataType {
 // Interpret Switch cases by finding the winning case.
 func (i *Interpreter) runSwitchCase(cases []*ast.SwitchCase, control DataType, scope *Scope) (*ast.SwitchCase, error) {
 	// Iterate the switch cases.
-	for _, cs := range cases {
+	for _, sc := range cases {
 		// Iterate every parameter of the case.
-		for _, p := range cs.Values.Elements {
+		for _, p := range sc.Values.Elements {
 			parameter := i.Interpret(p, scope)
-			// Parameters should be of the same type as
-			// the control.
-			if parameter.Type() != control.Type() {
-				return nil, fmt.Errorf("Switch cases should be of the same type as the control")
-			}
 
-			switch object := parameter.(type) {
-			case *IntegerType:
-				if object.Value == control.(*IntegerType).Value {
-					return cs, nil
+			switch {
+			case parameter.Type() == STRING_TYPE && control.Type() == STRING_TYPE:
+				if parameter.(*StringType).Value == control.(*StringType).Value {
+					return sc, nil
 				}
-			case *FloatType:
-				if object.Value == control.(*FloatType).Value {
-					return cs, nil
+			case parameter.Type() == INTEGER_TYPE && control.Type() == INTEGER_TYPE:
+				if parameter.(*IntegerType).Value == control.(*IntegerType).Value {
+					return sc, nil
 				}
-			case *BooleanType:
-				if object.Value == control.(*BooleanType).Value {
-					return cs, nil
+			case parameter.Type() == FLOAT_TYPE && control.Type() == FLOAT_TYPE:
+				if parameter.(*FloatType).Value == control.(*FloatType).Value {
+					return sc, nil
 				}
-			case *StringType:
-				if object.Value == control.(*StringType).Value {
-					return cs, nil
+			case parameter.Type() == BOOLEAN_TYPE && control.Type() == BOOLEAN_TYPE:
+				if parameter.(*BooleanType).Value == control.(*BooleanType).Value {
+					return sc, nil
+				}
+			case control.Type() == ARRAY_TYPE:
+				// Array is handled as a special case where the
+				// switch case can check for element values.
+				controlObj := control.(*ArrayType)
+
+				switch object := parameter.(type) {
+				case *ArrayType:
+					// Compare both arrays for exact values.
+					if i.compareArrays(controlObj.Elements, object.Elements) {
+						return sc, nil
+					}
+				case *IntegerType:
+					for _, v := range controlObj.Elements {
+						if v.Type() == INTEGER_TYPE && v.(*IntegerType).Value == object.Value {
+							return sc, nil
+						}
+					}
+				case *FloatType:
+					for _, v := range controlObj.Elements {
+						if v.Type() == FLOAT_TYPE && v.(*FloatType).Value == object.Value {
+							return sc, nil
+						}
+					}
+				case *StringType:
+					for _, v := range controlObj.Elements {
+						if v.Type() == STRING_TYPE && v.(*StringType).Value == object.Value {
+							return sc, nil
+						}
+					}
+				case *BooleanType:
+					for _, v := range controlObj.Elements {
+						if v.Type() == BOOLEAN_TYPE && v.(*BooleanType).Value == object.Value {
+							return sc, nil
+						}
+					}
+				default:
+					return nil, fmt.Errorf("Type '%s' can't be used in a Switch case with control type '%s'", parameter.Type(), control.Type())
 				}
 			default:
-				return nil, fmt.Errorf("Type '%s' can't be used in a Switch case", object.Type())
+				return nil, fmt.Errorf("Type '%s' can't be used in a Switch case with control type '%s'", parameter.Type(), control.Type())
 			}
 		}
 	}

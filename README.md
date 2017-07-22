@@ -13,7 +13,7 @@ let expressive? = fn x
   if x != ""
     return "expressive " + x
   end
-  return "sorry, what?"
+  "sorry, what?"
 end
 
 let pipe = name |> expressive?() |> String.capitalize()
@@ -35,6 +35,8 @@ IO.puts(pipe) // "Expressive Aria Language"
 * [Operators](#operators)
 * [Functions](#functions)
 * [Conditionals](#conditionals)
+    * [If](#if)
+    * [Switch](#switch)
 * [For Loop](#foor-loop)
 * [Range Operator](#range-operator)
 * [Pipe Operator](#pipe-operator)
@@ -119,14 +121,18 @@ let sci = 0.1e3
 let negsci = 25e-5
 ```
 
+The underscores, a feature many modern languages are incorporating, is simply an aesthetic character that acts as a thousands separator. It is ignored in the lexing stage, so to the interpreter, `1_000_000` with `1000000` is exactly the same number. 
+
 ### Boolean
 
-Just `true` or `false`, nothing else!
+It would be strange if this data type included anything else except `true` and `false`.
 
 ```swift
 let mad = true
 let genius = false
 ```
+
+This is a dynamic language and as and such, expressions that aren't actual Booleans may evaluate to `true` or `false`. Integers and Floats will be checked if they're equal to 0, and Strings, Arrays and Dictionaries if they're empty. These are called `truthy` expressions.
 
 ### Array
 
@@ -233,6 +239,8 @@ list[2](5, 7)
 
 Aria provides two types of conditional statements. The `if/else` is limited to just an `if` and/or `else` block, without support for multiple `else if` blocks. That's because it advocates the use of the much better looking and flexible `switch` statement.
 
+### If
+
 An `if/else` block looks pretty familiar:
 
 ```swift
@@ -250,7 +258,9 @@ let married = true
 let free_time = if married then 0 else 100_000_000 end
 ```
 
-`Switch` expressions on the other hand are more interesting. They can have multiple cases with multiple conditions that break automatically on each successful case. There's no need to explicitly call `break`, which makes them way more attractive.
+### Switch
+
+`Switch` expressions on the other hand are way more interesting. They can have multiple cases with multiple conditions that break automatically on each successful case, act as generic if/else, and match array elements.
 
 ```swift
 let a = 5
@@ -277,6 +287,19 @@ default
   IO.puts("Nobody")
 end
 ```
+
+When given an array as the control condition, it will behave differently based on the cases. If the case is an array, it will compare the elements of both and run the case only if they have exact values at the same exact positions. When the case is another data type, it will hint some pattern matching behaviour by checking the elements of the array for that value. Something like this:
+
+```swift
+switch ["hello", "world"]
+case "hello"
+  IO.puts("hi world")
+case "hi"
+  IO.puts("what?")
+end
+```
+
+For simplicity's sake, only `Integer`, `Float`, `String` and `Boolean` array elements are checked. Multidimensional arrays will not match.
 
 ## For Loop
 
