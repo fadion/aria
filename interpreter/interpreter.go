@@ -172,14 +172,7 @@ func (i *Interpreter) runModuleAccess(node *ast.ModuleAccess, scope *Scope) Data
 // Interpret module properties.
 func (i *Interpreter) runModuleProperties(node *ast.BlockStatement, scope *Scope) {
 	for _, statement := range node.Statements {
-		switch sType := statement.(type) {
-		case *ast.Let:
-			switch sType.Value.(type) {
-			case *ast.Function: // Skip functions.
-			default:
-				i.Interpret(sType, scope)
-			}
-		}
+		i.Interpret(statement, scope)
 	}
 }
 
