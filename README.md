@@ -517,9 +517,7 @@ let background = Color.white
 let font_color = Color.hexToRGB(Color.grey)
 ```
 
-There can't be any other statement in modules except `let`, but those variables can have any expression possible. The dot syntax of calling a module property or function may remind you of classes, but still, they're not!
-
-Keep in mind that the Aria interpreter is single pass and as such, it will only recognize calls to a module that has already been declared. 
+Module properties and functions have access to each other. The module is interpreted and cached before-hand to allow for such behavious. In contrast to modules, everything else in Aria is single pass and as such, it will only recognize calls to a module that has already been declared.
 
 ## Imports
 
