@@ -304,7 +304,7 @@ let free_time = if married then 0 else 100_000_000 end
 
 The ternary operator `?:` is a short-hand `if/else`, mostly useful when declaring variables based on a condition or when passing function parameters. It's behaviour is exactly as that of an `if/else`.
 
-```
+```swift
 let price = 100
 let offer = 120
 let status = offer > price ? "sold" : "bidding"
