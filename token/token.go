@@ -50,6 +50,7 @@ const (
 	BANG       = "!"
 	PIPE       = "|>"
 	ARROW      = "->"
+	QUESTION   = "?"
 
 	// Delimiters
 	COMMA   = ","

@@ -172,6 +172,8 @@ func (l *Lexer) NextToken() token.Token {
 		l.assignToken(token.LBRACK, "[")
 	case l.char == ']':
 		l.assignToken(token.RBRACK, "]")
+	case l.char == '?':
+		l.assignToken(token.QUESTION, "?")
 	case l.char == ':':
 		l.assignToken(token.COLON, ":")
 	case l.char == '\n':

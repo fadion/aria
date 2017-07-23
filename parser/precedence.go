@@ -8,6 +8,7 @@ const (
 	LOWEST
 	ARROW
 	PIPE
+	TERNARY
 	BOOLEAN
 	BITWISE
 	ASSIGNEMENT
@@ -49,4 +50,5 @@ var precedences = map[token.TokenType]int{
 	token.BITSHRIGHT: BITSHIFT,
 	token.PIPE:       PIPE,
 	token.ARROW:      ARROW,
+	token.QUESTION:   TERNARY,
 }

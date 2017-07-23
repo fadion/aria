@@ -57,6 +57,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.infix(token.LBRACK, p.parseSubscript)
 	p.infix(token.PIPE, p.parsePipe)
 	p.infix(token.ARROW, p.parseArrowFunction)
+	p.infix(token.QUESTION, p.parseTernary)
 	p.infix(token.RANGE, p.parseInfix)
 	p.infix(token.PLUS, p.parseInfix)
 	p.infix(token.MINUS, p.parseInfix)
@@ -770,6 +771,53 @@ func (p *Parser) parseArrowFunction(left ast.Expression) ast.Expression {
 	expression.Body = &ast.BlockStatement{
 		Statements: []ast.Statement{
 			p.parseExpressionStatement(),
+		},
+	}
+
+	return expression
+}
+
+// EXPRESSION ? EXPRESSION : EXPRESSION.
+func (p *Parser) parseTernary(left ast.Expression) ast.Expression {
+	// Ternary operator is treated as a regular
+	// IF expression.
+	expression := &ast.If{Token: p.token}
+	expression.Condition = left
+
+	p.advance()
+	then := p.parseExpression(LOWEST)
+	if then == nil {
+		p.reportError("Missing THEN condition in ternary operator")
+		return nil
+	}
+
+	// If's THEN expects a block, but for the
+	// ternary it's a single expression.
+	expression.Then = &ast.BlockStatement{
+		Statements: []ast.Statement{
+			&ast.ExpressionStatement{Expression: then},
+		},
+	}
+
+	p.advance()
+	// Missing colon.
+	if !p.match(token.COLON) {
+		p.reportError("Ternary operator expects an else (:) expression")
+		return nil
+	}
+
+	p.advance()
+	elseExpr := p.parseExpression(LOWEST)
+	if elseExpr == nil {
+		p.reportError("Missing ELSE condition in ternary operator")
+		return nil
+	}
+
+	// Same as THEN, ELSE expects a block
+	// statement.
+	expression.Else = &ast.BlockStatement{
+		Statements: []ast.Statement{
+			&ast.ExpressionStatement{Expression: elseExpr},
 		},
 	}
 

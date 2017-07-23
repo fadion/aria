@@ -39,6 +39,7 @@ IO.puts(pipe) // "Expressive Aria Language"
     * [Tricks](#tricks)
 * [Conditionals](#conditionals)
     * [If](#if)
+    * [Ternary Operator](#ternary-operator)
     * [Switch](#switch)
 * [For Loop](#foor-loop)
 * [Range Operator](#range-operator)
@@ -298,6 +299,18 @@ Sometimes it's useful to inline it for simple checks:
 let married = true
 let free_time = if married then 0 else 100_000_000 end
 ```
+
+### Ternary Operator
+
+The ternary operator `?:` is a short-hand `if/else`, mostly useful when declaring variables based on a condition or when passing function parameters. It's behaviour is exactly as that of an `if/else`.
+
+```
+let price = 100
+let offer = 120
+let status = offer > price ? "sold" : "bidding"
+```
+
+Although multiple ternary operators can be nested, I wouldn't say that would be the most readable code. Actually, except for simple checks, it generally makes for unreadable code.
 
 ### Switch
 
