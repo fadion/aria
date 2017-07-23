@@ -35,6 +35,8 @@ IO.puts(pipe) // "Expressive Aria Language"
 * [Operators](#operators)
 * [Functions](#functions)
     * [Return Statement](#return-statement)
+    * [Closures](#closures)
+    * [Recursion](#recursion)
     * [Arrow Functions](#arrow-functions)
     * [Tricks](#tricks)
 * [Conditionals](#conditionals)
@@ -185,7 +187,7 @@ Arithmetic operators can mostly be used with Integers and Floats, except for `+`
 
 ## Functions
 
-Aria treats functions as first class, like any sane language should. It checks all the boxes: they can be passed to variables, as arguments to other functions, and as elements to data structures. The only thing missing for the moment are closures, meaning that a function within a function can't access the parent's variables. This doesn't allow for some interesting techniques like currying, but I'm working on it.
+Aria treats functions as first class, like any sane language should. It checks all the boxes: they can be passed to variables, as arguments to other functions, and as elements to data structures. They also support recursion, closures, currying, you name it.
 
 ```swift
 let add = fn x, y
@@ -211,7 +213,58 @@ pow(2) // Runtime error: Identifier 'y' not found in current scope
 
 ### Return Statement
 
-Until now we haven't seen a single `return` statement. Functions are expressions, so the last line is considered its return value. In most cases, especially with small functions, you don't have to bother. However, there are scenarios with multiple return points that need to explicitly tell the interpreter. Let's see the classical factorial example, which is a double win as it shows recursion too.
+Until now we haven't seen a single `return` statement. Functions are expressions, so the last line is considered its return value. In most cases, especially with small functions, you don't have to bother. However, there are scenarios with multiple return points that need to explicitly tell the interpreter.
+
+```swift
+let even = fn n
+  if n % 2 == 0
+    return true
+  end
+  
+  false
+end
+``` 
+
+The last statement doesn't need a `return`, as it's the last line and will be automatically inferred. With the `if` on the other hand, the interpreter can't understand the intention, as it's just another expression. It needs the explicit `return` to stop the other statements from being interpreted.
+
+In the case of multiple return points, I'd advise to always use `return`, no matter if it's the first or last statement. It will make for clearer intentions. 
+
+### Closures
+
+Closures are functions inside functions that hold on to values from the parent and "close" them when executed. Most languages treat functions as normal blocks of execution, passing to them the outer scope and the same applies to closures. Aria however, treats functions as black boxes with their own scope, so it needs to do some more work to support closures. They work exactly the same like you would expect though.
+
+An example just as a proof of concept, as this isn't useful to anybody:
+
+```swift
+let self = fn x
+  fn
+    x
+  end
+end
+
+let me = self(10)
+IO.puts(me()) // 10
+```
+
+More useful would be to do some currying:
+
+```swift
+let add = fn x
+  fn y
+    x + y
+  end
+end
+
+let add_5 = add(5) // returns a function
+let add_5_7 = add_5(7)
+IO.puts(add_5_7) // 12 
+```
+
+You could nest a virtually unlimited amount of functions inside other functions, and all of them will have the scope of the parents.
+
+### Recursion
+
+Recursive functions calculate results by calling themselves. Although loops are probably easier to mentally visualize, recursion provides for some highly expressive and clean code. Technically, they build an intermediate stack and rewind it with the correct values in place when a finishing, non-recursive result is met. It's easier to understand them if you to think of how they're executed. Let's see the classic factorial example:
 
 ```swift
 let fac = fn n
@@ -223,7 +276,7 @@ let fac = fn n
 end
 ``` 
 
-The last statement doesn't need a `return`, as it's the last line and will be automatically inferred. The `if`, on the other hand, is not, so it needs an explicit `return`. Hope it makes sense.
+Keep in mind that Aria doesn't provide tail call optimization, as Go doesn't support it.
 
 ### Arrow Functions
 
@@ -596,7 +649,7 @@ Although this is a language made purely for fun and experimentation, it doesn't 
 In the near future, hopefully, I plan to:
 
 - Improve the Standard Library with more functions.
-- Support closures and ~~recursion~~.
+- ~~Support closures and recursion~~.
 - ~~Add a short syntax for functions in the form of: (x) -> x~~.
 - ~~Add importing of other files~~.
 - ~~Add the pipe operator!~~

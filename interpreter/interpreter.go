@@ -15,9 +15,9 @@ import (
 
 // Interpreter represents the interpreter.
 type Interpreter struct {
-	modules map[string]*ModuleType
-	library *Library
-	functions map[string]string
+	modules     map[string]*ModuleType
+	library     *Library
+	functions   map[string]string
 	moduleCache map[string]*Scope
 	importCache map[string]*ast.Program
 }
@@ -28,9 +28,9 @@ func New() *Interpreter {
 	lib.Register()
 
 	return &Interpreter{
-		modules: map[string]*ModuleType{},
-		library: lib,
-		functions: map[string]string{},
+		modules:     map[string]*ModuleType{},
+		library:     lib,
+		functions:   map[string]string{},
 		moduleCache: map[string]*Scope{},
 		importCache: map[string]*ast.Program{},
 	}
@@ -552,7 +552,27 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 		}
 	}
 
-	result := i.Interpret(function.Body, function.Scope)
+	var result DataType
+
+	// This could by run by "runBlockStatement", but it
+	// needs to check for closures.
+	for _, statement := range function.Body.Statements {
+		result = i.Interpret(statement, function.Scope)
+		if result == nil {
+			return nil
+		}
+
+		// A function is found inside the current function.
+		// Closure or not, pass the scope so it can access
+		// the parent's arguments and variables.
+		if result.Type() == FUNCTION_TYPE {
+			result.(*FunctionType).Scope.Merge(function.Scope)
+		}
+
+		if i.shouldBreakImmediately(result) {
+			break
+		}
+	}
 
 	return i.unwrapReturnValue(result)
 }

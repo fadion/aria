@@ -40,3 +40,26 @@ func TestScopeParent(t *testing.T) {
 		t.Errorf("Expected %d but got %d", 10, value.Value)
 	}
 }
+
+func TestScopeMerge(t *testing.T) {
+	sp := NewScope()
+	sp.Write("dec", &IntegerType{Value: 10})
+
+	s := NewScope()
+	s.Write("str", &StringType{Value: "test"})
+	s.Merge(sp)
+
+	val, ok := s.Read("dec")
+	if !ok {
+		t.Errorf("Expected a value but got nothing")
+	}
+
+	value, ok := val.(*IntegerType)
+	if !ok {
+		t.Errorf("Expected an IntegerType but got %T", val)
+	}
+
+	if value.Value != 10 {
+		t.Errorf("Expected %d but got %d", 10, value.Value)
+	}
+}

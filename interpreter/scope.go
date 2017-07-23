@@ -36,3 +36,12 @@ func (s *Scope) Read(name string) (DataType, bool) {
 func (s *Scope) Write(name string, value DataType) {
 	s.store[name] = value
 }
+
+// Adds scope to the current scope.
+func (s *Scope) Merge(scope *Scope) {
+	for k, v := range scope.store {
+		if _, ok := s.store[k]; !ok {
+			s.store[k] = v
+		}
+	}
+}
