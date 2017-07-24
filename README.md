@@ -149,6 +149,7 @@ Arrays are ordered collections of any data types. You can mix and match strings 
  let multi = [5, "Hi", ["Hello", "World"]]
  let names = ["John", "Ben", 1337]
  let john = names[0]
+ let leet = names[-1]
  let concat = ["an", "array"] + ["and", "another"]
  let compare = [1, 2] == [1, 2]
  let nocomma = [5 7 9 "Hi"]

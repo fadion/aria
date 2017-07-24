@@ -614,10 +614,17 @@ func (i *Interpreter) runSubscript(node *ast.Subscript, scope *Scope) DataType {
 func (i *Interpreter) runArraySubscript(array, index DataType) (DataType, error) {
 	arrayObj := array.(*ArrayType).Elements
 	idx := index.(*IntegerType).Value
+	originalIdx := idx
+
+	// Negative index accesses elements starting
+	// from the right side of the array.
+	if idx < 0 {
+		idx = int64(len(arrayObj)) + idx
+	}
 
 	// Check bounds.
 	if idx < 0 || idx > int64(len(arrayObj)-1) {
-		return nil, fmt.Errorf("Array index '%d' out of bounds", idx)
+		return nil, fmt.Errorf("Array index '%d' out of bounds", originalIdx)
 	}
 
 	return arrayObj[idx], nil
