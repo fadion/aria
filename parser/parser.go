@@ -47,6 +47,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.prefix(token.BOOLEAN, p.parseBoolean)
 	p.prefix(token.NIL, p.parseNil)
 	p.prefix(token.UNDERSCORE, p.parsePlaceholder)
+	p.prefix(token.COLON, p.parseAtom)
 	p.prefix(token.BANG, p.parsePrefix)
 	p.prefix(token.BITNOT, p.parsePrefix)
 	p.prefix(token.MINUS, p.parsePrefix)
@@ -830,6 +831,23 @@ func (p *Parser) parsePlaceholder() ast.Expression {
 	return &ast.Placeholder{Token: p.token}
 }
 
+// Parse an atom.
+func (p *Parser) parseAtom() ast.Expression {
+	p.advance()
+	expression := &ast.Atom{Token: p.token}
+
+	// An atom is just an identifier with
+	// a colon suffix.
+	if !p.match(token.IDENTIFIER) {
+		p.reportError("Atom expects an identifier")
+		return nil
+	}
+
+	expression.Value = p.token.Lexeme
+
+	return expression
+}
+
 // Parse a delimited list of expressions.
 func (p *Parser) parseDelimited(delimiter token.TokenType, end ...token.TokenType) []ast.Expression {
 	list := []ast.Expression{}
@@ -867,7 +885,7 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 
 // Check if a token is ignored in expression parsing.
 func (p *Parser) isIgnoredAsExpression(tok token.TokenType) bool {
-	ignored := []token.TokenType{token.NEWLINE, token.EOF, token.RBRACK, token.COLON, token.DO, token.COMMA}
+	ignored := []token.TokenType{token.NEWLINE, token.EOF, token.RBRACK, token.DO, token.COMMA}
 	for _, v := range ignored {
 		if v == tok {
 			return true

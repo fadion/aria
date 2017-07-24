@@ -51,6 +51,8 @@ func (i *Interpreter) Interpret(node ast.Node, scope *Scope) DataType {
 		return i.runLet(node, scope)
 	case *ast.String:
 		return &StringType{Value: node.Value}
+	case *ast.Atom:
+		return &AtomType{Value: node.Value}
 	case *ast.Integer:
 		return &IntegerType{Value: node.Value}
 	case *ast.Float:
@@ -331,8 +333,13 @@ func (i *Interpreter) runSwitchCase(cases []*ast.SwitchCase, control DataType, s
 
 			switch {
 			case parameter.Type() == control.Type():
-				// Same type, same exact value.
+				// Same type and same exact value.
 				if parameter.Inspect() == control.Inspect() {
+					return sc, nil
+				}
+			case parameter.Type() == ATOM_TYPE && control.Type() == STRING_TYPE:
+				// A string switch can have atom cases.
+				if parameter.(*AtomType).Value == control.(*StringType).Value {
 					return sc, nil
 				}
 			case control.Type() == ARRAY_TYPE:
@@ -381,6 +388,10 @@ func (i *Interpreter) runFor(node *ast.For, scope *Scope) DataType {
 		// Convert the string to an array so it can
 		// be interpreted with the same function.
 		return i.runForArray(node, i.stringToArray(enum), NewScopeFrom(scope))
+	case *AtomType:
+		// Treat the atom as a string.
+		str := &StringType{Value: enum.Value}
+		return i.runForArray(node, i.stringToArray(str), NewScopeFrom(scope))
 	default:
 		i.reportError(node, fmt.Sprintf("Type %s is not an enumerable", enumObj.Type()))
 		return nil
@@ -604,6 +615,13 @@ func (i *Interpreter) runSubscript(node *ast.Subscript, scope *Scope) DataType {
 			i.reportError(node, err.Error())
 		}
 		return result
+	case left.Type() == ATOM_TYPE && index.Type() == INTEGER_TYPE:
+		str := &StringType{Value: left.(*AtomType).Value}
+		result, err := i.runStringSubscript(str, index)
+		if err != nil {
+			i.reportError(node, err.Error())
+		}
+		return result
 	default:
 		i.reportError(node, fmt.Sprintf("Subscript on '%s' not supported with literal '%s'", left.Type(), index.Type()))
 		return nil
@@ -645,8 +663,8 @@ func (i *Interpreter) runDictionarySubscript(dictionary, index DataType) (DataTy
 }
 
 // Interpret a String subscript.
-func (i *Interpreter) runStringSubscript(array, index DataType) (DataType, error) {
-	arrayObj := array.(*StringType).Value
+func (i *Interpreter) runStringSubscript(str, index DataType) (DataType, error) {
+	arrayObj := str.(*StringType).Value
 	idx := index.(*IntegerType).Value
 
 	// Check bounds.
@@ -793,7 +811,14 @@ func (i *Interpreter) runInfix(node *ast.InfixExpression, scope *Scope) DataType
 		// Same as above: treat the integer as a float.
 		out, err = i.runFloatInfix(node.Operator, float64(left.(*IntegerType).Value), right.(*FloatType).Value)
 	case left.Type() == STRING_TYPE && right.Type() == STRING_TYPE:
-		out, err = i.runStringInfix(node.Operator, left, right)
+		out, err = i.runStringInfix(node.Operator, left.(*StringType).Value, right.(*StringType).Value)
+	case left.Type() == ATOM_TYPE && right.Type() == ATOM_TYPE:
+		// Treat atoms as string.
+		out, err = i.runStringInfix(node.Operator, left.(*AtomType).Value, right.(*AtomType).Value)
+	case left.Type() == ATOM_TYPE && right.Type() == STRING_TYPE:
+		out, err = i.runStringInfix(node.Operator, left.(*AtomType).Value, right.(*StringType).Value)
+	case left.Type() == STRING_TYPE && right.Type() == ATOM_TYPE:
+		out, err = i.runStringInfix(node.Operator, left.(*StringType).Value, right.(*AtomType).Value)
 	case left.Type() == BOOLEAN_TYPE && right.Type() == BOOLEAN_TYPE:
 		out, err = i.runBooleanInfix(node.Operator, left, right)
 	case left.Type() == ARRAY_TYPE && right.Type() == ARRAY_TYPE:
@@ -905,27 +930,24 @@ func (i *Interpreter) runFloatInfix(operator string, left, right float64) (DataT
 }
 
 // Interpret infix operation for Strings.
-func (i *Interpreter) runStringInfix(operator string, left, right DataType) (DataType, error) {
-	leftVal := left.(*StringType).Value
-	rightVal := right.(*StringType).Value
-
+func (i *Interpreter) runStringInfix(operator string, left, right string) (DataType, error) {
 	switch operator {
 	case "+": // Concat two strings.
-		return &StringType{Value: leftVal + rightVal}, nil
+		return &StringType{Value: left + right}, nil
 	case "<":
-		return i.nativeToBoolean(len(leftVal) < len(rightVal)), nil
+		return i.nativeToBoolean(len(left) < len(right)), nil
 	case "<=":
-		return i.nativeToBoolean(len(leftVal) <= len(rightVal)), nil
+		return i.nativeToBoolean(len(left) <= len(right)), nil
 	case ">":
-		return i.nativeToBoolean(len(leftVal) > len(rightVal)), nil
+		return i.nativeToBoolean(len(left) > len(right)), nil
 	case ">=":
-		return i.nativeToBoolean(len(leftVal) >= len(rightVal)), nil
+		return i.nativeToBoolean(len(left) >= len(right)), nil
 	case "==":
-		return i.nativeToBoolean(leftVal == rightVal), nil
+		return i.nativeToBoolean(left == right), nil
 	case "!=":
-		return i.nativeToBoolean(leftVal != rightVal), nil
+		return i.nativeToBoolean(left != right), nil
 	case "..": // Range between two characters.
-		return i.runRangeStringInfix(leftVal, rightVal)
+		return i.runRangeStringInfix(left, right)
 	default:
 		return nil, fmt.Errorf("Unsupported String operator '%s'", operator)
 	}
@@ -1134,6 +1156,9 @@ func (i *Interpreter) isTruthy(object DataType) bool {
 		return false
 	case *StringType:
 		return object.Value != ""
+	case *AtomType:
+		// Atoms have always a truthy value.
+		return true
 	case *IntegerType:
 		return object.Value != 0
 	case *FloatType:
@@ -1165,6 +1190,8 @@ func (i *Interpreter) typeToExpression(object DataType) ast.Expression {
 		return &ast.Float{Value: value.Value}
 	case *StringType:
 		return &ast.String{Value: value.Value}
+	case *AtomType:
+		return &ast.Atom{Value: value.Value}
 	case *ArrayType:
 		array := &ast.Array{}
 		array.List = &ast.ExpressionList{}

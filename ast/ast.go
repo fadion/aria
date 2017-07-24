@@ -98,6 +98,17 @@ func (e *String) TokenLexeme() string           { return e.Token.Lexeme }
 func (e *String) TokenLocation() token.Location { return e.Token.Location }
 func (e *String) Inspect() string               { return "\"" + e.Token.Lexeme + "\"" }
 
+// Atom literal.
+type Atom struct {
+	Token token.Token
+	Value string
+}
+
+func (e *Atom) expression()                   {}
+func (e *Atom) TokenLexeme() string           { return e.Token.Lexeme }
+func (e *Atom) TokenLocation() token.Location { return e.Token.Location }
+func (e *Atom) Inspect() string               { return ":" + e.Token.Lexeme }
+
 // Integer numeric literal.
 type Integer struct {
 	Token token.Token

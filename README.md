@@ -28,6 +28,7 @@ IO.puts(pipe) // "Expressive Aria Language"
 * [Variables](#variables)
 * [Data Types](#data-types)
     * [String](#string)
+    * [Atom](#atom)
     * [Integer & Float](#integer--float)
     * [Boolean](#boolean)
     * [Array](#array)
@@ -108,6 +109,28 @@ let subscript = "aname"[2]
 String concatenation is handled with the `+` operator but trying to concat a string with some other data type will result in a runtime error. Additionally, strings are treated as enumerables. They support subscript, iteration in `for in` loops and most of the array functions.
 
 For the sake of it, there are some escape sequences too: \n, \t, \r, \a, \b, \f and \v. I'm sure you can figure out by yourself what every of them does.
+
+### Atom
+
+Atoms, or symbols as some languages refer to them, are constants where the name is their value. Although they behave a lot like strings and can generally be interchanged, internally they are treated as their own type. As the language progresses, Atoms will be put to better use.
+
+```swift
+let eq = :dog == :cat
+let arr = ["dog", :cat, :mouse]
+let concat = "hello" + :world
+```
+
+They're interesting to use as control conditions, emulating enums as a fixed, already-known value:
+
+```swift
+let os = "linux"
+switch os
+case :linux
+  IO.puts("FREE")
+case :windows
+  IO.puts("!FREE")
+end
+```
 
 ### Integer & Float
 

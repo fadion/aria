@@ -12,6 +12,7 @@ const (
 	INTEGER_TYPE     = "Integer"
 	FLOAT_TYPE       = "Float"
 	STRING_TYPE      = "String"
+	ATOM_TYPE        = "Atom"
 	BOOLEAN_TYPE     = "Boolean"
 	ARRAY_TYPE       = "Array"
 	DICTIONARY_TYPE  = "Dictionary"
@@ -80,6 +81,14 @@ type StringType struct {
 
 func (t *StringType) Type() string    { return STRING_TYPE }
 func (t *StringType) Inspect() string { return "\"" + t.Value + "\"" }
+
+// AtomType for atoms.
+type AtomType struct {
+	Value string
+}
+
+func (t *AtomType) Type() string    { return ATOM_TYPE }
+func (t *AtomType) Inspect() string { return ":" + t.Value }
 
 // BooleanType for boolean.
 type BooleanType struct {
