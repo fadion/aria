@@ -9,18 +9,19 @@ import (
 
 // Data types.
 const (
-	INTEGER_TYPE    = "Integer"
-	FLOAT_TYPE      = "Float"
-	STRING_TYPE     = "String"
-	BOOLEAN_TYPE    = "Boolean"
-	ARRAY_TYPE      = "Array"
-	DICTIONARY_TYPE = "Dictionary"
-	NIL_TYPE        = "nil"
-	FUNCTION_TYPE   = "Function"
-	RETURN_TYPE     = "Return"
-	BREAK_TYPE      = "Break"
-	CONTINUE_TYPE   = "Continue"
-	MODULE_TYPE     = "Module"
+	INTEGER_TYPE     = "Integer"
+	FLOAT_TYPE       = "Float"
+	STRING_TYPE      = "String"
+	BOOLEAN_TYPE     = "Boolean"
+	ARRAY_TYPE       = "Array"
+	DICTIONARY_TYPE  = "Dictionary"
+	NIL_TYPE         = "nil"
+	FUNCTION_TYPE    = "Function"
+	RETURN_TYPE      = "Return"
+	BREAK_TYPE       = "Break"
+	CONTINUE_TYPE    = "Continue"
+	MODULE_TYPE      = "Module"
+	PLACEHOLDER_TYPE = "Placeholder"
 )
 
 // A NIL, TRUE or FALSE don't have any literal
@@ -181,3 +182,9 @@ type ContinueType struct{}
 
 func (t *ContinueType) Type() string    { return CONTINUE_TYPE }
 func (t *ContinueType) Inspect() string { return CONTINUE_TYPE }
+
+// PlaceholderType for continue.
+type PlaceholderType struct{}
+
+func (t *PlaceholderType) Type() string    { return PLACEHOLDER_TYPE }
+func (t *PlaceholderType) Inspect() string { return PLACEHOLDER_TYPE }

@@ -176,6 +176,8 @@ func (l *Lexer) NextToken() token.Token {
 		l.assignToken(token.QUESTION, "?")
 	case l.char == ':':
 		l.assignToken(token.COLON, ":")
+	case l.char == '_':
+		l.assignToken(token.UNDERSCORE, "_")
 	case l.char == '\n':
 		l.assignToken(token.NEWLINE, "\\n")
 	case l.char == '"': // Anything inside double quotes is a string.

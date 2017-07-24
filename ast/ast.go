@@ -468,6 +468,18 @@ func (e *Continue) TokenLexeme() string           { return e.Token.Lexeme }
 func (e *Continue) TokenLocation() token.Location { return e.Token.Location }
 func (e *Continue) Inspect() string               { return e.Token.Lexeme }
 
+// Placeholder.
+type Placeholder struct {
+	Token token.Token
+}
+
+func (e *Placeholder) expression()                   {}
+func (e *Placeholder) TokenLexeme() string           { return e.Token.Lexeme }
+func (e *Placeholder) TokenLocation() token.Location { return e.Token.Location }
+func (e *Placeholder) Inspect() string               {
+	return ""
+}
+
 // Import a file.
 type Import struct {
 	Token token.Token

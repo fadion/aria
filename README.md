@@ -43,6 +43,7 @@ IO.puts(pipe) // "Expressive Aria Language"
     * [If](#if)
     * [Ternary Operator](#ternary-operator)
     * [Switch](#switch)
+    * [Pattern Matching](#pattern-matching)
 * [For Loop](#foor-loop)
 * [Range Operator](#range-operator)
 * [Pipe Operator](#pipe-operator)
@@ -395,18 +396,33 @@ default
 end
 ```
 
-When given an array as the control condition, it will behave differently based on the cases. If the case is an array, it will compare the elements of both and run the case only if they have exact values at the same exact positions. When the case is another data type, it will hint some pattern matching behaviour by checking the elements of the array for that value. Something like this:
+### Pattern Matching
+
+When fed arrays as the control condition, the `switch` can pattern match its elements. Every argument to the switch case is compared to the respective element of the array. Off course, for a match, the number of arguments should match the size of the array.
 
 ```swift
-switch ["hello", "world"]
-case "hello"
-  IO.puts("hi world")
-case "hi"
-  IO.puts("what?")
+switch ["game", "of", "thrones"]
+case "game", "thrones"
+  IO.puts("no match")
+case "game", "of", "thrones"
+  IO.puts("yep!")
 end
 ```
 
-For simplicity's sake, only `Integer`, `Float`, `String` and `Boolean` array elements are checked. Multidimensional arrays will not match.
+That's probably useful from time to time, but it's totally achievable with array cases. The `switch` can do much better than that.
+
+```swift
+switch ["John", "Lick", 2]
+case "John", _, _
+  IO.puts("John Something")
+case _, _ 2
+  IO.puts("Something 2")
+default
+  IO.puts("Lame movie pun not found")
+end
+```
+
+The `_` is a placeholder that will match any type and value. That makes it powerful to compare arrays where you don't need to know every element. You can mix and match values with placeholders in any position, as long as they match the size of the array.
 
 ## For Loop
 

@@ -53,15 +53,16 @@ const (
 	QUESTION   = "?"
 
 	// Delimiters
-	COMMA   = ","
-	LPAREN  = "("
-	RPAREN  = ")"
-	NEWLINE = "\\n"
-	LBRACK  = "["
-	RBRACK  = "]"
-	COLON   = ":"
-	RANGE   = ".."
-	DOT     = "."
+	COMMA      = ","
+	LPAREN     = "("
+	RPAREN     = ")"
+	NEWLINE    = "\\n"
+	LBRACK     = "["
+	RBRACK     = "]"
+	COLON      = ":"
+	RANGE      = ".."
+	DOT        = "."
+	UNDERSCORE = "_"
 
 	// Keywords
 	LET      = "LET"

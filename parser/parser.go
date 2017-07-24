@@ -46,6 +46,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.prefix(token.STRING, p.parseString)
 	p.prefix(token.BOOLEAN, p.parseBoolean)
 	p.prefix(token.NIL, p.parseNil)
+	p.prefix(token.UNDERSCORE, p.parsePlaceholder)
 	p.prefix(token.BANG, p.parsePrefix)
 	p.prefix(token.BITNOT, p.parsePrefix)
 	p.prefix(token.MINUS, p.parsePrefix)
@@ -822,6 +823,11 @@ func (p *Parser) parseTernary(left ast.Expression) ast.Expression {
 	}
 
 	return expression
+}
+
+// Parse the underscore placeholder character.
+func (p *Parser) parsePlaceholder() ast.Expression {
+	return &ast.Placeholder{Token: p.token}
 }
 
 // Parse a delimited list of expressions.
