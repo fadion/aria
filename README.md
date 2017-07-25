@@ -34,6 +34,7 @@ IO.puts(pipe) // "Expressive Aria Language"
     * [Boolean](#boolean)
     * [Array](#array)
     * [Dictionary](#dictionary)
+    * [Nil](#nil)
 * [Operators](#operators)
 * [Functions](#functions)
     * [Return Statement](#return-statement)
@@ -253,6 +254,14 @@ Values can be reassigned or inserted by key on mutable dictionaries:
 var numbers = ["one": 1, "two": 2]
 numbers["one"] = 5
 numbers["three"] = 3 // new key:value
+```
+
+### Nil
+
+Aria has a Nil type and yes, I'm totally aware of its problems. This was a choice for simplicity, at least for the time being. In the future, I plan to experiment with optionals and hopefully integrate them into the language.
+
+```swift
+let empty = nil
 ```
 
 ## Operators

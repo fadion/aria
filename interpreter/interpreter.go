@@ -65,6 +65,8 @@ func (i *Interpreter) Interpret(node ast.Node, scope *Scope) DataType {
 		return i.runArray(node, scope)
 	case *ast.Dictionary:
 		return i.runDictionary(node, scope)
+	case *ast.Nil:
+		return &NilType{}
 	case *ast.ExpressionStatement:
 		return i.Interpret(node.Expression, scope)
 	case *ast.BlockStatement:

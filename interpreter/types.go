@@ -16,7 +16,7 @@ const (
 	BOOLEAN_TYPE     = "Boolean"
 	ARRAY_TYPE       = "Array"
 	DICTIONARY_TYPE  = "Dictionary"
-	NIL_TYPE         = "nil"
+	NIL_TYPE         = "Nil"
 	FUNCTION_TYPE    = "Function"
 	RETURN_TYPE      = "Return"
 	BREAK_TYPE       = "Break"
