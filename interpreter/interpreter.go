@@ -660,6 +660,10 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 
 	result := i.Interpret(function.Body, function.Scope)
 
+	// Reset the scope so inner variables aren't
+	// carried over to the next call.
+	function.Scope = NewScopeFrom(scope)
+
 	return i.unwrapReturnValue(result)
 }
 
