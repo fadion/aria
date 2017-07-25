@@ -553,11 +553,15 @@ func (i *Interpreter) runForArray(node *ast.For, array *ArrayType, scope *Scope)
 			return nil
 		}
 
-		// Handle break and continue keywords.
+		// Handle special flow-breaking keywords.
 		if result.Type() == BREAK_TYPE {
 			break
 		} else if result.Type() == CONTINUE_TYPE {
 			continue
+		} else if result.Type() == RETURN_TYPE {
+			// A return immediately returns
+			// the object.
+			return result
 		}
 
 		out = append(out, result)
@@ -589,11 +593,15 @@ func (i *Interpreter) runForDictionary(node *ast.For, dictionary *DictionaryType
 			return nil
 		}
 
-		// Handle break and continue keywords.
+		// Handle special flow-breaking keywords.
 		if result.Type() == BREAK_TYPE {
 			break
 		} else if result.Type() == CONTINUE_TYPE {
 			continue
+		} else if result.Type() == RETURN_TYPE {
+			// A return immediately returns
+			// the object.
+			return result
 		}
 
 		out = append(out, result)
