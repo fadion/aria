@@ -17,7 +17,6 @@ import (
 type Interpreter struct {
 	modules     map[string]*ModuleType
 	library     *Library
-	functions   map[string]string
 	moduleCache map[string]*Scope
 	importCache map[string]*ast.Program
 	immutables  map[string]*ast.Identifier
@@ -31,7 +30,6 @@ func New() *Interpreter {
 	return &Interpreter{
 		modules:     map[string]*ModuleType{},
 		library:     lib,
-		functions:   map[string]string{},
 		moduleCache: map[string]*Scope{},
 		importCache: map[string]*ast.Program{},
 		immutables:  map[string]*ast.Identifier{},
@@ -89,7 +87,7 @@ func (i *Interpreter) Interpret(node ast.Node, scope *Scope) DataType {
 		return &FunctionType{
 			Parameters: node.Parameters.Elements,
 			Body:       node.Body,
-			Scope:      NewScope(),
+			Scope:      NewScopeFrom(scope),
 		}
 	case *ast.FunctionCall:
 		return i.runFunction(node, scope)
@@ -131,13 +129,6 @@ func (i *Interpreter) runLet(node *ast.Let, scope *Scope) DataType {
 		return nil
 	}
 
-	// Save the function name and result for
-	// later reference.
-	switch object.(type) {
-	case *FunctionType:
-		i.functions[object.Inspect()] = node.Name.Value
-	}
-
 	// Check if the variable has been already
 	// declared.
 	if _, ok := scope.Read(node.Name.Value); ok {
@@ -164,13 +155,6 @@ func (i *Interpreter) runVar(node *ast.Var, scope *Scope) DataType {
 	// the variable into the scope.
 	if object == nil {
 		return nil
-	}
-
-	// Save the function name and result for
-	// later reference.
-	switch object.(type) {
-	case *FunctionType:
-		i.functions[object.Inspect()] = node.Name.Value
 	}
 
 	// Check if the variable has been already
@@ -664,14 +648,6 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 		return nil
 	}
 
-	// Write the function's name to its scope so
-	// it can reference itself. If it's not found
-	// in the "functions" map, it means it's a function
-	// not declared with a "let" statement.
-	if v, ok := i.functions[fn.Inspect()]; ok {
-		function.Scope.Write(v, function)
-	}
-
 	// Interpret every single argument and pass it
 	// to the function's scope.
 	for index, element := range node.Arguments.Elements {
@@ -682,27 +658,7 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 		}
 	}
 
-	var result DataType
-
-	// This could by run by "runBlockStatement", but it
-	// needs to check for closures.
-	for _, statement := range function.Body.Statements {
-		result = i.Interpret(statement, function.Scope)
-		if result == nil {
-			return nil
-		}
-
-		// A function is found inside the current function.
-		// Closure or not, pass the scope so it can access
-		// the parent's arguments and variables.
-		if result.Type() == FUNCTION_TYPE {
-			result.(*FunctionType).Scope.Merge(function.Scope)
-		}
-
-		if i.shouldBreakImmediately(result) {
-			break
-		}
-	}
+	result := i.Interpret(function.Body, function.Scope)
 
 	return i.unwrapReturnValue(result)
 }

@@ -291,16 +291,6 @@ Some people may be used so much to parantheses that find it hard to read without
 let sum = add(1335, 2)
 ```
 
-The function's scope is completely isolated from the rest of the code. It can only access its own arguments and nothing else. This won't work:
-
-```swift
-let y = 8
-let pow = fn x
-  x ** y
-end
-pow(2) // Runtime error: Identifier 'y' not found in current scope
-```
-
 ### Return Statement
 
 Until now we haven't seen a single `return` statement. Functions are expressions, so the last line is considered its return value. In most cases, especially with small functions, you don't have to bother. However, there are scenarios with multiple return points that need to explicitly tell the interpreter.
@@ -321,9 +311,7 @@ In the case of multiple return points, I'd advise to always use `return`, no mat
 
 ### Closures
 
-Closures are functions inside functions that hold on to values from the parent and "close" them when executed. Most languages treat functions as normal blocks of execution, passing to them the outer scope and the same applies to closures. Aria however, treats functions as black boxes with their own scope, so it needs to do some more work to support closures. They work exactly the same like you would expect though.
-
-A useful example would be to do some cyrring:
+Closures are functions inside functions that hold on to values from the parent and "close" them when executed. This allows for some interesting side effects, like currying:
 
 ```swift
 let add = fn x
@@ -346,7 +334,7 @@ You could nest a virtually unlimited amount of functions inside other functions,
 
 ### Recursion
 
-Recursive functions calculate results by calling themselves. Although loops are probably easier to mentally visualize, recursion provides for some highly expressive and clean code. Technically, they build an intermediate stack and rewind it with the correct values in place when a finishing, non-recursive result is met. It's easier to understand them if you to think of how they're executed. Let's see the classic factorial example:
+Recursive functions calculate results by calling themselves. Although loops are probably easier to mentally visualize, recursion provides for some highly expressive and clean code. Technically, they build an intermediate stack and rewind it with the correct values in place when a finishing, non-recursive result is met. It's easier to understand them if you think of how they're executed. Let's see the classic factorial example:
 
 ```swift
 let fac = fn n
@@ -358,7 +346,7 @@ let fac = fn n
 end
 ``` 
 
-Keep in mind that Aria doesn't provide tail call optimization, as Go doesn't support it.
+Keep in mind that Aria doesn't provide tail call optimization, as Go still doesn't support it. That would allow for more memory efficient recursion, especially when creating large stacks.
 
 ### Arrow Functions
 
