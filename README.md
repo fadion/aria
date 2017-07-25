@@ -323,20 +323,7 @@ In the case of multiple return points, I'd advise to always use `return`, no mat
 
 Closures are functions inside functions that hold on to values from the parent and "close" them when executed. Most languages treat functions as normal blocks of execution, passing to them the outer scope and the same applies to closures. Aria however, treats functions as black boxes with their own scope, so it needs to do some more work to support closures. They work exactly the same like you would expect though.
 
-An example just as a proof of concept, as this isn't useful to anybody:
-
-```swift
-let self = fn x
-  fn
-    x
-  end
-end
-
-let me = self(10)
-IO.puts(me()) // 10
-```
-
-More useful would be to do some currying:
+A useful example would be to do some cyrring:
 
 ```swift
 let add = fn x
@@ -345,9 +332,14 @@ let add = fn x
   end
 end
 
+add(5)(7) // 12
+```
+
+Some would prefer more explicit way of calling:
+
+```swift
 let add_5 = add(5) // returns a function
-let add_5_7 = add_5(7)
-IO.puts(add_5_7) // 12 
+let add_5_7 = add_5(7) // 12
 ```
 
 You could nest a virtually unlimited amount of functions inside other functions, and all of them will have the scope of the parents.

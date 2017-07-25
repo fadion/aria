@@ -37,6 +37,26 @@ func (s *Scope) Write(name string, value DataType) {
 	s.store[name] = value
 }
 
+// Update a variable that already exists.
+func (s *Scope) Update(name string, value DataType) {
+	s.updateParents(s, name, value)
+}
+
+// Update the current scope and all of its
+// parents.
+func (s *Scope) updateParents(scope *Scope, name string, value DataType) {
+	// Update its own scope.
+	if _, ok := scope.Read(name); ok {
+		scope.Write(name, value)
+	}
+
+	// Update the parent scope if it
+	// has one.
+	if scope.parent != nil {
+		s.updateParents(scope.parent, name, value)
+	}
+}
+
 // Adds scope to the current scope.
 func (s *Scope) Merge(scope *Scope) {
 	for k, v := range scope.store {

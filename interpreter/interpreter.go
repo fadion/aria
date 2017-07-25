@@ -325,8 +325,9 @@ func (i *Interpreter) runAssign(node *ast.Assign, scope *Scope) DataType {
 		}
 	}
 
-	// Save the new value to the variable.
-	scope.Write(name, object)
+	// Save the new value to the variable
+	// and its parents.
+	scope.Update(name, object)
 
 	return object
 }
