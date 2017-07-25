@@ -761,7 +761,7 @@ func (i *Interpreter) runDictionarySubscript(dictionary, index DataType) (DataTy
 		}
 	}
 
-	return nil, fmt.Errorf("Key '%s' doesn't exist in Dictionary", key)
+	return NIL, nil
 }
 
 // Interpret a String subscript.
