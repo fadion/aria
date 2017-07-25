@@ -1329,6 +1329,10 @@ func (i *Interpreter) typeToExpression(object DataType) ast.Expression {
 		return &ast.String{Value: value.Value}
 	case *AtomType:
 		return &ast.Atom{Value: value.Value}
+	case *BooleanType:
+		return &ast.Boolean{Value: value.Value}
+	case *NilType:
+		return &ast.Nil{}
 	case *ArrayType:
 		array := &ast.Array{}
 		array.List = &ast.ExpressionList{}
