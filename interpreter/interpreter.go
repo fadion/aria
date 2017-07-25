@@ -20,6 +20,7 @@ type Interpreter struct {
 	functions   map[string]string
 	moduleCache map[string]*Scope
 	importCache map[string]*ast.Program
+	immutables  map[string]*ast.Identifier
 }
 
 // New initializes an Interpreter.
@@ -33,6 +34,7 @@ func New() *Interpreter {
 		functions:   map[string]string{},
 		moduleCache: map[string]*Scope{},
 		importCache: map[string]*ast.Program{},
+		immutables:  map[string]*ast.Identifier{},
 	}
 }
 
@@ -49,6 +51,8 @@ func (i *Interpreter) Interpret(node ast.Node, scope *Scope) DataType {
 		return i.runIdentifier(node, scope)
 	case *ast.Let:
 		return i.runLet(node, scope)
+	case *ast.Var:
+		return i.runVar(node, scope)
 	case *ast.String:
 		return &StringType{Value: node.Value}
 	case *ast.Atom:
@@ -71,6 +75,8 @@ func (i *Interpreter) Interpret(node ast.Node, scope *Scope) DataType {
 		return i.runPrefix(node, scope)
 	case *ast.InfixExpression:
 		return i.runInfix(node, scope)
+	case *ast.Assign:
+		return i.runAssign(node, scope)
 	case *ast.Pipe:
 		return i.runPipe(node, scope)
 	case *ast.If:
@@ -113,6 +119,69 @@ func (i *Interpreter) runProgram(node *ast.Program, scope *Scope) DataType {
 	}
 
 	return result
+}
+
+// Interpret a let statement.
+func (i *Interpreter) runLet(node *ast.Let, scope *Scope) DataType {
+	object := i.Interpret(node.Value, scope)
+
+	// On empty value, return before saving
+	// the variable into the scope.
+	if object == nil {
+		return nil
+	}
+
+	// Save the function name and result for
+	// later reference.
+	switch object.(type) {
+	case *FunctionType:
+		i.functions[object.Inspect()] = node.Name.Value
+	}
+
+	// Check if the variable has been already
+	// declared.
+	if _, ok := scope.Read(node.Name.Value); ok {
+		i.reportError(node, fmt.Sprintf("Identifier '%s' already declared", node.Name.Value))
+		return nil
+	}
+	scope.Write(node.Name.Value, object)
+
+	// Write the immutable value to the list for
+	// later reference. Check if it exists, because
+	// different scopes can write the same variable name.
+	if _, ok := i.immutables[node.Name.Value]; !ok {
+		i.immutables[node.Name.Value] = node.Name
+	}
+
+	return object
+}
+
+// Interpret a var statement.
+func (i *Interpreter) runVar(node *ast.Var, scope *Scope) DataType {
+	object := i.Interpret(node.Value, scope)
+
+	// On empty value, return before saving
+	// the variable into the scope.
+	if object == nil {
+		return nil
+	}
+
+	// Save the function name and result for
+	// later reference.
+	switch object.(type) {
+	case *FunctionType:
+		i.functions[object.Inspect()] = node.Name.Value
+	}
+
+	// Check if the variable has been already
+	// declared.
+	if _, ok := scope.Read(node.Name.Value); ok {
+		i.reportError(node, fmt.Sprintf("Identifier '%s' already declared", node.Name.Value))
+		return nil
+	}
+	scope.Write(node.Name.Value, object)
+
+	return object
 }
 
 // Interpret a Module.
@@ -180,34 +249,6 @@ func (i *Interpreter) runModuleProperties(node *ast.BlockStatement, scope *Scope
 	}
 }
 
-// Interpret a let statement.
-func (i *Interpreter) runLet(node *ast.Let, scope *Scope) DataType {
-	object := i.Interpret(node.Value, scope)
-
-	// On empty value, return before saving
-	// the variable into the scope.
-	if object == nil {
-		return nil
-	}
-
-	// Save the function name and result for
-	// later reference.
-	switch object.(type) {
-	case *FunctionType:
-		i.functions[object.Inspect()] = node.Name.Value
-	}
-
-	// Check if the variable has been already
-	// declared.
-	if _, ok := scope.Read(node.Name.Value); ok {
-		i.reportError(node, fmt.Sprintf("Identifier '%s' already declared", node.Name.Value))
-		return nil
-	}
-	scope.Write(node.Name.Value, object)
-
-	return object
-}
-
 // Interpret an identifier.
 func (i *Interpreter) runIdentifier(node *ast.Identifier, scope *Scope) DataType {
 	// Check the scope if the identifier exists.
@@ -240,6 +281,110 @@ func (i *Interpreter) runBlockStatement(node *ast.BlockStatement, scope *Scope) 
 	}
 
 	return result
+}
+
+// Interpret assign operator: IDENT = EXPRESSION
+func (i *Interpreter) runAssign(node *ast.Assign, scope *Scope) DataType {
+	var name string
+	var original DataType
+	var ok bool
+	var err error
+
+	switch nodeType := node.Name.(type) {
+	case *ast.Identifier:
+		name = nodeType.Value
+	case *ast.Subscript:
+		// The identifier type is checked on the parser,
+		// so we're sure in here.
+		name = nodeType.Left.(*ast.Identifier).Value
+	}
+
+	// Check if the variable exists.
+	if original, ok = scope.Read(name); !ok {
+		i.reportError(node, fmt.Sprintf("Identifier '%s' not found in current scope", name))
+		return nil
+	}
+
+	// Check if it's immutable.
+	if _, ok = i.immutables[name]; ok {
+		i.reportError(node, fmt.Sprintf("Identifier '%s' is immutable", name))
+		return nil
+	}
+
+	object := i.Interpret(node.Right, scope)
+	if object == nil {
+		return nil
+	}
+
+	switch nodeType := node.Name.(type) {
+	case *ast.Subscript:
+		object, err = i.runAssignSubscript(nodeType, original, object, scope)
+		if err != nil {
+			i.reportError(node, err.Error())
+			return nil
+		}
+	}
+
+	// Save the new value to the variable.
+	scope.Write(name, object)
+
+	return object
+}
+
+// Interpret assignement for subscript.
+func (i *Interpreter) runAssignSubscript(node *ast.Subscript, original DataType, value DataType, scope *Scope) (DataType, error) {
+	index := i.Interpret(node.Index, scope)
+
+	switch {
+	case original.Type() == ARRAY_TYPE && index.Type() == INTEGER_TYPE:
+		idx := index.(*IntegerType).Value
+		array := original.(*ArrayType)
+
+		idx, err := i.checkArrayBounds(array.Elements, idx)
+		if err != nil {
+			return nil, err
+		}
+
+		array.Elements[idx] = value
+		return array, nil
+	case original.Type() == DICTIONARY_TYPE && index.Type() == STRING_TYPE:
+		dictionary := original.(*DictionaryType)
+		key := index.(*StringType)
+		found := false
+
+		// Check every key of the dictionary
+		// if it exists. If it doesn, update it.
+		for k := range dictionary.Pairs {
+			if k.Value == key.Value {
+				dictionary.Pairs[k] = value
+				found = true
+				break
+			}
+		}
+
+		// No actual key found, so the operation is
+		// considered an insert.
+		if !found {
+			dictionary.Pairs[key] = value
+		}
+
+		return dictionary, nil
+	case original.Type() == STRING_TYPE && index.Type() == INTEGER_TYPE && value.Type() == STRING_TYPE:
+		str := original.(*StringType)
+		idx := index.(*IntegerType).Value
+		value := value.(*StringType).Value
+
+		idx, err := i.checkStringBounds(str.Value, idx)
+		if err != nil {
+			return nil, err
+		}
+
+		// Create a new string by combining the two
+		// parts of the original string and the new one.
+		return &StringType{Value: str.Value[:idx] + value + str.Value[idx+1:]}, nil
+	default:
+		return nil, fmt.Errorf("Subscript assignement not recognised")
+	}
 }
 
 // Interpret an array.
@@ -615,13 +760,6 @@ func (i *Interpreter) runSubscript(node *ast.Subscript, scope *Scope) DataType {
 			i.reportError(node, err.Error())
 		}
 		return result
-	case left.Type() == ATOM_TYPE && index.Type() == INTEGER_TYPE:
-		str := &StringType{Value: left.(*AtomType).Value}
-		result, err := i.runStringSubscript(str, index)
-		if err != nil {
-			i.reportError(node, err.Error())
-		}
-		return result
 	default:
 		i.reportError(node, fmt.Sprintf("Subscript on '%s' not supported with literal '%s'", left.Type(), index.Type()))
 		return nil
@@ -632,17 +770,10 @@ func (i *Interpreter) runSubscript(node *ast.Subscript, scope *Scope) DataType {
 func (i *Interpreter) runArraySubscript(array, index DataType) (DataType, error) {
 	arrayObj := array.(*ArrayType).Elements
 	idx := index.(*IntegerType).Value
-	originalIdx := idx
 
-	// Negative index accesses elements starting
-	// from the right side of the array.
-	if idx < 0 {
-		idx = int64(len(arrayObj)) + idx
-	}
-
-	// Check bounds.
-	if idx < 0 || idx > int64(len(arrayObj)-1) {
-		return nil, fmt.Errorf("Array index '%d' out of bounds", originalIdx)
+	idx, err := i.checkArrayBounds(arrayObj, idx)
+	if err != nil {
+		return nil, err
 	}
 
 	return arrayObj[idx], nil
@@ -664,15 +795,15 @@ func (i *Interpreter) runDictionarySubscript(dictionary, index DataType) (DataTy
 
 // Interpret a String subscript.
 func (i *Interpreter) runStringSubscript(str, index DataType) (DataType, error) {
-	arrayObj := str.(*StringType).Value
+	stringObj := str.(*StringType).Value
 	idx := index.(*IntegerType).Value
 
-	// Check bounds.
-	if idx < 0 || idx > int64(len(arrayObj)-1) {
-		return nil, fmt.Errorf("String index '%d' out of bounds", idx)
+	idx, err := i.checkStringBounds(stringObj, idx)
+	if err != nil {
+		return nil, err
 	}
 
-	return &StringType{Value: string(arrayObj[idx])}, nil
+	return &StringType{Value: string(stringObj[idx])}, nil
 }
 
 // Interpret Pipe operator: FUNCTION_CALL() |> FUNCTION_CALL()
@@ -1172,6 +1303,7 @@ func (i *Interpreter) isTruthy(object DataType) bool {
 	}
 }
 
+// Add the extension to the filename if needed.
 func (i *Interpreter) prepareImportFilename(file string) string {
 	ext := filepath.Ext(file)
 	if ext == "" {
@@ -1179,6 +1311,40 @@ func (i *Interpreter) prepareImportFilename(file string) string {
 	}
 
 	return file
+}
+
+// Check if the index is within the array bounds.
+func (i *Interpreter) checkArrayBounds(array []DataType, index int64) (int64, error) {
+	originalIdx := index
+
+	// Negative index starts count from
+	// the end of the array.
+	if index < 0 {
+		index = int64(len(array)) + index
+	}
+
+	if index < 0 || index > int64(len(array)-1) {
+		return 0, fmt.Errorf("Array index '%d' out of bounds", originalIdx)
+	}
+
+	return index, nil
+}
+
+// Check if the index is within the string bounds.
+func (i *Interpreter) checkStringBounds(str string, index int64) (int64, error) {
+	originalIdx := index
+
+	// Handle negative index.
+	if index < 0 {
+		index = int64(len(str)) + index
+	}
+
+	// Check bounds.
+	if index < 0 || index > int64(len(str)-1) {
+		return 0, fmt.Errorf("String index '%d' out of bounds", originalIdx)
+	}
+
+	return index, nil
 }
 
 // Convert a type to an ast.Expression.

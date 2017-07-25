@@ -6,6 +6,7 @@ import "github.com/fadion/aria/token"
 const (
 	_           int = iota
 	LOWEST
+	ASSIGN
 	ARROW
 	PIPE
 	TERNARY
@@ -25,6 +26,7 @@ const (
 
 // List of tokens and their respective precedence.
 var precedences = map[token.TokenType]int{
+	token.ASSIGN:     ASSIGN,
 	token.PLUS:       SUM,
 	token.MINUS:      SUM,
 	token.ASTERISK:   PRODUCT,
@@ -42,12 +44,12 @@ var precedences = map[token.TokenType]int{
 	token.DOT:        CALL,
 	token.LPAREN:     CALL,
 	token.LBRACK:     INDEX,
-	token.RANGE:      RANGE,
 	token.BITOR:      BITWISE,
 	token.BITAND:     BITWISE,
 	token.BITNOT:     BITWISE,
 	token.BITSHLEFT:  BITSHIFT,
 	token.BITSHRIGHT: BITSHIFT,
+	token.RANGE:      RANGE,
 	token.PIPE:       PIPE,
 	token.ARROW:      ARROW,
 	token.QUESTION:   TERNARY,

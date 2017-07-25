@@ -66,6 +66,7 @@ const (
 
 	// Keywords
 	LET      = "LET"
+	VAR      = "VAR"
 	FUNCTION = "FUNCTION"
 	DO       = "DO"
 	END      = "END"

@@ -65,7 +65,31 @@ func (e *Let) TokenLocation() token.Location { return e.Token.Location }
 func (e *Let) Inspect() string {
 	var out bytes.Buffer
 
-	out.WriteString(e.Token.Lexeme + " ")
+	out.WriteString("let ")
+	out.WriteString(e.Name.Inspect())
+	out.WriteString(" = ")
+
+	if e.Value != nil {
+		out.WriteString(e.Value.Inspect())
+	}
+
+	return out.String()
+}
+
+// Var statement.
+type Var struct {
+	Token token.Token
+	Name  *Identifier
+	Value Expression
+}
+
+func (e *Var) statement()                    {}
+func (e *Var) TokenLexeme() string           { return e.Token.Lexeme }
+func (e *Var) TokenLocation() token.Location { return e.Token.Location }
+func (e *Var) Inspect() string {
+	var out bytes.Buffer
+
+	out.WriteString("var ")
 	out.WriteString(e.Name.Inspect())
 	out.WriteString(" = ")
 
@@ -178,6 +202,26 @@ func (e *Subscript) Inspect() string {
 	out.WriteString("[")
 	out.WriteString(e.Index.Inspect())
 	out.WriteString("]")
+
+	return out.String()
+}
+
+// Subscript for arrays and dictionaries.
+type Assign struct {
+	Token token.Token
+	Name  Expression
+	Right Expression
+}
+
+func (e *Assign) expression()                   {}
+func (e *Assign) TokenLexeme() string           { return e.Token.Lexeme }
+func (e *Assign) TokenLocation() token.Location { return e.Token.Location }
+func (e *Assign) Inspect() string {
+	var out bytes.Buffer
+
+	out.WriteString(e.Name.Inspect())
+	out.WriteString(" = ")
+	out.WriteString(e.Right.Inspect())
 
 	return out.String()
 }

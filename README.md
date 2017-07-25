@@ -5,10 +5,10 @@
 
 Aria is an expressive, interpreted, toy language built as an exercise on designing and interpreting a programming language. It has a noiseless syntax, free of useless semi colons, braces or parantheses, and treats everything as an expression. Technically, it's built with a hand written lexer and parser, a recursive decent one (Pratt), and a tree-walk interpreter. I have never set any goals for it to be either fast, nor bulletproof, so don't expect neither of them.
 
-If features immutable variables, if and switch conditionals, functions, for loops, modules, the pipe operator, imports and many more. More importantly, it's getting expanded frequently with new features, more functions for the standard library and bug fixes. All of that while retaining it's expressiveness, clean syntax and easy of use.
+If features mutable and immutable values, if and switch conditionals, functions, for loops, modules, the pipe operator, imports and many more. More importantly, it's getting expanded frequently with new features, more functions for the standard library and bug fixes. All of that while retaining it's expressiveness, clean syntax and easy of use.
 
 ```swift
-let name = "aria language"
+var name = "aria language"
 let expressive? = fn x
   if x != ""
     return "expressive " + x
@@ -29,7 +29,8 @@ IO.puts(pipe) // "Expressive Aria Language"
 * [Data Types](#data-types)
     * [String](#string)
     * [Atom](#atom)
-    * [Integer & Float](#integer--float)
+    * [Integer](#integer)
+    * [Float](#float)
     * [Boolean](#boolean)
     * [Array](#array)
     * [Dictionary](#dictionary)
@@ -78,21 +79,21 @@ aria repl
 
 ## Variables
 
-Variables are as you most probably expect them but with a twist. Let's see how they're declared first:
+Variable declaration in Aria comes in two flavours: `let` and `var`, respectively for immutable and mutable values. The language and the [standard library](https://github.com/fadion/aria/wiki/Standard-Library) will help you enough to aim for immutability, something explained in more detail later on. However, there are occassions where a mutable value is unavoidable, so you have that option too.
+
+Immutable values aren't just for basic data types like Integers or String, but for data structures too. Elements of an array or dictionary, once declared with a `let`, can't be changed, added or deleted.
 
 ```swift
 let name = "John"
-let age = 40
 let married = false
+var age = 40
 ```
-
-The twist is in them being immutable. Yes, once they're declared, their value is locked in and can't be changed or redeclared. Actually, `=` doesn't even parse as an expression except for `let` statements. I'll talk more on immutability later on.
 
 Variable names have to start with an alphabetic character and continue either with alphanumeric, underscores, questions marks or exclamation marks. When you see a question mark, don't confuse them with optionals like in some other languages. In here they have no special lexical meaning except that they allow for some nice variable names like `is_empty?` or `do_it!`.
 
 ## Data Types
 
-Aria supports 6 data types: `String`, `Integer`, `Float`, `Boolean`, `Array` and `Dictionary`.
+Aria supports 7 data types: `String`, `Atom`, `Integer`, `Float`, `Boolean`, `Array` and `Dictionary`.
 
 ### String
 
@@ -100,15 +101,26 @@ Strings are UTF-8 encoded, meaning that you can stuff in there anything, even em
 
 ```swift
 let weather = "Hot"
-let code = "if\nthen\t\"yes\""
 let price = "円500"
-let concat = "Hello" + " " + "World"
-let subscript = "aname"[2]
 ```
 
-String concatenation is handled with the `+` operator but trying to concat a string with some other data type will result in a runtime error. Additionally, strings are treated as enumerables. They support subscript, iteration in `for in` loops and most of the array functions.
+String concatenation is handled with the `+` operator. Concats between a string and another data type will resut in a runtime error. You'll have to use the `Type` library module to convert a data type to string.
 
-For the sake of it, there are some escape sequences too: \n, \t, \r, \a, \b, \f and \v. I'm sure you can figure out by yourself what every of them does.
+```swift
+let name = "Tony" + " " + "Stark" 
+```
+
+Additionally, strings are treated as enumerables. They support subscript, iteration in `for in` loops and most of the library's array functions.
+
+```swift
+"howdy"[2] // "w" 
+```
+
+Escape sequences are there too if you need them: `\"`, `\n`, `\t`, `\r`, `\a`, `\b`, `\f` and `\v`. Nothing changes from other languages, so I'm sure you can figure out by yourself what every one of them does.
+
+```swift
+let code = "if(name == \"ben\"){\n\tprint(10)\n}"
+```
 
 ### Atom
 
@@ -132,26 +144,41 @@ case :windows
 end
 ```
 
-### Integer & Float
+### Integer
 
-Integers and Floats use mostly the same operators, with some minor differences. They can be used in the same expression, for example: 3 + 0.2, where the result is always cast to a Float.
-
-Integers can be represented also as: binary with the 0b prefix, hexadecimal with the 0x prefix and octal with the 0o prefix. They'll be checked for validity at runtime.
+Integers are whole numbers that support most of the arithmetic and bitwise operators, as you'll see later. They can be represented also as: binary with the 0b prefix, hexadecimal with the 0x prefix and octal with the 0o prefix.
 
 ```swift
 let dec = 27
 let oct = 0o33
 let hex = 0x1B
 let bin = 0b11011
-let big = 27_000_000
 let arch = 2 ** 32
-let ratio = 1.61
+```
+
+A sugar feature both in Integer and Float is the underscore:
+ 
+```swift
+let big = 27_000_000
+```
+
+It has no special meaning, as it will be ignored since the lexing phase. Writing `1_000` and `1000` is the same thing to the interpreter.
+
+### Float
+
+Floating point numbers are used in a very similar way to Integers. In fact, they can be mixed and matched, like `3 + 0.2` or `5.0 + 2`, where the result will always be a Float.
+
+```swift
 let pi = 3.14_159_265
+let e = 2.71828182
+```
+
+Scientific notation is also supported via the `e` modifier:
+
+```swift
 let sci = 0.1e3
 let negsci = 25e-5
 ```
-
-The underscores, a feature many modern languages are incorporating, is simply an aesthetic character that acts as a thousands separator. It is ignored in the lexing stage, so to the interpreter, `1_000_000` with `1000000` is exactly the same number. 
 
 ### Boolean
 
@@ -162,42 +189,80 @@ let mad = true
 let genius = false
 ```
 
-This is a dynamic language and as and such, expressions that aren't actual Booleans may evaluate to `true` or `false`. Integers and Floats will be checked if they're equal to 0, and Strings, Arrays and Dictionaries if they're empty. These are called `truthy` expressions.
+This is a dynamic language and as and such, expressions that aren't actual Booleans may evaluate to `true` or `false`. Integers and Floats will be checked if they're equal to 0, and Strings, Arrays and Dictionaries if they're empty. These are called `truthy` expressions and internally, will be evaluated to `true`.
 
 ### Array
 
-Arrays are ordered collections of any data types. You can mix and match strings with integers, or floats with other arrays.
+Arrays are ordered collections of any data type. You can mix and match strings with integers, or floats with other arrays.
  
- ```swift
- let multi = [5, "Hi", ["Hello", "World"]]
- let names = ["John", "Ben", 1337]
- let john = names[0]
- let leet = names[-1]
- let concat = ["an", "array"] + ["and", "another"]
- let compare = [1, 2] == [1, 2]
- let nocomma = [5 7 9 "Hi"]
- ```
+```swift
+let multi = [5, "Hi", ["Hello", "World"]]
+let names = ["John", "Ben", 1337]
+
+let john = names[0]
+let leet = names[-1]
+```
  
-They support subscript with a 0-based index, combining with the `+` operator and comparison with `==` and `!=` that checks every element of both arrays for equality. Obviously, they're enumerables that can be used in `for in` loops and enumerable functions.
+Individual array elements can be accessed via subscripting with a 0-based index:
+
+```swift
+let names = ["Kirk", "Bones", "Spock"]
+let first = names[0] // "Kirk"
+let last = names[-1] // "Spock"
+```
+
+Individual elements can be reassigned on mutable arrays:
+
+```swift
+var numbers = [5, 8, 10, 15]
+numbers[1] = 7
+```
+
+Arrays can be compared with the `==` and `!=` operators, which will check the position and value of every element of both arrays. Equal arrays should have the same exact values in the same position.
+
+They can also be combined with the `+` operator, which adds the element of the right side to the array on the left side.
+
+```swift
+let concat = ["an", "array"] + ["and", "another"]
+// ["an", "array", "and", "another"]
+```
+
+Oh and if you're that lazy, you can ommit commas too:
+
+```swift
+let nocomma = [5 7 9 "Hi"]
+```
  
 ### Dictionary
  
-Dictionaries are hashes with a forced string key and a value of any data type. Unlike arrays, internally their order is irrelevant, so you can't rely on index-based subscripting. They only support key-based subscripting.
- 
+Dictionaries are hashes with a forced string key and a value of any data type. They're good to hold unordered, structured data:
+
 ```swift
-let user = ["name": "John", "age": 40]
-user["name"]
+let user = ["name": "Dr. Unusual", "proffesion": "Illusionist", "age": 150]
 ```
 
-Just to be clear, keys should be string only. Other data types, at least for the moment, are not supported.
+Unlike arrays, internally their order is irrelevant, so you can't rely on index-based subscripting. They only support key-based subscripting:
+ 
+```swift
+user["name"] // "Dr. Unusual"
+```
+
+Values can be reassigned or inserted by key on mutable dictionaries:
+
+```swift
+var numbers = ["one": 1, "two": 2]
+numbers["one"] = 5
+numbers["three"] = 3 // new key:value
+```
 
 ## Operators
 
-You can't expect to run some calculations without a good batch of operators, right? Well, Aria has a good range of arithmetic, boolean and bitwise operators to match your needs.
+You can't expect to run some calculations without a good batch of operators, right? Well, Aria has a range of arithmetic, boolean and bitwise operators to match your needs.
 
 By order of precedence:
 
 ```swift
+Assign: =
 Pipe: |>
 Boolean: && || (AND, OR)
 Bitwise: & | ~ (Bitwise AND, OR, NOT)
@@ -569,16 +634,7 @@ Such a simple operator hides so much power and flexibility into making more read
 
 ## Immutability
 
-Now that you've seen most of the language constructs, it's time to fight the dragon. Enforced immutability is something you may not agree with immediately, but it makes a lot of sense the more you think about it. What you'll earn is increased clarity and programs that are easier to reason about. Sure, you'll lose some flexiblity, but it can be easily rewon.
-
-In Aria, this won't work:
-
-```swift
-let a = 10
-a = 15 // Parse error: Unexpected expression '='
-```
-
-It won't even parse, as assignement is allowed only in let statements, but not as an expression. What to do then? Very easy, just declare a new variable! The only downside to creating lots of variables, especially those derived from existing ones, is that you're allocating new memory blocks. Modern languages optimize the process by reusing parts of the existing variables, but that would be too complicated for the purpose of this language.
+Now that you've seen most of the language constructs, it's time to fight the dragon. Immutability is something you may not agree with immediately, but it makes a lot of sense the more you think about it. What you'll earn is increased clarity and programs that are easier to reason about.
 
 Iterators are typical examples where mutability is seeked for. The dreaded `i` variable shows itself in almost every language's `for` loop. Aria keeps it simple with the `for in` loop that tracks the index and value. Even if it looks like it, the index and value aren't mutable, but instead arguments to each iteration of the loop.
 
@@ -604,7 +660,7 @@ let product = Enum.reduce(1..5, 1, (x, acc) -> x * acc)
 IO.puts(product)
 ```
 
-All of these functions and others in the standard library can be mixed and matched to your needs. I'm sure you'll find plenty of scenarios where the current capabilities of the language can't hold up to the promise and fail to achieve something without mutable values. I'll try and fix those holes!
+Think first of how you would write the problem with immutable values and only move to mutable ones when it's impossible, hard or counter-intuitive. In most cases, immutability is the better choice.
 
 ## Modules
 

@@ -54,6 +54,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.prefix(token.LPAREN, p.parseGroup)
 
 	// Register infix functions.
+	p.infix(token.ASSIGN, p.parseAssign)
 	p.infix(token.DOT, p.parseModuleAccess)
 	p.infix(token.LPAREN, p.parseFunctionCall)
 	p.infix(token.LBRACK, p.parseSubscript)
@@ -169,6 +170,8 @@ func (p *Parser) parseStatement() ast.Statement {
 	switch p.token.Type {
 	case token.LET:
 		return p.parseLet()
+	case token.VAR:
+		return p.parseVar()
 	case token.RETURN:
 		return p.parseReturn()
 	case token.BREAK:
@@ -248,6 +251,32 @@ func (p *Parser) parseLet() *ast.Let {
 	// Check for assignment operator.
 	if !p.peekMatch(token.ASSIGN) {
 		p.reportError("Missing assignment in LET statement")
+		return nil
+	}
+
+	p.advance()
+	p.advance()
+	statement.Value = p.parseExpression(LOWEST)
+
+	return statement
+}
+
+// var IDENT = EXPRESSION
+func (p *Parser) parseVar() *ast.Var {
+	statement := &ast.Var{Token: p.token}
+
+	// Check for identifier.
+	if !p.peekMatch(token.IDENTIFIER) {
+		p.reportError("VAR statement expects an identifier")
+		return nil
+	}
+
+	p.advance()
+	statement.Name = &ast.Identifier{Token: p.token, Value: p.token.Lexeme}
+
+	// Check for assignment operator.
+	if !p.peekMatch(token.ASSIGN) {
+		p.reportError("Missing assignment in VAR statement")
 		return nil
 	}
 
@@ -774,6 +803,39 @@ func (p *Parser) parseArrowFunction(left ast.Expression) ast.Expression {
 		Statements: []ast.Statement{
 			p.parseExpressionStatement(),
 		},
+	}
+
+	return expression
+}
+
+// IDENT = EXPRESSION.
+func (p *Parser) parseAssign(left ast.Expression) ast.Expression {
+	expression := &ast.Assign{Token: p.token}
+
+	// Left side of the assignement operator
+	// should be an identifier or a subscript.
+	switch ident := left.(type) {
+	case *ast.Identifier:
+		expression.Name = ident
+	case *ast.Subscript:
+		// Subscript's left expression should
+		// be an identifier.
+		switch ident.Left.(type) {
+		case *ast.Identifier:
+			expression.Name = ident
+		default:
+			p.reportError("Assignment operator expects an identifier")
+			return nil
+		}
+	default:
+		p.reportError("Assignment operator expects an identifier")
+		return nil
+	}
+
+	p.advance()
+	expression.Right = p.parseExpression(LOWEST)
+	if expression.Right == nil {
+		return nil
 	}
 
 	return expression

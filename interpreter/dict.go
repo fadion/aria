@@ -66,7 +66,7 @@ func dictInsert(args ...DataType) (DataType, error) {
 	key := args[1].(*StringType)
 
 	exists := false
-	for k, _ := range object.Pairs {
+	for k := range object.Pairs {
 		if k.Value == key.Value {
 			exists = true
 			break
@@ -101,7 +101,7 @@ func dictUpdate(args ...DataType) (DataType, error) {
 	key := args[1].(*StringType)
 
 	exists := false
-	for k, _ := range object.Pairs {
+	for k := range object.Pairs {
 		if k.Value == key.Value {
 			object.Pairs[k] = args[2]
 			exists = true

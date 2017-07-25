@@ -34,6 +34,7 @@ func New(reader *reader.Reader) *Lexer {
 	l.symbol.Insert("false", token.BOOLEAN)
 	l.symbol.Insert("nil", token.NIL)
 	l.symbol.Insert("let", token.LET)
+	l.symbol.Insert("var", token.VAR)
 	l.symbol.Insert("fn", token.FUNCTION)
 	l.symbol.Insert("do", token.DO)
 	l.symbol.Insert("end", token.END)
