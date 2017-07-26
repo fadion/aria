@@ -780,9 +780,8 @@ func (p *Parser) parsePipe(left ast.Expression) ast.Expression {
 		Left:  left,
 	}
 
-	precedence := p.precedence()
 	p.advance()
-	expression.Right = p.parseExpression(precedence)
+	expression.Right = p.parseExpression(PIPE)
 
 	return expression
 }

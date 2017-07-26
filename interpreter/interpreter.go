@@ -115,6 +115,7 @@ func (i *Interpreter) runProgram(node *ast.Program, scope *Scope) DataType {
 	var result DataType
 
 	for _, statement := range node.Statements {
+		fmt.Println(statement.Inspect())
 		result = i.Interpret(statement, scope)
 	}
 
@@ -781,24 +782,18 @@ func (i *Interpreter) runStringSubscript(str, index DataType) (DataType, error) 
 
 // Interpret Pipe operator: FUNCTION_CALL() |> FUNCTION_CALL()
 func (i *Interpreter) runPipe(node *ast.Pipe, scope *Scope) DataType {
-	left := i.Interpret(node.Left, scope)
-	// Convert the type object back to an expression
-	// so it can be passed to the FunctionCall arguments.
-	argument := i.typeToExpression(left)
-	if argument == nil {
-		return nil
-	}
-
 	// The right side operator should be a function.
 	switch rightFunc := node.Right.(type) {
 	case *ast.FunctionCall:
-		// Prepend the left-hand interpreted value
-		// to the function arguments.
-		rightFunc.Arguments.Elements = append([]ast.Expression{argument}, rightFunc.Arguments.Elements...)
+		// The left-hand expression is either a value or
+		// a pipe. In each case, it will be interpreted when
+		// the rightFunc will be called.
+		rightFunc.Arguments.Elements = append([]ast.Expression{node.Left}, rightFunc.Arguments.Elements...)
 		return i.Interpret(rightFunc, scope)
+	default:
+		i.reportError(node, "Pipe operatore expects a function on the right side")
+		return nil
 	}
-
-	return nil
 }
 
 // Import "filename" by reading, lexing and
@@ -1348,49 +1343,6 @@ func (i *Interpreter) checkStringBounds(str string, index int64) (int64, error) 
 	}
 
 	return index, nil
-}
-
-// Convert a type to an ast.Expression.
-func (i *Interpreter) typeToExpression(object DataType) ast.Expression {
-	switch value := object.(type) {
-	case *IntegerType:
-		return &ast.Integer{Value: value.Value}
-	case *FloatType:
-		return &ast.Float{Value: value.Value}
-	case *StringType:
-		return &ast.String{Value: value.Value}
-	case *AtomType:
-		return &ast.Atom{Value: value.Value}
-	case *BooleanType:
-		return &ast.Boolean{Value: value.Value}
-	case *NilType:
-		return &ast.Nil{}
-	case *ArrayType:
-		array := &ast.Array{}
-		array.List = &ast.ExpressionList{}
-		for _, v := range value.Elements {
-			result := i.typeToExpression(v)
-			if result == nil {
-				return nil
-			}
-			array.List.Elements = append(array.List.Elements, result)
-		}
-		return array
-	case *DictionaryType:
-		dict := &ast.Dictionary{}
-		dict.Pairs = map[ast.Expression]ast.Expression{}
-		for k, v := range value.Pairs {
-			key := i.typeToExpression(k)
-			result := i.typeToExpression(v)
-			if result == nil {
-				return nil
-			}
-			dict.Pairs[key] = result
-		}
-		return dict
-	}
-
-	return nil
 }
 
 // Report an error in the current location.

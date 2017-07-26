@@ -7,8 +7,8 @@ const (
 	_           int = iota
 	LOWEST
 	ASSIGN
-	ARROW
 	PIPE
+	ARROW
 	TERNARY
 	BOOLEAN
 	BITWISE
