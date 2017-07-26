@@ -465,6 +465,7 @@ type Function struct {
 	Token      token.Token
 	Parameters *IdentifierList
 	Body       *BlockStatement
+	Variadic   bool
 }
 
 func (e *Function) expression()                   {}
@@ -475,6 +476,11 @@ func (e *Function) Inspect() string {
 
 	out.WriteString(e.Token.Lexeme)
 	out.WriteString(" (")
+
+	if e.Variadic {
+		out.WriteString("...")
+	}
+
 	out.WriteString(e.Parameters.Inspect())
 	out.WriteString(") -> ")
 	out.WriteString(e.Body.Inspect())
@@ -531,20 +537,20 @@ type Placeholder struct {
 func (e *Placeholder) expression()                   {}
 func (e *Placeholder) TokenLexeme() string           { return e.Token.Lexeme }
 func (e *Placeholder) TokenLocation() token.Location { return e.Token.Location }
-func (e *Placeholder) Inspect() string               {
+func (e *Placeholder) Inspect() string {
 	return ""
 }
 
 // Import a file.
 type Import struct {
 	Token token.Token
-	File *String
+	File  *String
 }
 
 func (e *Import) expression()                   {}
 func (e *Import) TokenLexeme() string           { return e.Token.Lexeme }
 func (e *Import) TokenLocation() token.Location { return e.Token.Location }
-func (e *Import) Inspect() string               {
+func (e *Import) Inspect() string {
 	var out *bytes.Buffer
 
 	out.WriteString("Import ")

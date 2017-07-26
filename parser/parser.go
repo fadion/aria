@@ -582,7 +582,7 @@ func (p *Parser) parseFor() ast.Expression {
 
 // fn (PARAM1, PARAM2) BODY end
 func (p *Parser) parseFunction() ast.Expression {
-	literal := &ast.Function{Token: p.token}
+	expression := &ast.Function{Token: p.token, Variadic: false}
 	identifiers := &ast.IdentifierList{}
 	p.advance()
 
@@ -592,6 +592,8 @@ func (p *Parser) parseFunction() ast.Expression {
 		// Ignore commas. Parantheses are optional in
 		// a function definition, so they're ignored too.
 		case token.COMMA, token.LPAREN, token.RPAREN:
+		case token.ELLIPSIS: // Variadic function.
+			expression.Variadic = true
 		case token.EOF: // EOF reached. Something's wrong with the syntax.
 			p.reportError("Missing body in function")
 			return nil
@@ -605,11 +607,25 @@ func (p *Parser) parseFunction() ast.Expression {
 		p.advance()
 	}
 
-	literal.Parameters = identifiers
-	literal.Body = p.parseBlockBody()
+	// Check if there's any argument missmatch for
+	// variadic function. It expects only 1 argument.
+	if expression.Variadic {
+		if len(identifiers.Elements) == 0 {
+			p.reportError("Variadic function expects at least one argument")
+			return nil
+		}
+
+		if len(identifiers.Elements) > 1 {
+			p.reportError("Variadic function expects at most one argument")
+			return nil
+		}
+	}
+
+	expression.Parameters = identifiers
+	expression.Body = p.parseBlockBody()
 
 	// Empty body.
-	if len(literal.Body.Statements) == 0 {
+	if len(expression.Body.Statements) == 0 {
 		p.reportError("Empty body in function")
 		return nil
 	}
@@ -620,7 +636,7 @@ func (p *Parser) parseFunction() ast.Expression {
 		return nil
 	}
 
-	return literal
+	return expression
 }
 
 // IDENT(PARAM1, PARAM2)

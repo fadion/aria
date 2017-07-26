@@ -61,6 +61,7 @@ const (
 	RBRACK     = "]"
 	COLON      = ":"
 	RANGE      = ".."
+	ELLIPSIS   = "..."
 	DOT        = "."
 	UNDERSCORE = "_"
 

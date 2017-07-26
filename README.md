@@ -40,6 +40,7 @@ IO.puts(pipe) // "Expressive Aria Language"
     * [Return Statement](#return-statement)
     * [Closures](#closures)
     * [Recursion](#recursion)
+    * [Variadic](#variadic)
     * [Arrow Functions](#arrow-functions)
     * [Tricks](#tricks)
 * [Conditionals](#conditionals)
@@ -356,7 +357,7 @@ Bitwise and bitshift operator apply only to Integers. Float values can't be used
 
 ## Functions
 
-Aria treats functions as first class, like any sane language should. It checks all the boxes: they can be passed to variables, as arguments to other functions, and as elements to data structures. They also support recursion, closures, currying, you name it.
+Aria treats functions as first class, like any sane language should. It checks all the boxes: they can be passed to variables, as arguments to other functions, and as elements to data structures. They also support recursion, closures, currying, variadic parameters, you name it.
 
 ```swift
 let add = fn x, y
@@ -426,6 +427,42 @@ end
 ``` 
 
 Keep in mind that Aria doesn't provide tail call optimization, as Go still doesn't support it. That would allow for more memory efficient recursion, especially when creating large stacks.
+
+### Variadic
+
+Variadic functions take an indefinite number of parameters and merge them all into a single, Array argument. Their first use would be as a sugar:
+
+```swift
+let add = ...nums
+  var count = 0
+  for n in nums
+    count = count + n
+  end
+  count
+end
+
+add(1, 2, 3, 4, 5) // 10
+```
+
+Even better, they can be used for functions that respond differently based on the number of arguments:
+
+```swift
+let structure = fn ...args
+  if Enum.size(args) == 2
+    let key = args[0]
+    let val = args[1]
+    return [key: val]
+  end
+  if Enum.size(args) > 2
+    return args
+  end
+  args[0]
+end
+
+structure("name", "John") // dictionary
+structure(1, 2, 3) // array
+structure(5) // integer
+```
 
 ### Arrow Functions
 

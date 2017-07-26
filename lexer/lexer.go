@@ -131,8 +131,15 @@ func (l *Lexer) NextToken() token.Token {
 		l.assignToken(token.COMMA, string(l.char))
 	case l.char == '.':
 		switch l.peek() {
-		case '.': // ..
-			l.consumeRange()
+		case '.':
+			l.advance()
+			switch l.peek() {
+			case '.': // ...
+				l.advance()
+				l.assignToken(token.ELLIPSIS, "...")
+			default: // ..
+				l.assignToken(token.RANGE, "..")
+			}
 		default: // .
 			l.assignToken(token.DOT, string(l.char))
 		}
@@ -473,23 +480,6 @@ loop:
 	}
 
 	l.assignToken(token.COMMENT, out.String())
-}
-
-// Read range operator.
-func (l *Lexer) consumeRange() {
-	count := 1
-	// Get every dot in a sequence.
-	for l.peek() == '.' {
-		count += 1
-		l.advance()
-	}
-
-	// 2 or more dots mean an erroneous input.
-	if count > 2 {
-		l.reportError(fmt.Sprintf("Range operator expects exactly two dots but %d given", count))
-	}
-
-	l.assignToken(token.RANGE, "..")
 }
 
 // Read an identifier or keyword.

@@ -150,6 +150,7 @@ func (t *NilType) Inspect() string { return "nil" }
 type FunctionType struct {
 	Parameters []*ast.Identifier
 	Body       *ast.BlockStatement
+	Variadic   bool
 	Scope      *Scope
 }
 
@@ -164,6 +165,11 @@ func (t *FunctionType) Inspect() string {
 
 	out.WriteString("fn")
 	out.WriteString("(")
+
+	if t.Variadic {
+		out.WriteString("...")
+	}
+
 	out.WriteString(strings.Join(params, ", "))
 	out.WriteString(") {\n")
 	out.WriteString(t.Body.Inspect())

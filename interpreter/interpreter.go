@@ -89,6 +89,7 @@ func (i *Interpreter) Interpret(node ast.Node, scope *Scope) DataType {
 		return &FunctionType{
 			Parameters: node.Parameters.Elements,
 			Body:       node.Body,
+			Variadic:   node.Variadic,
 			Scope:      NewScopeFrom(scope),
 		}
 	case *ast.FunctionCall:
@@ -658,25 +659,39 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 	}
 
 	function := fn.(*FunctionType)
-	arguments := []DataType{}
 
-	// Check for arguments/parameters missmatch.
-	if len(node.Arguments.Elements) > len(function.Parameters) {
-		i.reportError(node, "Too many arguments in function call")
-		return nil
-	} else if len(node.Arguments.Elements) < len(function.Parameters) {
-		i.reportError(node, "Too few arguments in function call")
-		return nil
+	// Check for arguments/parameters missmatch on
+	// non-variadic functions.
+	if !function.Variadic {
+		if len(node.Arguments.Elements) > len(function.Parameters) {
+			i.reportError(node, "Too many arguments in function call")
+			return nil
+		} else if len(node.Arguments.Elements) < len(function.Parameters) {
+			i.reportError(node, "Too few arguments in function call")
+			return nil
+		}
 	}
 
 	// Interpret every single argument and pass it
 	// to the function's scope.
+	arguments := []DataType{}
 	for index, element := range node.Arguments.Elements {
 		value := i.Interpret(element, scope)
 		if value != nil {
 			arguments = append(arguments, value)
-			function.Scope.Write(function.Parameters[index].Value, value)
+
+			// Non variadic function takes every
+			// argument individually.
+			if !function.Variadic {
+				function.Scope.Write(function.Parameters[index].Value, value)
+			}
 		}
+	}
+
+	// Pass the array of arguments as a single
+	// argument on variadic functions.
+	if function.Variadic {
+		function.Scope.Write(function.Parameters[0].Value, &ArrayType{Elements: arguments})
 	}
 
 	result := i.Interpret(function.Body, function.Scope)
