@@ -957,6 +957,11 @@ func (i *Interpreter) runIntegerInfix(operator string, left, right DataType) (Da
 	case "*":
 		return &IntegerType{Value: leftVal * rightVal}, nil
 	case "/":
+		// Division by zero.
+		if rightVal == 0 {
+			return nil, fmt.Errorf("Division by 0")
+		}
+
 		value := float64(leftVal) / float64(rightVal)
 		// Check if it's a full number, so it can be returned
 		// as an Integer object. Otherwise it will be a Float object.
@@ -1013,6 +1018,11 @@ func (i *Interpreter) runFloatInfix(operator string, left, right float64) (DataT
 	case "*":
 		return &FloatType{Value: left * right}, nil
 	case "/":
+		// Division by zero.
+		if right == 0 {
+			return nil, fmt.Errorf("Division by 0")
+		}
+
 		return &FloatType{Value: left / right}, nil
 	case "%":
 		return &FloatType{Value: math.Mod(left, right)}, nil
