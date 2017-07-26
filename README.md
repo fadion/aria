@@ -212,6 +212,14 @@ let first = names[0] // "Kirk"
 let last = names[-1] // "Spock"
 ```
 
+In the same style, an index can be used to check if it exists. It will return `nil` if it doesn't:
+
+```swift
+if names[10]
+  // handle it
+end
+```
+
 Individual elements can be reassigned on mutable arrays:
 
 ```swift

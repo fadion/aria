@@ -717,17 +717,9 @@ func (i *Interpreter) runSubscript(node *ast.Subscript, scope *Scope) DataType {
 
 	switch {
 	case left.Type() == ARRAY_TYPE && index.Type() == INTEGER_TYPE:
-		result, err := i.runArraySubscript(left, index)
-		if err != nil {
-			i.reportError(node, err.Error())
-		}
-		return result
+		return i.runArraySubscript(left, index)
 	case left.Type() == DICTIONARY_TYPE:
-		result, err := i.runDictionarySubscript(left, index)
-		if err != nil {
-			i.reportError(node, err.Error())
-		}
-		return result
+		return i.runDictionarySubscript(left, index)
 	case left.Type() == STRING_TYPE && index.Type() == INTEGER_TYPE:
 		result, err := i.runStringSubscript(left, index)
 		if err != nil {
@@ -741,29 +733,29 @@ func (i *Interpreter) runSubscript(node *ast.Subscript, scope *Scope) DataType {
 }
 
 // Interpret an Array subscript.
-func (i *Interpreter) runArraySubscript(array, index DataType) (DataType, error) {
+func (i *Interpreter) runArraySubscript(array, index DataType) DataType {
 	arrayObj := array.(*ArrayType).Elements
 	idx := index.(*IntegerType).Value
 
 	idx, err := i.checkArrayBounds(arrayObj, idx)
 	if err != nil {
-		return nil, err
+		return NIL
 	}
 
-	return arrayObj[idx], nil
+	return arrayObj[idx]
 }
 
 // Interpret a Dictionary subscript.
-func (i *Interpreter) runDictionarySubscript(dictionary, index DataType) (DataType, error) {
+func (i *Interpreter) runDictionarySubscript(dictionary, index DataType) DataType {
 	dictObj := dictionary.(*DictionaryType).Pairs
 
 	for k, v := range dictObj {
 		if k.Inspect() == index.Inspect() {
-			return v, nil
+			return v
 		}
 	}
 
-	return NIL, nil
+	return NIL
 }
 
 // Interpret a String subscript.
