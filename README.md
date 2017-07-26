@@ -305,7 +305,55 @@ Bitshift: << >> (Bitshift left and right)
 Arithmetic: + - * / % ** (addition, substraction, multiplication, division, modulo, power)
 ```
 
-Arithmetic operators can mostly be used with Integers and Floats, except for `+` in Strings for concatenation, Arrays and Dictionaries to combine. Equality operators can also be used in Strings, Arrays and Dictionaries. Comparison can also be used on Strings where it compares it's length in characters.
+Arithmetic expressions can be safely used for Integers and Floats:
+
+```swift
+1 + 2 * 3 / 4.2
+2 ** 8
+3 % 2 * (5 - 3)
+```
+
+Addition can be used to concatenate Strings or combine Arrays and Dictionaries:
+
+```swift
+"obi" + " " + "wan"
+[1, 2] + [3, 4]
+["a": 1, "b": 2] + ["c": 3]
+```
+
+Comparison can be used for Integers and Floats, but for Strings too, where it will compare the length:
+
+```swift
+5 > 2
+3.2 <= 4.5
+"one" < "three"
+```
+
+Equality and inequality can be used for most data types. Integers, Floats and Booleans will be compared by exact value, Strings by length, Arrays by the value and position of the elements, and Dictionaries by the the combination of key and value.
+
+```swift
+1 != 4
+1.0 != 2.5
+true == true
+"one" == "three"
+[1, 2, 3] != [1, 2]
+["a": 1, "b": 2] != ["a": 5, "b": 6]
+```
+
+Boolean operators can only be used with Boolean values, namely `true` or `false`. Other data types will not be converted to truthy values.
+
+```swift
+true == true
+false != true
+```
+
+Bitwise and bitshift operator apply only to Integers. Float values can't be used, even those that "look" as Integers, like `1.0` or `5.0`.
+
+```swift
+10 >> 1
+12 & 5 | 3
+5 ~ 2
+```
 
 ## Functions
 

@@ -115,7 +115,6 @@ func (i *Interpreter) runProgram(node *ast.Program, scope *Scope) DataType {
 	var result DataType
 
 	for _, statement := range node.Statements {
-		fmt.Println(statement.Inspect())
 		result = i.Interpret(statement, scope)
 	}
 
@@ -884,10 +883,22 @@ func (i *Interpreter) runBitwiseNotPrefix(object DataType) (DataType, error) {
 // Interpret infix operators: LEFT (OP) RIGHT
 func (i *Interpreter) runInfix(node *ast.InfixExpression, scope *Scope) DataType {
 	left := i.Interpret(node.Left, scope)
+
+	// Short circuit boolean AND if the left
+	// side expression is false.
+	if node.Operator == "&&" && !i.isTruthy(left) {
+		return &BooleanType{Value: false}
+	}
+
+	// Short circuit boolean OR if the left
+	// side expression is true.
+	if node.Operator == "||" && i.isTruthy(left) {
+		return &BooleanType{Value: true}
+	}
+
 	right := i.Interpret(node.Right, scope)
 
 	if left == nil || right == nil {
-		i.reportError(node, fmt.Sprintf("Trying to run operator '%s' with unknown value", node.Operator))
 		return nil
 	}
 

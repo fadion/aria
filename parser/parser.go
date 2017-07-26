@@ -74,8 +74,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.infix(token.LTE, p.parseInfix)
 	p.infix(token.GT, p.parseInfix)
 	p.infix(token.GTE, p.parseInfix)
-	p.infix(token.OR, p.parseInfix)
-	p.infix(token.AND, p.parseInfix)
+	p.infix(token.OR, p.parseInfixRight)
+	p.infix(token.AND, p.parseInfixRight)
 	p.infix(token.BITAND, p.parseInfix)
 	p.infix(token.BITOR, p.parseInfix)
 	p.infix(token.BITSHLEFT, p.parseInfix)
@@ -1059,6 +1059,24 @@ func (p *Parser) parseInfix(left ast.Expression) ast.Expression {
 	precedence := p.precedence()
 	p.advance()
 	expression.Right = p.parseExpression(precedence)
+
+	return expression
+}
+
+// Parse an infix expression with right associativity.
+func (p *Parser) parseInfixRight(left ast.Expression) ast.Expression {
+	expression := &ast.InfixExpression{
+		Token:    p.token,
+		Operator: p.token.Lexeme,
+		Left:     left,
+	}
+
+	precedence := p.precedence()
+	p.advance()
+	// The whole function is exactly the same as
+	// parseInfix(), expect that for right precedence,
+	// the actual precedence is given one lower.
+	expression.Right = p.parseExpression(precedence - 1)
 
 	return expression
 }
