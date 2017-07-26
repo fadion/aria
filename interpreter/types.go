@@ -121,7 +121,7 @@ func (t *ArrayType) Inspect() string {
 
 // DictionaryType for dictionaries.
 type DictionaryType struct {
-	Pairs map[*StringType]DataType
+	Pairs map[DataType]DataType
 }
 
 func (t *DictionaryType) Type() string { return DICTIONARY_TYPE }
@@ -130,7 +130,7 @@ func (t *DictionaryType) Inspect() string {
 
 	pairs := []string{}
 	for key, value := range t.Pairs {
-		pairs = append(pairs, fmt.Sprintf("%s:%s", key.Value, value.Inspect()))
+		pairs = append(pairs, fmt.Sprintf("%s:%s", key.Inspect(), value.Inspect()))
 	}
 
 	out.WriteString("[")

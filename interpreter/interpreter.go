@@ -322,6 +322,12 @@ func (i *Interpreter) runAssign(node *ast.Assign, scope *Scope) DataType {
 func (i *Interpreter) runAssignSubscript(node *ast.Subscript, original DataType, value DataType, scope *Scope) (DataType, error) {
 	index := i.Interpret(node.Index, scope)
 
+	// No point in continuing if the
+	// index produces a nil.
+	if index == nil {
+		return nil, nil
+	}
+
 	switch {
 	case original.Type() == ARRAY_TYPE && index.Type() == INTEGER_TYPE:
 		idx := index.(*IntegerType).Value
@@ -334,15 +340,14 @@ func (i *Interpreter) runAssignSubscript(node *ast.Subscript, original DataType,
 
 		array.Elements[idx] = value
 		return array, nil
-	case original.Type() == DICTIONARY_TYPE && index.Type() == STRING_TYPE:
+	case original.Type() == DICTIONARY_TYPE:
 		dictionary := original.(*DictionaryType)
-		key := index.(*StringType)
 		found := false
 
 		// Check every key of the dictionary
 		// if it exists. If it doesn, update it.
 		for k := range dictionary.Pairs {
-			if k.Value == key.Value {
+			if k.Inspect() == index.Inspect() {
 				dictionary.Pairs[k] = value
 				found = true
 				break
@@ -352,7 +357,7 @@ func (i *Interpreter) runAssignSubscript(node *ast.Subscript, original DataType,
 		// No actual key found, so the operation is
 		// considered an insert.
 		if !found {
-			dictionary.Pairs[key] = value
+			dictionary.Pairs[index] = value
 		}
 
 		return dictionary, nil
@@ -388,18 +393,16 @@ func (i *Interpreter) runArray(node *ast.Array, scope *Scope) DataType {
 
 // Interpret a dictionary.
 func (i *Interpreter) runDictionary(node *ast.Dictionary, scope *Scope) DataType {
-	result := map[*StringType]DataType{}
+	result := map[DataType]DataType{}
 
 	for k, v := range node.Pairs {
 		key := i.Interpret(k, scope)
-		switch keyObj := key.(type) {
-		case *StringType: // Keys should be String only.
-			value := i.Interpret(v, scope)
-			result[keyObj] = value
-		default:
-			i.reportError(node, "Dictionaries support String keys only")
+		if key == nil {
 			return nil
 		}
+
+		value := i.Interpret(v, scope)
+		result[key] = value
 	}
 
 	return &DictionaryType{Pairs: result}
@@ -577,13 +580,13 @@ func (i *Interpreter) runForDictionary(node *ast.For, dictionary *DictionaryType
 	out := []DataType{}
 
 	for k, v := range dictionary.Pairs {
-		// A single arguments get the current loop value.
+		// A single argument get the current loop value.
 		// Two arguments get the key and value.
 		switch len(node.Arguments.Elements) {
 		case 1:
 			scope.Write(node.Arguments.Elements[0].Value, v)
 		case 2:
-			scope.Write(node.Arguments.Elements[0].Value, &StringType{Value: k.Value})
+			scope.Write(node.Arguments.Elements[0].Value, k)
 			scope.Write(node.Arguments.Elements[1].Value, v)
 		default:
 			i.reportError(node, "A FOR loop with a Dictionary expects at most 2 arguments")
@@ -719,7 +722,7 @@ func (i *Interpreter) runSubscript(node *ast.Subscript, scope *Scope) DataType {
 			i.reportError(node, err.Error())
 		}
 		return result
-	case left.Type() == DICTIONARY_TYPE && index.Type() == STRING_TYPE:
+	case left.Type() == DICTIONARY_TYPE:
 		result, err := i.runDictionarySubscript(left, index)
 		if err != nil {
 			i.reportError(node, err.Error())
@@ -753,10 +756,9 @@ func (i *Interpreter) runArraySubscript(array, index DataType) (DataType, error)
 // Interpret a Dictionary subscript.
 func (i *Interpreter) runDictionarySubscript(dictionary, index DataType) (DataType, error) {
 	dictObj := dictionary.(*DictionaryType).Pairs
-	key := index.(*StringType).Value
 
 	for k, v := range dictObj {
-		if k.Value == key {
+		if k.Inspect() == index.Inspect() {
 			return v, nil
 		}
 	}
@@ -1205,7 +1207,7 @@ func (i *Interpreter) compareArrays(left, right []DataType) bool {
 
 // Check if two dictionaries are identical if all of their keys
 // are the same.
-func (i *Interpreter) compareDictionaries(left, right map[*StringType]DataType) bool {
+func (i *Interpreter) compareDictionaries(left, right map[DataType]DataType) bool {
 	if len(left) != len(right) {
 		return false
 	}
@@ -1218,7 +1220,7 @@ func (i *Interpreter) compareDictionaries(left, right map[*StringType]DataType) 
 	// solution.
 	for lk, lv := range left {
 		for rk, rv := range right {
-			if lk.Value == rk.Value && lv.Inspect() == rv.Inspect() {
+			if lk.Inspect() == rk.Inspect() && lv.Inspect() == rv.Inspect() {
 				found += 1
 				continue
 			}
@@ -1348,7 +1350,7 @@ func (i *Interpreter) typeToExpression(object DataType) ast.Expression {
 		dict := &ast.Dictionary{}
 		dict.Pairs = map[ast.Expression]ast.Expression{}
 		for k, v := range value.Pairs {
-			key := &ast.String{Value: k.Value}
+			key := i.typeToExpression(k)
 			result := i.typeToExpression(v)
 			if result == nil {
 				return nil

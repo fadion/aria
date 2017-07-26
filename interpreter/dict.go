@@ -39,7 +39,7 @@ func dictContains(args ...DataType) (DataType, error) {
 	found := false
 
 	for k := range object.Pairs {
-		if k.Value == key.Value {
+		if k.Inspect() == key.Inspect() {
 			found = true
 		}
 	}
@@ -67,7 +67,7 @@ func dictInsert(args ...DataType) (DataType, error) {
 
 	exists := false
 	for k := range object.Pairs {
-		if k.Value == key.Value {
+		if k.Inspect() == key.Inspect() {
 			exists = true
 			break
 		}
@@ -102,7 +102,7 @@ func dictUpdate(args ...DataType) (DataType, error) {
 
 	exists := false
 	for k := range object.Pairs {
-		if k.Value == key.Value {
+		if k.Inspect() == key.Inspect() {
 			object.Pairs[k] = args[2]
 			exists = true
 			break
@@ -134,7 +134,7 @@ func dictDelete(args ...DataType) (DataType, error) {
 	object := args[0].(*DictionaryType)
 	key := args[1].(*StringType)
 	for k := range object.Pairs {
-		if k.Value == key.Value {
+		if k.Inspect() == key.Inspect() {
 			delete(object.Pairs, k)
 		}
 	}

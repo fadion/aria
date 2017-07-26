@@ -691,14 +691,13 @@ func (p *Parser) parseDictionary() ast.Expression {
 		case p.match(token.COLON): // Ignore colons.
 		case p.peekMatch(token.COLON):
 			// As the next token is a colon, the current one should
-			// be a key. Check if it's string, the only supported
-			// type for a key.
-			if !p.match(token.STRING) {
-				p.reportError("Dictionary keys can only be String")
+			// be a key.
+			key := p.parseExpression(LOWEST)
+			if key == nil {
+				p.reportError("Unable to read dictionary key")
 				return nil
 			}
 
-			key := p.parseString()
 			// Advance the current key and colon.
 			p.advance()
 			p.advance()

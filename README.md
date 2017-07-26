@@ -236,7 +236,7 @@ let nocomma = [5 7 9 "Hi"]
  
 ### Dictionary
  
-Dictionaries are hashes with a forced string key and a value of any data type. They're good to hold unordered, structured data:
+Dictionaries are hashes with a key and a value of any data type. They're good to hold unordered, structured data:
 
 ```swift
 let user = ["name": "Dr. Unusual", "proffesion": "Illusionist", "age": 150]
@@ -254,6 +254,14 @@ Values can be reassigned or inserted by key on mutable dictionaries:
 var numbers = ["one": 1, "two": 2]
 numbers["one"] = 5
 numbers["three"] = 3 // new key:value
+```
+
+To check for a key's existence, you can access it as normal and check if it's `nil` or truthy:
+
+```swift
+if user["location"]
+  // do smth
+end
 ```
 
 ### Nil
