@@ -921,6 +921,8 @@ func (i *Interpreter) runInfix(node *ast.InfixExpression, scope *Scope) DataType
 		out, err = i.runArrayInfix(node.Operator, left, right)
 	case left.Type() == DICTIONARY_TYPE && right.Type() == DICTIONARY_TYPE:
 		out, err = i.runDictionaryInfix(node.Operator, left, right)
+	case left.Type() == NIL_TYPE || right.Type() == NIL_TYPE:
+		out, err = i.runNilInfix(node.Operator, left, right)
 	case left.Type() != right.Type():
 		err = fmt.Errorf("Cannot run expression with types '%s' and '%s'", left.Type(), right.Type())
 	default:
@@ -1103,6 +1105,24 @@ func (i *Interpreter) runDictionaryInfix(operator string, left, right DataType) 
 		return i.nativeToBoolean(!i.compareDictionaries(leftVal, rightVal)), nil
 	default:
 		return nil, fmt.Errorf("Unsupported Dictionary operator '%s'", operator)
+	}
+}
+
+// Interpret infix operation for Nil.
+func (i *Interpreter) runNilInfix(operator string, left, right DataType) (DataType, error) {
+	switch operator {
+	case "==":
+		if left.Type() != NIL_TYPE || right.Type() != NIL_TYPE {
+			return FALSE, nil
+		}
+		return TRUE, nil
+	case "!=":
+		if left.Type() != NIL_TYPE || right.Type() != NIL_TYPE {
+			return TRUE, nil
+		}
+		return FALSE, nil
+	default:
+		return nil, fmt.Errorf("Unsupported Nil operator '%s'", operator)
 	}
 }
 
