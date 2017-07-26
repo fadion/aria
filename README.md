@@ -227,10 +227,11 @@ var numbers = [5, 8, 10, 15]
 numbers[1] = 7
 ```
 
-Appended with an empty index:
+Appended with an empty or placeholder index:
 
 ```swift
 numbers[] = 100
+numbers[_] = 200 // Same.
 ```
 
 Arrays can be compared with the `==` and `!=` operators, which will check the position and value of every element of both arrays. Equal arrays should have the same exact values in the same position.

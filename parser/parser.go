@@ -752,6 +752,14 @@ func (p *Parser) parseSubscript(left ast.Expression) ast.Expression {
 		return expression
 	}
 
+	// Same as an empty index, but for the alternative
+	// placeholder: array[_].
+	if p.match(token.UNDERSCORE) {
+		p.advance()
+		expression.Index = &ast.Placeholder{Token: p.token}
+		return expression
+	}
+
 	expression.Index = p.parseExpression(LOWEST)
 
 	// Missing closing right bracket.

@@ -318,7 +318,7 @@ func (i *Interpreter) runAssign(node *ast.Assign, scope *Scope) DataType {
 	return object
 }
 
-// Interpret assignement for subscript.
+// Interpret assignment for subscript.
 func (i *Interpreter) runAssignSubscript(node *ast.Subscript, original DataType, value DataType, scope *Scope) (DataType, error) {
 	index := i.Interpret(node.Index, scope)
 
@@ -332,6 +332,7 @@ func (i *Interpreter) runAssignSubscript(node *ast.Subscript, original DataType,
 	case original.Type() == ARRAY_TYPE && index.Type() == INTEGER_TYPE || index.Type() == PLACEHOLDER_TYPE:
 		array := original.(*ArrayType)
 
+		// array[index]
 		if index.Type() == INTEGER_TYPE {
 			idx := index.(*IntegerType).Value
 
@@ -342,6 +343,7 @@ func (i *Interpreter) runAssignSubscript(node *ast.Subscript, original DataType,
 
 			array.Elements[idx] = value
 		} else {
+			// array[]
 			array.Elements = append(array.Elements, value)
 		}
 
@@ -381,7 +383,7 @@ func (i *Interpreter) runAssignSubscript(node *ast.Subscript, original DataType,
 		// parts of the original string and the new one.
 		return &StringType{Value: str.Value[:idx] + value + str.Value[idx+1:]}, nil
 	default:
-		return nil, fmt.Errorf("Subscript assignement not recognised")
+		return nil, fmt.Errorf("Subscript assignment not recognised")
 	}
 }
 
