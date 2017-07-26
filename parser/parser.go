@@ -738,10 +738,20 @@ func (p *Parser) parseContinue() ast.Statement {
 	return &ast.Continue{Token: p.token}
 }
 
-// IDENT[INTEGER | STRING]
+// IDENT[EXPRESSION]
 func (p *Parser) parseSubscript(left ast.Expression) ast.Expression {
 	expression := &ast.Subscript{Token: p.token, Left: left}
 	p.advance()
+
+	// An immediate right bracket means an empty
+	// index. Add a placeholder to it instead of
+	// making it nil, so it doesn't mess up the
+	// interpretation phase.
+	if p.match(token.RBRACK) {
+		expression.Index = &ast.Placeholder{Token: p.token}
+		return expression
+	}
+
 	expression.Index = p.parseExpression(LOWEST)
 
 	// Missing closing right bracket.

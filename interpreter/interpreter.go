@@ -329,16 +329,22 @@ func (i *Interpreter) runAssignSubscript(node *ast.Subscript, original DataType,
 	}
 
 	switch {
-	case original.Type() == ARRAY_TYPE && index.Type() == INTEGER_TYPE:
-		idx := index.(*IntegerType).Value
+	case original.Type() == ARRAY_TYPE && index.Type() == INTEGER_TYPE || index.Type() == PLACEHOLDER_TYPE:
 		array := original.(*ArrayType)
 
-		idx, err := i.checkArrayBounds(array.Elements, idx)
-		if err != nil {
-			return nil, err
+		if index.Type() == INTEGER_TYPE {
+			idx := index.(*IntegerType).Value
+
+			idx, err := i.checkArrayBounds(array.Elements, idx)
+			if err != nil {
+				return nil, err
+			}
+
+			array.Elements[idx] = value
+		} else {
+			array.Elements = append(array.Elements, value)
 		}
 
-		array.Elements[idx] = value
 		return array, nil
 	case original.Type() == DICTIONARY_TYPE:
 		dictionary := original.(*DictionaryType)
