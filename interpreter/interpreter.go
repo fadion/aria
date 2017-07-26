@@ -1106,6 +1106,10 @@ func (i *Interpreter) runArrayInfix(operator string, left, right DataType) (Data
 		return i.nativeToBoolean(i.compareArrays(leftVal, rightVal)), nil
 	case "!=":
 		return i.nativeToBoolean(!i.compareArrays(leftVal, rightVal)), nil
+	case "<":
+		return i.nativeToBoolean(len(leftVal) < len(rightVal)), nil
+	case ">":
+		return i.nativeToBoolean(len(leftVal) > len(rightVal)), nil
 	default:
 		return nil, fmt.Errorf("Unsupported Array operator '%s'", operator)
 	}
@@ -1127,6 +1131,10 @@ func (i *Interpreter) runDictionaryInfix(operator string, left, right DataType) 
 		return i.nativeToBoolean(i.compareDictionaries(leftVal, rightVal)), nil
 	case "!=":
 		return i.nativeToBoolean(!i.compareDictionaries(leftVal, rightVal)), nil
+	case "<":
+		return i.nativeToBoolean(len(leftVal) < len(rightVal)), nil
+	case ">":
+		return i.nativeToBoolean(len(leftVal) > len(rightVal)), nil
 	default:
 		return nil, fmt.Errorf("Unsupported Dictionary operator '%s'", operator)
 	}

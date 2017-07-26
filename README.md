@@ -294,13 +294,10 @@ You can't expect to run some calculations without a good batch of operators, rig
 By order of precedence:
 
 ```swift
-Assign: =
-Pipe: |>
 Boolean: && || (AND, OR)
 Bitwise: & | ~ (Bitwise AND, OR, NOT)
 Equality: == != (Equal, Not equal)
 Comparison: < <= > >=
-Range: ..
 Bitshift: << >> (Bitshift left and right)
 Arithmetic: + - * / % ** (addition, substraction, multiplication, division, modulo, power)
 ```
@@ -321,12 +318,14 @@ Addition can be used to concatenate Strings or combine Arrays and Dictionaries:
 ["a": 1, "b": 2] + ["c": 3]
 ```
 
-Comparison can be used for Integers and Floats, but for Strings too, where it will compare the length:
+Comparison operators can compare Integers and Float by exact value, Strings, Arrays and Dictionaries by length:
 
 ```swift
 5 > 2
 3.2 <= 4.5
 "one" < "three"
+[1, 2] > [5]
+["a": 1] < ["b": 2, "c": 3]
 ```
 
 Equality and inequality can be used for most data types. Integers, Floats and Booleans will be compared by exact value, Strings by length, Arrays by the value and position of the elements, and Dictionaries by the the combination of key and value.
