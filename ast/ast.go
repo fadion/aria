@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/fadion/aria/token"
 	"strings"
+	"fmt"
 )
 
 // A Node on the AST.
@@ -260,7 +261,7 @@ func (e *Dictionary) Inspect() string {
 
 	pairs := []string{}
 	for key, value := range e.Pairs {
-		pairs = append(pairs, key.Inspect()+":"+value.Inspect())
+		pairs = append(pairs, fmt.Sprintf("%s => %s", key.Inspect(), value.Inspect()))
 	}
 
 	out.WriteString("[")

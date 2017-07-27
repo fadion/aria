@@ -131,6 +131,7 @@ Atoms, or symbols as some languages refer to them, are constants where the name 
 ```swift
 let eq = :dog == :cat
 let arr = ["dog", :cat, :mouse]
+let dict = [:name => "John", :age => 40]
 let concat = "hello" + :world
 ```
 
@@ -255,7 +256,7 @@ let nocomma = [5 7 9 "Hi"]
 Dictionaries are hashes with a key and a value of any data type. They're good to hold unordered, structured data:
 
 ```swift
-let user = ["name": "Dr. Unusual", "proffesion": "Illusionist", "age": 150]
+let user = ["name" => "Dr. Unusual", "proffesion" => "Illusionist", "age" => 150]
 ```
 
 Unlike arrays, internally their order is irrelevant, so you can't rely on index-based subscripting. They only support key-based subscripting:
@@ -267,7 +268,7 @@ user["name"] // "Dr. Unusual"
 Values can be reassigned or inserted by key on mutable dictionaries:
 
 ```swift
-var numbers = ["one": 1, "two": 2]
+var numbers = ["one" => 1, "two" => 2]
 numbers["one"] = 5
 numbers["three"] = 3 // new key:value
 ```
@@ -275,7 +276,7 @@ numbers["three"] = 3 // new key:value
 To check for a key's existence, you can access it as normal and check if it's `nil` or truthy:
 
 ```swift
-if user["location"]
+if user["location"] == nil
   // do smth
 end
 ```
@@ -316,7 +317,7 @@ Addition can be used to concatenate Strings or combine Arrays and Dictionaries:
 ```swift
 "obi" + " " + "wan"
 [1, 2] + [3, 4]
-["a": 1, "b": 2] + ["c": 3]
+["a" => 1, "b" => 2] + ["c" => 3]
 ```
 
 Comparison operators can compare Integers and Float by exact value, Strings, Arrays and Dictionaries by length:
@@ -326,7 +327,7 @@ Comparison operators can compare Integers and Float by exact value, Strings, Arr
 3.2 <= 4.5
 "one" < "three"
 [1, 2] > [5]
-["a": 1] < ["b": 2, "c": 3]
+["a" => 1] < ["b" => 2, "c" => 3]
 ```
 
 Equality and inequality can be used for most data types. Integers, Floats and Booleans will be compared by exact value, Strings by length, Arrays by the value and position of the elements, and Dictionaries by the the combination of key and value.
@@ -337,7 +338,7 @@ Equality and inequality can be used for most data types. Integers, Floats and Bo
 true == true
 "one" == "three"
 [1, 2, 3] != [1, 2]
-["a": 1, "b": 2] != ["a": 5, "b": 6]
+["a" => 1, "b" => 2] != ["a" => 5, "b" => 6]
 ```
 
 Boolean operators can only be used with Boolean values, namely `true` or `false`. Other data types will not be converted to truthy values.
@@ -632,12 +633,12 @@ Passing two arguments for arrays or strings will return the current index and va
 
 ```swift
 for i, v in "abcd"
-  IO.puts(i + ":" + v)
+  IO.puts(i + "=>" + v)
 end
 ```
 
 ```swift
-for k, v in ["name": "John", "age": 40]
+for k, v in ["name" => "John", "age" => 40]
   IO.puts(k)
   IO.puts(v)
 end

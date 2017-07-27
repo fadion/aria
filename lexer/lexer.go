@@ -71,6 +71,9 @@ func (l *Lexer) NextToken() token.Token {
 		case '=': // ==
 			l.advance()
 			l.assignToken(token.EQ, "==")
+		case '>': // =>
+			l.advance()
+			l.assignToken(token.FATARROW, "=>")
 		default: // =
 			l.assignToken(token.ASSIGN, string(l.char))
 		}

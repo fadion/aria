@@ -673,64 +673,58 @@ func (p *Parser) parseImport() ast.Expression {
 // Find out if it's an array or a dictionary.
 func (p *Parser) parseArrayOrDictionary() ast.Expression {
 	p.advance()
+	list := []ast.Expression{}
+	isDict := false
 
-	// After the first key of a dictionary, it's
-	// expected a COLON. Otherwise, it's an array.
-	if p.peekMatch(token.COLON) {
-		return p.parseDictionary()
-	}
-
-	return p.parseArray()
-}
-
-// [IDENT1, IDENT2]
-func (p *Parser) parseArray() ast.Expression {
-	expression := &ast.Array{Token: p.token}
-	list := &ast.ExpressionList{Token: p.token}
-	list.Elements = p.parseDelimited(token.COMMA, token.RBRACK)
-	expression.List = list
-
-	return expression
-}
-
-// [KEY1: VALUE1, KEY2: VALUE2]
-func (p *Parser) parseDictionary() ast.Expression {
-	expression := &ast.Dictionary{Token: p.token}
-	pairs := map[ast.Expression]ast.Expression{}
-
-	// Parse until a closing right bracket.
+	// Consume tokens until a closing right bracket.
 	for !p.match(token.RBRACK) {
 		switch {
-		case p.match(token.NEWLINE) || p.match(token.EOF):
-			p.reportError("Missing closing ']' in Dictionary")
+		case p.match(token.NEWLINE, token.EOF): // Error.
+			p.reportError("Missing closing ']' in enumerable")
 			return nil
-		case p.match(token.COLON): // Ignore colons.
-		case p.peekMatch(token.COLON):
-			// As the next token is a colon, the current one should
-			// be a key.
-			key := p.parseExpression(LOWEST)
-			if key == nil {
-				p.reportError("Unable to read dictionary key")
+		case p.match(token.FATARROW): // Arrow means it's a dictionary.
+			isDict = true
+		case p.match(token.COMMA): // Ignore commas.
+		default:
+			expression := p.parseExpression(LOWEST)
+			if expression == nil {
 				return nil
 			}
 
-			// Advance the current key and colon.
-			p.advance()
-			p.advance()
-			value := p.parseExpression(LOWEST)
-
-			if value == nil {
-				p.reportError(fmt.Sprintf("Found key '%s' in Dictionary but no value", key.Inspect()))
-				return nil
-			}
-
-			pairs[key] = value
+			list = append(list, expression)
 		}
-
 		p.advance()
 	}
 
-	expression.Pairs = pairs
+	if !isDict {
+		// Build an array.
+		expression := &ast.Array{Token: p.token}
+		expression.List = &ast.ExpressionList{Elements: list}
+		return expression
+	}
+
+	// Dictionary expects an even number of
+	// elements.
+	if len(list)%2 == 1 {
+		p.reportError("Dictionary expects elements as Key:Value")
+		return nil
+	}
+
+	expression := &ast.Dictionary{Token: p.token}
+	expression.Pairs = map[ast.Expression]ast.Expression{}
+	// Build a dictionary treating every even
+	// element as the key and the next as value.
+	for i, v := range list {
+		if i%2 == 0 {
+			// Make sure no incorrect value has leaked
+			// into the list.
+			if v == nil || list[i+1] == nil {
+				return nil
+			}
+
+			expression.Pairs[v] = list[i+1]
+		}
+	}
 
 	return expression
 }

@@ -130,7 +130,7 @@ func (t *DictionaryType) Inspect() string {
 
 	pairs := []string{}
 	for key, value := range t.Pairs {
-		pairs = append(pairs, fmt.Sprintf("%s:%s", key.Inspect(), value.Inspect()))
+		pairs = append(pairs, fmt.Sprintf("%s => %s", key.Inspect(), value.Inspect()))
 	}
 
 	out.WriteString("[")
