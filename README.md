@@ -95,7 +95,7 @@ Variable names have to start with an alphabetic character and continue either wi
 
 ## Data Types
 
-Aria supports 7 data types: `String`, `Atom`, `Integer`, `Float`, `Boolean`, `Array` and `Dictionary`.
+Aria supports 7 data types: `String`, `Atom`, `Integer`, `Float`, `Boolean`, `Array`, `Dictionary` and `Nil`.
 
 ### String
 
@@ -257,6 +257,12 @@ Dictionaries are hashes with a key and a value of any data type. They're good to
 
 ```swift
 let user = ["name" => "Dr. Unusual", "proffesion" => "Illusionist", "age" => 150]
+```
+
+I'd argue that using Atoms for keys would make them look cleaner:
+
+```swift
+let user = [:name => "Dr. Unusual", :proffesion => "Illusionist", :age => 150]
 ```
 
 Unlike arrays, internally their order is irrelevant, so you can't rely on index-based subscripting. They only support key-based subscripting:
