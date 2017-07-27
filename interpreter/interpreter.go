@@ -660,16 +660,20 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 
 	function := fn.(*FunctionType)
 
-	// Check for arguments/parameters missmatch on
-	// non-variadic functions.
+	// Non-variadic function arguments should
+	// match those of the caller parameters.
 	if !function.Variadic {
 		if len(node.Arguments.Elements) > len(function.Parameters) {
 			i.reportError(node, "Too many arguments in function call")
 			return nil
-		} else if len(node.Arguments.Elements) < len(function.Parameters) {
-			i.reportError(node, "Too few arguments in function call")
-			return nil
 		}
+	}
+
+	// Less parameters than arguments is always a
+	// miss match, variadic or not.
+	if len(node.Arguments.Elements) < len(function.Parameters) {
+		i.reportError(node, "Too few arguments in function call")
+		return nil
 	}
 
 	// Interpret every single argument and pass it
@@ -677,21 +681,26 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 	arguments := []DataType{}
 	for index, element := range node.Arguments.Elements {
 		value := i.Interpret(element, scope)
-		if value != nil {
-			arguments = append(arguments, value)
+		if value == nil {
+			return nil
+		}
 
-			// Non variadic function takes every
-			// argument individually.
-			if !function.Variadic {
-				function.Scope.Write(function.Parameters[index].Value, value)
-			}
+		// Write the argument to the scope when the function is
+		// not variadic. Even variadic functions can have more than
+		// one parameter before the last variadic one, so those are saved
+		// in the scope too.
+		if !function.Variadic || index < len(function.Parameters)-1 {
+			function.Scope.Write(function.Parameters[index].Value, value)
+		} else {
+			// Variadic arguments are passed to the array.
+			arguments = append(arguments, value)
 		}
 	}
 
 	// Pass the array of arguments as a single
 	// argument on variadic functions.
 	if function.Variadic {
-		function.Scope.Write(function.Parameters[0].Value, &ArrayType{Elements: arguments})
+		function.Scope.Write(function.Parameters[len(function.Parameters)-1].Value, &ArrayType{Elements: arguments})
 	}
 
 	result := i.Interpret(function.Body, function.Scope)

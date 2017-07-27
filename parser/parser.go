@@ -589,10 +589,27 @@ func (p *Parser) parseFunction() ast.Expression {
 	// Find parameters until a DO or NEWLINE token.
 	for !p.match(token.DO, token.NEWLINE) {
 		switch p.token.Type {
-		// Ignore commas. Parantheses are optional in
-		// a function definition, so they're ignored too.
-		case token.COMMA, token.LPAREN, token.RPAREN:
+		// Ignore optional parantheses.
+		case token.LPAREN, token.RPAREN:
+		case token.COMMA:
+			// Variadic argument should be the last parameter.
+			// A comma tells that it's not.
+			if expression.Variadic {
+				p.reportError("Variadic argument in function should be the last parameter")
+				return nil
+			}
 		case token.ELLIPSIS: // Variadic function.
+			// Only 1 variadic argument is allowed.
+			if expression.Variadic {
+				p.reportError("Function expects only 1 variadic argument")
+				return nil
+			}
+
+			if !p.peekMatch(token.IDENTIFIER) {
+				p.reportError("Variadic argument in function expects an identifier")
+				return nil
+			}
+
 			expression.Variadic = true
 		case token.EOF: // EOF reached. Something's wrong with the syntax.
 			p.reportError("Missing body in function")
@@ -605,20 +622,6 @@ func (p *Parser) parseFunction() ast.Expression {
 		}
 
 		p.advance()
-	}
-
-	// Check if there's any argument missmatch for
-	// variadic function. It expects only 1 argument.
-	if expression.Variadic {
-		if len(identifiers.Elements) == 0 {
-			p.reportError("Variadic function expects at least one argument")
-			return nil
-		}
-
-		if len(identifiers.Elements) > 1 {
-			p.reportError("Variadic function expects at most one argument")
-			return nil
-		}
 	}
 
 	expression.Parameters = identifiers

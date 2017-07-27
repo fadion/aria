@@ -471,6 +471,15 @@ structure(1, 2, 3) // array
 structure(5) // integer
 ```
 
+Functions may have as many parameters as needed, as long the variadic function is the last parameter:
+
+```swift
+let calc = fn mult, ...nums
+  mult * Enum.reduce(nums, 0, (x, acc) -> x + acc)
+end
+calc(10, 1, 2, 3, 4) // 100
+```
+
 ### Arrow Functions
 
 Very useful when passing short functions as arguments, arrow functions provide a very clean syntax. They're handled internally exactly like normal functions. The only difference is that they're meant as a single line of code, while normal functions can handle blocks.
