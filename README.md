@@ -471,7 +471,7 @@ structure(1, 2, 3) // array
 structure(5) // integer
 ```
 
-Functions may have as many parameters as needed, as long the variadic function is the last parameter:
+Functions may have as many parameters as needed, as long the variadic argument is the last parameter:
 
 ```swift
 let calc = fn mult, ...nums
