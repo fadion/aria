@@ -5,6 +5,7 @@ import (
 	"time"
 	"math/rand"
 	"strconv"
+	"strings"
 )
 
 type runtimeFunc func(args ...DataType) (DataType, error)
@@ -154,6 +155,36 @@ var runtime = map[string]runtimeFunc{
 		default:
 			return nil, fmt.Errorf("Float() can't convert '%s' to Integer", object.Type())
 		}
+	},
+
+	// utf8_tolower(String)
+	"utf8_tolower": func(args ...DataType) (DataType, error) {
+		if len(args) != 1 {
+			return nil, fmt.Errorf("utf8_tolower() expects exactly 1 argument")
+		}
+
+		if args[0].Type() != STRING_TYPE {
+			return nil, fmt.Errorf("utf8_tolower() expects a String")
+		}
+
+		str := args[0].(*StringType).Value
+
+		return &StringType{Value: strings.ToLower(str)}, nil
+	},
+
+	// utf8_tolower(String)
+	"utf8_toupper": func(args ...DataType) (DataType, error) {
+		if len(args) != 1 {
+			return nil, fmt.Errorf("utf8_toupper() expects exactly 1 argument")
+		}
+
+		if args[0].Type() != STRING_TYPE {
+			return nil, fmt.Errorf("utf8_toupper() expects a String")
+		}
+
+		str := args[0].(*StringType).Value
+
+		return &StringType{Value: strings.ToUpper(str)}, nil
 	},
 
 }
