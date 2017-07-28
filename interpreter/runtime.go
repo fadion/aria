@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
+	"regexp"
 )
 
 type runtimeFunc func(args ...DataType) (DataType, error)
@@ -185,6 +186,31 @@ var runtime = map[string]runtimeFunc{
 		str := args[0].(*StringType).Value
 
 		return &StringType{Value: strings.ToUpper(str)}, nil
+	},
+
+	// runtime_regex_match(String, regex String) -> Bool
+	"runtime_regex_match": func(args ...DataType) (DataType, error) {
+		if len(args) != 2 {
+			return nil, fmt.Errorf("runtime_regex_match() expects exactly 2 arguments")
+		}
+
+		if args[0].Type() != STRING_TYPE {
+			return nil, fmt.Errorf("runtime_regex_match() expects a String")
+		}
+
+		if args[1].Type() != STRING_TYPE {
+			return nil, fmt.Errorf("runtime_regex_match() expects a String regex")
+		}
+
+		object := args[0].(*StringType).Value
+		match := args[1].(*StringType).Value
+
+		regx, err := regexp.Compile(match)
+		if err != nil {
+			return nil, fmt.Errorf("runtime_regex_match() couldn't compile the regular expression")
+		}
+
+		return &BooleanType{Value: regx.Find([]byte(object)) != nil}, nil
 	},
 
 }
