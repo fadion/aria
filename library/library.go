@@ -200,4 +200,57 @@ end`,
   end
 
 end`,
+
+	`module Dict
+  let size = func (dict: Dictionary) -> Int
+    var count = 0
+    for v in dict
+      count = count + 1
+    end
+    count
+  end
+
+  let contains? = func (dict: Dictionary, key) -> Bool
+    for k, v in dict
+      if k == key
+        return true
+      end
+    end
+    false
+  end
+
+  let empty? = func (dict: Dictionary) -> Bool
+    size(dict) == 0
+  end
+
+  let insert = func (dict: Dictionary, key, value) -> Dictionary
+    if dict[key] != nil
+      panic("Dictionary key '" + String(key) + "' already exists")
+    end
+
+    dict[key] = value
+  end
+
+  let update = func (dict: Dictionary, key, value) -> Dictionary
+    if dict[key] == nil
+      panic("Dictionary key '" + String(key) + "' doesn't exist")
+    end
+
+    dict[key] = value
+  end
+
+  let delete = func (dict: Dictionary, key) -> Dictionary
+    if dict[key] == nil
+      panic("Dictionary key '" + String(key) + "' doesn't exist")
+    end
+
+    var purged = [=>]
+    for k, v in dict
+      if k != key
+        purged[k] = v
+      end
+    end
+    purged
+  end
+end`,
 }
