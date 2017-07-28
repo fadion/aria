@@ -737,6 +737,9 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 	}
 
 	result := i.unwrapReturnValue(i.Interpret(function.Body, function.Scope))
+	if result == nil {
+		return nil
+	}
 
 	// Check return type if it is set.
 	if function.ReturnType != nil {
