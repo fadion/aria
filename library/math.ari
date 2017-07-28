@@ -1,0 +1,48 @@
+module Math
+
+  let pi = 3.14159265359
+
+  let floor = func (nr: Float) -> Int
+    Int(nr - nr % 1)
+  end
+
+  let ceil = func (nr: Float) -> Int
+    let rem = nr % 1
+    if rem == 0
+      return Int(nr)
+    end
+    nr > 0 ? Int(nr + (1 - rem)) : Int(nr - (1 + rem))
+  end
+
+  let max = func (nr1, nr2)
+    if !Type.isNumber(nr1) || !Type.isNumber(nr2)
+      panic("Math.max() expects a Float or Int")
+    end
+
+    return nr1 > nr2 ? nr1 : nr2
+  end
+
+  let min = func (nr1, nr2)
+    if !Type.isNumber(nr1) || !Type.isNumber(nr2)
+      panic("Math.min() expects a Float or Int")
+    end
+
+    return nr1 > nr2 ? nr2 : nr1
+  end
+
+  let random = func (min: Int, max: Int) -> Int
+    rand(min, max)
+  end
+
+  let abs = func (nr)
+    if !Type.isNumber(nr)
+      panic("Math.abs() expects a Float or Int")
+    end
+
+    if nr < 0
+      return -nr
+    end
+    nr
+  end
+
+end

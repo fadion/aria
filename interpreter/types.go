@@ -9,11 +9,11 @@ import (
 
 // Data types.
 const (
-	INTEGER_TYPE     = "Integer"
+	INTEGER_TYPE     = "Int"
 	FLOAT_TYPE       = "Float"
 	STRING_TYPE      = "String"
 	ATOM_TYPE        = "Atom"
-	BOOLEAN_TYPE     = "Boolean"
+	BOOLEAN_TYPE     = "Bool"
 	ARRAY_TYPE       = "Array"
 	DICTIONARY_TYPE  = "Dictionary"
 	NIL_TYPE         = "Nil"
@@ -148,8 +148,9 @@ func (t *NilType) Inspect() string { return "nil" }
 
 // FunctionType for functions.
 type FunctionType struct {
-	Parameters []*ast.Identifier
+	Parameters []*ast.FunctionParameter
 	Body       *ast.BlockStatement
+	ReturnType *ast.Identifier
 	Variadic   bool
 	Scope      *Scope
 }
@@ -158,22 +159,21 @@ func (t *FunctionType) Type() string { return FUNCTION_TYPE }
 func (t *FunctionType) Inspect() string {
 	var out bytes.Buffer
 
-	params := []string{}
-	for _, p := range t.Parameters {
-		params = append(params, p.Inspect())
+	parameters := []string{}
+	for i, v := range t.Parameters {
+		param := v.Inspect()
+		if t.Variadic && i == len(t.Parameters)-1 {
+			out.WriteString("...")
+		}
+		parameters = append(parameters, param)
 	}
 
-	out.WriteString("fn")
-	out.WriteString("(")
+	out.WriteString("fn ")
+	out.WriteString(" (")
 
-	if t.Variadic {
-		out.WriteString("...")
-	}
-
-	out.WriteString(strings.Join(params, ", "))
-	out.WriteString(") {\n")
+	out.WriteString(strings.Join(parameters, ", "))
+	out.WriteString(") -> ")
 	out.WriteString(t.Body.Inspect())
-	out.WriteString("\n}")
 
 	return out.String()
 }

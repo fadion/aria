@@ -464,8 +464,9 @@ func (e *ModuleAccess) Inspect() string {
 // Function expression.
 type Function struct {
 	Token      token.Token
-	Parameters *IdentifierList
+	Parameters []*FunctionParameter
 	Body       *BlockStatement
+	ReturnType *Identifier
 	Variadic   bool
 }
 
@@ -475,16 +476,50 @@ func (e *Function) TokenLocation() token.Location { return e.Token.Location }
 func (e *Function) Inspect() string {
 	var out bytes.Buffer
 
+	parameters := []string{}
+	for i, v := range e.Parameters {
+		param := v.Inspect()
+		if e.Variadic && i == len(e.Parameters)-1 {
+			out.WriteString("...")
+		}
+		parameters = append(parameters, param)
+	}
+
 	out.WriteString(e.Token.Lexeme)
 	out.WriteString(" (")
 
-	if e.Variadic {
-		out.WriteString("...")
+	out.WriteString(strings.Join(parameters, ", "))
+	out.WriteString(") ")
+
+	if e.ReturnType != nil {
+		out.WriteString(" -> ")
+		out.WriteString(e.ReturnType.Value)
+		out.WriteString("\n")
 	}
 
-	out.WriteString(e.Parameters.Inspect())
-	out.WriteString(") -> ")
 	out.WriteString(e.Body.Inspect())
+
+	return out.String()
+}
+
+// Function parameters.
+type FunctionParameter struct {
+	Token token.Token
+	Name  *Identifier
+	Type  *Identifier
+}
+
+func (e *FunctionParameter) expression()                   {}
+func (e *FunctionParameter) TokenLexeme() string           { return e.Token.Lexeme }
+func (e *FunctionParameter) TokenLocation() token.Location { return e.Token.Location }
+func (e *FunctionParameter) Inspect() string {
+	var out bytes.Buffer
+
+	out.WriteString(e.Name.Value)
+	if e.Type != nil {
+		out.WriteString(":")
+		out.WriteString(e.Type.Value)
+	}
 
 	return out.String()
 }

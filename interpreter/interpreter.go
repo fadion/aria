@@ -8,6 +8,7 @@ import (
 	"strings"
 	"io/ioutil"
 	"github.com/fadion/aria/lexer"
+	"github.com/fadion/aria/library"
 	"github.com/fadion/aria/reader"
 	"github.com/fadion/aria/parser"
 	"path/filepath"
@@ -15,29 +16,31 @@ import (
 
 // Interpreter represents the interpreter.
 type Interpreter struct {
-	modules     map[string]*ModuleType
-	library     *Library
-	moduleCache map[string]*Scope
-	importCache map[string]*ast.Program
-	immutables  map[string]*ast.Identifier
+	modules         map[string]*ModuleType
+	moduleCache     map[string]map[string]DataType
+	importCache     map[string]*ast.Program
+	immutables      map[string]*ast.Identifier
+	libraryFinished bool
 }
 
 // New initializes an Interpreter.
 func New() *Interpreter {
-	lib := NewLibrary()
-	lib.Register()
-
 	return &Interpreter{
-		modules:     map[string]*ModuleType{},
-		library:     lib,
-		moduleCache: map[string]*Scope{},
-		importCache: map[string]*ast.Program{},
-		immutables:  map[string]*ast.Identifier{},
+		modules:         map[string]*ModuleType{},
+		moduleCache:     map[string]map[string]DataType{},
+		importCache:     map[string]*ast.Program{},
+		immutables:      map[string]*ast.Identifier{},
+		libraryFinished: false,
 	}
 }
 
 // Interpret runs the interpreter.
 func (i *Interpreter) Interpret(node ast.Node, scope *Scope) DataType {
+	if err := i.importLibraryModules(scope); err != nil {
+		i.reportError(node, err.Error())
+		return nil
+	}
+
 	switch node := node.(type) {
 	case *ast.Program:
 		return i.runProgram(node, scope)
@@ -87,8 +90,9 @@ func (i *Interpreter) Interpret(node ast.Node, scope *Scope) DataType {
 		return i.runFor(node, scope)
 	case *ast.Function:
 		return &FunctionType{
-			Parameters: node.Parameters.Elements,
+			Parameters: node.Parameters,
 			Body:       node.Body,
+			ReturnType: node.ReturnType,
 			Variadic:   node.Variadic,
 			Scope:      NewScopeFrom(scope),
 		}
@@ -106,6 +110,33 @@ func (i *Interpreter) Interpret(node ast.Node, scope *Scope) DataType {
 		return &ContinueType{}
 	case *ast.Placeholder:
 		return &PlaceholderType{}
+	}
+
+	return nil
+}
+
+func (i *Interpreter) importLibraryModules(scope *Scope) error {
+	// Library interpreted once.
+	if i.libraryFinished {
+		return nil
+	}
+
+	i.libraryFinished = true
+
+	// Parse the source code of each module.
+	for _, v := range library.Modules {
+		lex := lexer.New(reader.New([]byte(v)))
+		if reporter.HasErrors() {
+			return fmt.Errorf("Problem reading Standard Library module")
+		}
+
+		parse := parser.New(lex)
+		program := parse.Parse()
+		if reporter.HasErrors() {
+			return fmt.Errorf("Problem parsing Standard Library module")
+		}
+
+		i.Interpret(program, scope)
 	}
 
 	return nil
@@ -190,50 +221,40 @@ func (i *Interpreter) runModuleAccess(node *ast.ModuleAccess, scope *Scope) Data
 
 	// Check if the module exists.
 	if module, ok := i.modules[node.Object.Value]; ok {
-		// Check the cache for already interpreted properties.
-		// Otherwise run them and pass their values to the scope.
-		if sc, ok := i.moduleCache[module.Name.Value]; ok {
-			scope = sc
-		} else {
-			i.runModuleProperties(module.Body, scope)
-			i.moduleCache[module.Name.Value] = scope
-		}
-
-		for _, statement := range module.Body.Statements {
-			switch sType := statement.(type) {
-			case *ast.Let: // All module statements should be LET.
-				if sType.Name.Value == node.Parameter.Value {
-					switch value := sType.Value.(type) {
-					case *ast.Function:
-						// In case of a function, return the FunctionType
-						// with the current scope set.
-						return &FunctionType{
-							Parameters: value.Parameters.Elements,
-							Body:       value.Body,
-							Scope:      scope,
-						}
-					default:
-						// Any other value is interpretet and returned.
-						// These are like constants.
-						return i.Interpret(value, scope)
-					}
-				}
-			default:
-				i.reportError(node, "Only LET statements are accepted as Module members")
-				return nil
+		// Check the cache for the required property
+		// or method.
+		if results, ok := i.moduleCache[module.Name.Value]; ok {
+			if result, ok := results[node.Parameter.Value]; ok {
+				return result
 			}
+		} else {
+			results := map[string]DataType{}
+			// Do a first-pass on the module properties and
+			// store them into the cache.
+			for _, statement := range module.Body.Statements {
+				switch sType := statement.(type) {
+				case *ast.Let: // All module statements should be LET.
+					result := i.Interpret(statement, scope)
+					if result == nil {
+						return nil
+					}
+
+					results[sType.Name.Value] = result
+				default:
+					i.reportError(node, "Only LET statements are accepted as Module members")
+					return nil
+				}
+			}
+
+			// Store the interpreted results into the cache.
+			i.moduleCache[module.Name.Value] = results
+
+			return i.moduleCache[module.Name.Value][node.Parameter.Value]
 		}
 	}
 
 	i.reportError(node, fmt.Sprintf("Member '%s' in Module '%s' not found", node.Parameter.Value, node.Object.Value))
 	return nil
-}
-
-// Interpret module properties.
-func (i *Interpreter) runModuleProperties(node *ast.BlockStatement, scope *Scope) {
-	for _, statement := range node.Statements {
-		i.Interpret(statement, scope)
-	}
 }
 
 // Interpret an identifier.
@@ -310,6 +331,13 @@ func (i *Interpreter) runAssign(node *ast.Assign, scope *Scope) DataType {
 			i.reportError(node, err.Error())
 			return nil
 		}
+	}
+
+	// New value type should be the same as the
+	// original.
+	if object.Type() != original.Type() {
+		i.reportError(node, fmt.Sprintf("Variable assign should keep the original data type '%s'", original.Type()))
+		return nil
 	}
 
 	// Save the new value to the variable
@@ -626,28 +654,14 @@ func (i *Interpreter) runForDictionary(node *ast.For, dictionary *DictionaryType
 
 // Interpret a function call.
 func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType {
-	var fn DataType
-
-	// ModuleAccess is handled differently from
-	// regular functions calls.
 	switch nodeType := node.Function.(type) {
-	case *ast.ModuleAccess:
-		// Standard library functions use the same dot
-		// notation as module access. Check if the caller
-		// is a standard library function first.
-		if libFunc, ok := i.library.Get(nodeType.Object.Value + "." + nodeType.Parameter.Value); ok {
-			// Return immediately with a value. No need for
-			// further calculation.
-			return i.runLibraryFunction(node, libFunc, scope)
+	case *ast.Identifier:
+		if rfn, ok := runtime[nodeType.Value]; ok {
+			return i.runRuntimeFunction(node, rfn, scope)
 		}
-
-		fn = i.Interpret(nodeType, scope)
-	default:
-		fn = i.Interpret(nodeType, scope)
 	}
 
-	// An error, most probably on ModuleAccess, so return
-	// early to stop any runtime panic.
+	fn := i.Interpret(node.Function, scope)
 	if fn == nil {
 		return nil
 	}
@@ -685,12 +699,31 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 			return nil
 		}
 
+		paramname := function.Parameters[index].Name
+		paramtype := function.Parameters[index].Type
+
+		// A type is set.
+		if paramtype != nil {
+			// Unknown type.
+			if !i.checkSupportedType(paramtype.Value) {
+				i.reportError(node, fmt.Sprintf("Uknown type '%s' in function parameter", paramtype.Value))
+				return nil
+			}
+
+			// The actual type is different from the
+			// requested.
+			if value.Type() != paramtype.Value {
+				i.reportError(node, fmt.Sprintf("Function asks for type '%s' but got '%s'", paramtype.Value, value.Type()))
+				return nil
+			}
+		}
+
 		// Write the argument to the scope when the function is
 		// not variadic. Even variadic functions can have more than
 		// one parameter before the last variadic one, so those are saved
 		// in the scope too.
 		if !function.Variadic || index < len(function.Parameters)-1 {
-			function.Scope.Write(function.Parameters[index].Value, value)
+			function.Scope.Write(paramname.Value, value)
 		} else {
 			// Variadic arguments are passed to the array.
 			arguments = append(arguments, value)
@@ -700,20 +733,33 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 	// Pass the array of arguments as a single
 	// argument on variadic functions.
 	if function.Variadic {
-		function.Scope.Write(function.Parameters[len(function.Parameters)-1].Value, &ArrayType{Elements: arguments})
+		function.Scope.Write(function.Parameters[len(function.Parameters)-1].Name.Value, &ArrayType{Elements: arguments})
 	}
 
-	result := i.Interpret(function.Body, function.Scope)
+	result := i.unwrapReturnValue(i.Interpret(function.Body, function.Scope))
+
+	// Check return type if it is set.
+	if function.ReturnType != nil {
+		if !i.checkSupportedType(function.ReturnType.Value) {
+			i.reportError(node, fmt.Sprintf("Uknown type '%s' in function return", function.ReturnType.Value))
+			return nil
+		}
+
+		if result.Type() != function.ReturnType.Value {
+			i.reportError(node, fmt.Sprintf("Function asks for return type '%s' but got '%s'", function.ReturnType.Value, result.Type()))
+			return nil
+		}
+	}
 
 	// Reset the scope so inner variables aren't
 	// carried over to the next call.
 	function.Scope = NewScopeFrom(scope)
 
-	return i.unwrapReturnValue(result)
+	return result
 }
 
-// Run a function from the Standard Library.
-func (i *Interpreter) runLibraryFunction(node *ast.FunctionCall, libFunc libraryFunc, scope *Scope) DataType {
+// Run a runtime function.
+func (i *Interpreter) runRuntimeFunction(node *ast.FunctionCall, fn runtimeFunc, scope *Scope) DataType {
 	args := []DataType{}
 	// Interpret all the arguments and pass them
 	// as objects to the array.
@@ -724,16 +770,14 @@ func (i *Interpreter) runLibraryFunction(node *ast.FunctionCall, libFunc library
 		}
 	}
 
-	// Execute the library function.
-	// libFunc is a function received from
-	// Library.get().
-	libObject, err := libFunc(args...)
+	// Execute the runtime function.
+	object, err := fn(args...)
 	if err != nil {
 		i.reportError(node, err.Error())
 		return nil
 	}
 
-	return libObject
+	return object
 }
 
 // Interpret an Array or Dictionary index call.
@@ -1386,6 +1430,17 @@ func (i *Interpreter) checkStringBounds(str string, index int64) (int64, error) 
 	}
 
 	return index, nil
+}
+
+// Check if a type is supported.
+func (i *Interpreter) checkSupportedType(t string) bool {
+	switch t {
+	case INTEGER_TYPE, FLOAT_TYPE, STRING_TYPE, ATOM_TYPE, BOOLEAN_TYPE,
+		ARRAY_TYPE, DICTIONARY_TYPE, FUNCTION_TYPE:
+		return true
+	default:
+		return false
+	}
 }
 
 // Report an error in the current location.

@@ -1,0 +1,104 @@
+module Enum
+
+  let size = func (array: Array) -> Int
+    var count = 0
+    for v in array
+      count = count + 1
+    end
+    count
+  end
+
+  let empty? = func (array: Array) -> Bool
+    size(array) == 0
+  end
+
+  let reverse = func (array: Array) -> Array
+    var reversed = []
+    for i in size(array)-1..0
+      reversed[] = array[i]
+    end
+    reversed
+  end
+
+  let first = func (array: Array)
+    array[0]
+  end
+
+  let last = func array: Array
+    array[size(array) - 1]
+  end
+
+  let insert = func (array: Array, el) -> Array
+    array[] = el
+  end
+
+  let delete = func (array: Array, index) -> Array
+    var purged = []
+    for i, v in array
+      if i != index
+        purged[] = v
+      end
+    end
+    purged
+  end
+
+  let map = func (array: Array, fn: Function) -> Array
+    for v in array
+      fn(v)
+    end
+  end
+
+  let filter = func (array: Array, fn: Function) -> Array
+    var filtered = []
+    for v in array
+      if fn(v)
+        filtered[] = v
+      end
+    end
+    filtered
+  end
+
+  let reduce = func (array: Function, start, fn: Function)
+    var acc = start
+    for v in array
+      acc = fn(v, acc)
+    end
+    return acc
+  end
+
+  let find = func (array: Array, fn: Function)
+    for v in array
+      if fn(v)
+        return v
+      end
+    end
+    nil
+  end
+
+  let contains? = func (array: Array, search) -> Bool
+    for v in array
+      if v == search
+        return true
+      end
+    end
+    false
+  end
+
+  let unique = func (array: Array) -> Array
+    var filtered = []
+    var hash = [=>]
+    for i, v in array
+      if hash[v] == nil
+        hash[v] = i
+        filtered[] = v
+      end
+    end
+    filtered
+  end
+
+  let random = func (array: Array)
+    var rnd = rand(0, size(array) - 1)
+    array[rnd]
+  end
+
+end

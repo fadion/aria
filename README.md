@@ -5,11 +5,11 @@
 
 Aria is an expressive, interpreted, toy language built as an exercise on designing and interpreting a programming language. It has a noiseless syntax, free of useless semi colons, braces or parantheses, and treats everything as an expression. Technically, it's built with a hand written lexer and parser, a recursive decent one (Pratt), and a tree-walk interpreter. I have never set any goals for it to be either fast, nor bulletproof, so don't expect neither of them.
 
-If features mutable and immutable values, if and switch conditionals, functions, for loops, modules, the pipe operator, imports and many more. More importantly, it's getting expanded frequently with new features, more functions for the standard library and bug fixes. All of that while retaining it's expressiveness, clean syntax and easy of use.
+If features mutable and immutable values, if and switch conditionals, functions, type hinting, for loops, modules, the pipe operator, imports and many more. More importantly, it's getting expanded frequently with new features, more functions for the standard library and bug fixes. All of that while retaining it's expressiveness, clean syntax and easy of use.
 
 ```swift
 var name = "aria language"
-let expressive? = fn x
+let expressive? = func (x: String) -> String
   if x != ""
     return "expressive " + x
   end
@@ -17,7 +17,7 @@ let expressive? = fn x
 end
 
 let pipe = name |> expressive?() |> String.capitalize()
-IO.puts(pipe) // "Expressive Aria Language"
+println(pipe) // "Expressive Aria Language"
 ```
 
 ## Table of Contents
@@ -26,17 +26,20 @@ IO.puts(pipe) // "Expressive Aria Language"
     * [Run a Source File](#run-a-source-file)
     * [REPL](#repl)
 * [Variables](#variables)
+    * [Type Lock](#type-lock)
 * [Data Types](#data-types)
     * [String](#string)
     * [Atom](#atom)
-    * [Integer](#integer)
+    * [Int](#int)
     * [Float](#float)
     * [Boolean](#boolean)
     * [Array](#array)
     * [Dictionary](#dictionary)
     * [Nil](#nil)
+    * [Type Conversion](#type-conversion)
 * [Operators](#operators)
 * [Functions](#functions)
+    * [Type Hinting](#type-hinting)
     * [Return Statement](#return-statement)
     * [Closures](#closures)
     * [Recursion](#recursion)
@@ -93,9 +96,27 @@ var age = 40
 
 Variable names have to start with an alphabetic character and continue either with alphanumeric, underscores, questions marks or exclamation marks. When you see a question mark, don't confuse them with optionals like in some other languages. In here they have no special lexical meaning except that they allow for some nice variable names like `is_empty?` or `do_it!`.
 
+### Type Lock
+
+Type lock is a safety feature of mutable variables. Once they're declared with a certain data type, they can only be assigned to that same type. This makes for more predictable results, as an integer variable can't be assigned to a string or array. In this regard, Aria works as a strong typed language.
+
+This will work:
+
+```swift
+var nr = 10
+nr = 15
+```
+
+This won't:
+
+```swift
+var nr = 10
+nr = "ten" // runtime error
+```
+
 ## Data Types
 
-Aria supports 7 data types: `String`, `Atom`, `Integer`, `Float`, `Boolean`, `Array`, `Dictionary` and `Nil`.
+Aria supports 7 data types: `String`, `Atom`, `Int`, `Float`, `Bool`, `Array`, `Dictionary` and `Nil`.
 
 ### String
 
@@ -106,13 +127,13 @@ let weather = "Hot"
 let price = "円500"
 ```
 
-String concatenation is handled with the `+` operator. Concats between a string and another data type will resut in a runtime error. You'll have to use the `Type` library module to convert a data type to string.
+String concatenation is handled with the `+` operator. Concats between a string and another data type will result in a runtime error.
 
 ```swift
 let name = "Tony" + " " + "Stark" 
 ```
 
-Additionally, strings are treated as enumerables. They support subscript, iteration in `for in` loops and most of the library's array functions.
+Additionally, strings are treated as enumerables. They support subscripting and iteration in `for in` loops.
 
 ```swift
 "howdy"[2] // "w" 
@@ -141,13 +162,13 @@ They're interesting to use as control conditions, emulating enums as a fixed, al
 let os = "linux"
 switch os
 case :linux
-  IO.puts("FREE")
+  println("FREE")
 case :windows
-  IO.puts("!FREE")
+  println("!FREE")
 end
 ```
 
-### Integer
+### Int
 
 Integers are whole numbers that support most of the arithmetic and bitwise operators, as you'll see later. They can be represented also as: binary with the 0b prefix, hexadecimal with the 0x prefix and octal with the 0o prefix.
 
@@ -165,7 +186,7 @@ A sugar feature both in Integer and Float is the underscore:
 let big = 27_000_000
 ```
 
-It has no special meaning, as it will be ignored since the lexing phase. Writing `1_000` and `1000` is the same thing to the interpreter.
+It has no special meaning, as it will be ignored in the lexing phase. Writing `1_000` and `1000` is the same thing to the interpreter.
 
 ### Float
 
@@ -183,7 +204,7 @@ let sci = 0.1e3
 let negsci = 25e-5
 ```
 
-### Boolean
+### Bool
 
 It would be strange if this data type included anything else except `true` and `false`.
 
@@ -192,7 +213,7 @@ let mad = true
 let genius = false
 ```
 
-This is a dynamic language and as and such, expressions that aren't actual Booleans may evaluate to `true` or `false`. Integers and Floats will be checked if they're equal to 0, and Strings, Arrays and Dictionaries if they're empty. These are called `truthy` expressions and internally, will be evaluated to `true`.
+Expressions like the `if/else`, as you'll see later, will check for values that aren't necessarily boolean. Integers and Floats will be checked if they're equal to 0, and Strings, Arrays and Dictionaries if they're empty. These are called `truthy` expressions and internally, will be evaluated to boolean.
 
 ### Array
 
@@ -295,6 +316,17 @@ Aria has a Nil type and yes, I'm totally aware of its problems. This was a choic
 let empty = nil
 ```
 
+### Type Conversion
+
+Converting between types is handled via runtime function of the same name as the data type: `String()`, `Int()` and `Float()`. The `Type` module of the Standard Library provides interfaces to those same functions and even adds some more, like `Type.of()`, `Type.isNumber()` and `Type.toArray()`.
+
+```swift
+let nr = 10
+let str = String(nr)
+let fl = Float(nr)
+let arr = Type.toArray(nr)
+```
+
 ## Operators
 
 You can't expect to run some calculations without a good batch of operators, right? Well, Aria has a range of arithmetic, boolean and bitwise operators to match your needs.
@@ -367,27 +399,47 @@ Bitwise and bitshift operator apply only to Integers. Float values can't be used
 Aria treats functions as first class, like any sane language should. It checks all the boxes: they can be passed to variables, as arguments to other functions, and as elements to data structures. They also support recursion, closures, currying, variadic parameters, you name it.
 
 ```swift
-let add = fn x, y
+let add = func x, y
   x + y
 end
 ```
 
-Some people may be used so much to parantheses that find it hard to read without them. For those people, I've left parantheses optional. The above function definition could be also written as `fn (x, y)`. Calling the function needs the parantheses though:
+Parantheses are optional and for simple functions like the above, I'd omit them. Calling the function needs the parantheses though:
 
 ```swift
 let sum = add(1335, 2)
 ```
+
+### Type Hinting
+
+Taking hints from strong typed languages, type hinting can be a very useful feature to validate function arguments and its return type. It's extra useful for library functions that have no assurance of the data types they're going to get.
+
+This function call will produce output:
+
+```swift
+let add = func (x: Int, y: Int) -> Int
+  x + y
+end
+println(add(5, 2))
+```
+
+This however, will cause a type missmatch runtime error:
+
+```swift
+println(add(5, "two"))
+```
+
+Aria is not a strong typed language, so type hinting is completely optional. Generally, it's a good idea to use it as a validation measure. Once you enforce a certain type, you'll be sure of how the function executes.
 
 ### Return Statement
 
 Until now we haven't seen a single `return` statement. Functions are expressions, so the last line is considered its return value. In most cases, especially with small functions, you don't have to bother. However, there are scenarios with multiple return points that need to explicitly tell the interpreter.
 
 ```swift
-let even = fn n
+let even = func n
   if n % 2 == 0
     return true
   end
-  
   false
 end
 ``` 
@@ -401,8 +453,8 @@ In the case of multiple return points, I'd advise to always use `return`, no mat
 Closures are functions inside functions that hold on to values from the parent and "close" them when executed. This allows for some interesting side effects, like currying:
 
 ```swift
-let add = fn x
-  fn y
+let add = func x
+  func y
     x + y
   end
 end
@@ -424,7 +476,7 @@ You could nest a virtually unlimited amount of functions inside other functions,
 Recursive functions calculate results by calling themselves. Although loops are probably easier to mentally visualize, recursion provides for some highly expressive and clean code. Technically, they build an intermediate stack and rewind it with the correct values in place when a finishing, non-recursive result is met. It's easier to understand them if you think of how they're executed. Let's see the classic factorial example:
 
 ```swift
-let fac = fn n
+let fac = func n
   if n == 0
     return 1
   end
@@ -440,7 +492,7 @@ Keep in mind that Aria doesn't provide tail call optimization, as Go still doesn
 Variadic functions take an indefinite number of parameters and merge them all into a single, Array argument. Their first use would be as a sugar:
 
 ```swift
-let add = ...nums
+let add = func ...nums
   var count = 0
   for n in nums
     count = count + n
@@ -454,7 +506,7 @@ add(1, 2, 3, 4, 5) // 10
 Even better, they can be used for functions that respond differently based on the number of arguments:
 
 ```swift
-let structure = fn ...args
+let structure = func ...args
   if Enum.size(args) == 2
     let key = args[0]
     let val = args[1]
@@ -474,8 +526,8 @@ structure(5) // integer
 Functions may have as many parameters as needed, as long the variadic argument is the last parameter:
 
 ```swift
-let calc = fn mult, ...nums
-  mult * Enum.reduce(nums, 0, (x, acc) -> x + acc)
+let calc = func mult, ...nums
+  mult * Enum.reduce(nums, 0, func x, acc do x + acc end)
 end
 calc(10, 1, 2, 3, 4) // 100
 ```
@@ -487,7 +539,7 @@ Very useful when passing short functions as arguments, arrow functions provide a
 This normal function:
 
 ```swift
-let sub = fn x
+let sub = func x
   x - 5
 end
 ```
@@ -510,7 +562,7 @@ Enum.reduce(1..10, 0, (x, acc) -> x + acc)
 As first class, functions have their share of tricks. First, they can self-execute and return their result immediately:
 
 ```swift
-let pow_2 = fn x
+let pow_2 = func x
   x ** 2
 end(2)
 ```
@@ -518,7 +570,7 @@ end(2)
 Not sure how useful, but they can be passed as elements to data structures, like arrays and dictionaries:
 
 ```swift
-let add = fn x, y do x + y end
+let add = func x, y do x + y end
 let list = [1, 2, add]
 list[2](5, 7) 
 ```
@@ -526,7 +578,7 @@ list[2](5, 7)
 Finally, like you may have guessed from previous examples, they can be passed as parameters to other functions:
 
 ```swift
-let add = fn x, factor
+let add = func x, factor
   x + factor(x)
 end
 add(5, (x) -> x * 2)
@@ -542,9 +594,9 @@ An `if/else` block looks pretty familiar:
 
 ```swift
 if 1 == 2
-  IO.puts("Not calling me.")
+  println("Not calling me.")
 else
-  IO.puts("1 isn't equal to 2. Duh!")
+  println("1 isn't equal to 2. Duh!")
 end
 ```
 
@@ -575,11 +627,11 @@ Although multiple ternary operators can be nested, I wouldn't say that would be 
 let a = 5
 switch a
 case 2, 3
-  IO.puts("Is it 2 or 3?")
+  println("Is it 2 or 3?")
 case 5
-  IO.puts("It is 5. Magic!")
+  println("It is 5. Magic!")
 default
-  IO.puts("No idea, sorry.")
+  println("No idea, sorry.")
 end
 ```
 
@@ -589,11 +641,11 @@ Not only that, but a `switch` can behave as a typical if/else when no control co
 let a = "John"
 switch
 case a == "John"
-  IO.puts("John")
+  println("John")
 case a == "Ben"
-  IO.puts("Ben") 
+  println("Ben") 
 default
-  IO.puts("Nobody")
+  println("Nobody")
 end
 ```
 
@@ -604,9 +656,9 @@ When fed arrays as the control condition, the `switch` can pattern match its ele
 ```swift
 switch ["game", "of", "thrones"]
 case "game", "thrones"
-  IO.puts("no match")
+  println("no match")
 case "game", "of", "thrones"
-  IO.puts("yep!")
+  println("yep!")
 end
 ```
 
@@ -615,11 +667,11 @@ That's probably useful from time to time, but it's totally achievable with array
 ```swift
 switch ["John", "Lick", 2]
 case "John", _, _
-  IO.puts("John Something")
+  println("John Something")
 case _, _ 2
-  IO.puts("Something 2")
+  println("Something 2")
 default
-  IO.puts("Lame movie pun not found")
+  println("Lame movie pun not found")
 end
 ```
 
@@ -631,7 +683,7 @@ There's an abundance of `for` loop variations around so Aria takes the short way
 
 ```swift
 for v in [1, 2, 3, 4]
-  IO.puts(v)
+  println(v)
 end
 ```
 
@@ -641,28 +693,28 @@ Obviously, the result of the loop can be passed to a variable, and that's what m
 let plus_one = for v in [1, 2, 3, 4]
   v + 1
 end
-IO.puts(plus_one) // [2, 3, 4, 5]
+println(plus_one) // [2, 3, 4, 5]
 ```
 
 Passing two arguments for arrays or strings will return the current index and value. For dictionaries, the first argument will be the key.
 
 ```swift
 for i, v in "abcd"
-  IO.puts(i + "=>" + v)
+  println(i + "=>" + v)
 end
 ```
 
 ```swift
 for k, v in ["name" => "John", "age" => 40]
-  IO.puts(k)
-  IO.puts(v)
+  println(k)
+  println(v)
 end
 ```
 
 With that power, you could build a function like `map` in no time:
 
 ```swift
-let map = fn x, f
+let map = func x, f
   for v in x
     f(v)
   end
@@ -670,7 +722,7 @@ end
 
 let plus_one = map([1, 2, 3, 4], (x) -> x + 1)
 
-IO.puts(plus_one) // [2, 3, 4, 5]
+println(plus_one) // [2, 3, 4, 5]
 ```
 
 The `break` and `continue` keywords, well break or skip the iteration. They function exactly like you're used to.
@@ -697,7 +749,7 @@ As it creates an enumerable, it can be put into a `for in` loop or any other fun
 
 ```swift
 for v in 10..20
-  IO.puts(v)
+  println(v)
 end
 ```
 
@@ -706,7 +758,7 @@ Although its bounds are inclusive, meaning that the left and right expressions a
 ```swift
 let numbers = [1, 2, 3, 4]
 for i in 0..Enum.size(numbers) - 1
-  IO.puts(i)
+  println(i)
 end
 ```
 
@@ -753,8 +805,8 @@ Iterators are typical examples where mutability is seeked for. The dreaded `i` v
 ```swift
 let numbers = [10, 5, 9]
 for k, v in numbers
-  IO.puts(v) 
-  IO.puts(numbers[k]) // same thing
+  println(v) 
+  println(numbers[k]) // same thing
 end
 ```
 
@@ -762,14 +814,14 @@ But there may be more complicated scenarios, like wanting to modify an array's v
 
 ```swift
 let plus_one = Enum.map([1, 2, 3], (x) -> x + 1)
-IO.puts(plus_one) // [2, 3, 4]
+println(plus_one) // [2, 3, 4]
 ```
 
 What about accumulators? Let's say you want the product of all the integer elements of an array (factorial) and obviously, you'll need a mutable variable to hold it. Fortunately we have `reduce`:
 
 ```swift
 let product = Enum.reduce(1..5, 1, (x, acc) -> x * acc)
-IO.puts(product)
+println(product)
 ```
 
 Think first of how you would write the problem with immutable values and only move to mutable ones when it's impossible, hard or counter-intuitive. In most cases, immutability is the better choice.
@@ -782,7 +834,7 @@ Modules are very simple containers of data and nothing more. They're not an imit
 module Color
   let white = "#fff"
   let grey = "#666"
-  let hexToRGB = fn hex
+  let hexToRGB = func hex
     // some calculations
   end
 end
@@ -800,7 +852,7 @@ Source file imports are a good way of breaking down projects into smaller, easil
 ```swift
 // dog.ari
 let name = "Charlie"
-let bark_to = fn x
+let bark_to = func x
   "woof-woof " + x
 end
 ```
@@ -810,7 +862,7 @@ end
 import "dog"
 
 let phrase = name + " " + bark_to("John")
-IO.puts(phrase) // "Charlie woof-woof John"
+println(phrase) // "Charlie woof-woof John"
 ```
 
 The file is relatively referenced from the caller and this case, both `main.ari` and `dog.ari` reside in the same folder. As the long as the extension is `.ari`, there's no need to write it in the import statement.
@@ -821,7 +873,7 @@ A more useful pattern would be to wrap imported files into a module. That would 
 // dog.ari
 module Dog
   let name = "Charlie"
-  let bark_to = fn x
+  let bark_to = func x
     "woof-woof " + x
   end
 end
@@ -848,7 +900,9 @@ Nothing ground breaking in here. You can write either single line or multi line 
 
 ## Standard Library
 
-Right now it's a small library of functions, but it's expending continually. Head over to the [documentation](https://github.com/fadion/aria/wiki/Standard-Library).
+The Standard Library started as a Go implementation, but is being rewritten in Aria. Not only it makes it more easy and flexible to write, but also acts as a good documentation for the language.
+
+Currently, the `Type`, `Math` and `Enum` modules are nearly complete. The old documentation can be [found here](https://github.com/fadion/aria/wiki/Standard-Library).
 
 ## Future Plans
 

@@ -580,10 +580,10 @@ func (p *Parser) parseFor() ast.Expression {
 	return expression
 }
 
-// fn (PARAM1, PARAM2) BODY end
+// func (PARAM1, PARAM2) BODY end
 func (p *Parser) parseFunction() ast.Expression {
 	expression := &ast.Function{Token: p.token, Variadic: false}
-	identifiers := &ast.IdentifierList{}
+	expression.Parameters = []*ast.FunctionParameter{}
 	p.advance()
 
 	// Find parameters until a DO or NEWLINE token.
@@ -614,8 +614,33 @@ func (p *Parser) parseFunction() ast.Expression {
 		case token.EOF: // EOF reached. Something's wrong with the syntax.
 			p.reportError("Missing body in function")
 			return nil
+		case token.ARROW:
+			if p.peekMatch(token.IDENTIFIER) {
+				p.advance()
+				expression.ReturnType = &ast.Identifier{Token: p.token, Value: p.token.Lexeme}
+			} else {
+				p.reportError("Function expecting a return type")
+			}
 		case token.IDENTIFIER:
-			identifiers.Elements = append(identifiers.Elements, &ast.Identifier{Token: p.token, Value: p.token.Lexeme})
+			var paramtype *ast.Identifier
+			paramname := &ast.Identifier{Token: p.token, Value: p.token.Lexeme}
+
+			if p.peekMatch(token.COLON) {
+				p.advance()
+				if p.peekMatch(token.IDENTIFIER) {
+					p.advance()
+					paramtype = &ast.Identifier{Token: p.token, Value: p.token.Lexeme}
+				} else {
+					p.reportError(fmt.Sprintf("Function parameter '%s' expecting a type", paramname.Value))
+					return nil
+				}
+			}
+
+			expression.Parameters = append(expression.Parameters, &ast.FunctionParameter{
+				Token: p.token,
+				Name: paramname,
+				Type: paramtype,
+			})
 		default:
 			p.reportError(fmt.Sprintf("Unexpected token '%s' as function parameter", p.token.Type))
 			return nil
@@ -624,7 +649,6 @@ func (p *Parser) parseFunction() ast.Expression {
 		p.advance()
 	}
 
-	expression.Parameters = identifiers
 	expression.Body = p.parseBlockBody()
 
 	// Empty body.
@@ -802,12 +826,15 @@ func (p *Parser) parsePipe(left ast.Expression) ast.Expression {
 // IDENT -> EXPRESSION
 func (p *Parser) parseArrowFunction(left ast.Expression) ast.Expression {
 	expression := &ast.Function{Token: p.token}
-	expression.Parameters = &ast.IdentifierList{}
+	expression.Parameters = []*ast.FunctionParameter{}
 
 	switch exprType := left.(type) {
 	case *ast.Identifier:
 		// Handle a single argument.
-		expression.Parameters.Elements = append(expression.Parameters.Elements, exprType)
+		expression.Parameters = append(expression.Parameters, &ast.FunctionParameter{
+			Token: p.token,
+			Name: exprType,
+		})
 	case *ast.ExpressionList:
 		// Handle a list of arguments.
 		// Loop through all the elements of the list
@@ -815,7 +842,10 @@ func (p *Parser) parseArrowFunction(left ast.Expression) ast.Expression {
 		for _, v := range exprType.Elements {
 			switch param := v.(type) {
 			case *ast.Identifier:
-				expression.Parameters.Elements = append(expression.Parameters.Elements, param)
+				expression.Parameters = append(expression.Parameters, &ast.FunctionParameter{
+					Token: p.token,
+					Name: param,
+				})
 			default:
 				p.reportError("Arrow function expects a list of identifiers as arguments")
 				return nil
@@ -986,7 +1016,7 @@ func (p *Parser) isIgnoredAsExpression(tok token.TokenType) bool {
 	return false
 }
 
-// Parse an expression, ie: 1 + 2 | 3 * 5 | fn (x)...
+// Parse an expression, ie: 1 + 2 | 3 * 5 | func (x)...
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	// Return if token shouldn't be considered in
 	// expression parsing.

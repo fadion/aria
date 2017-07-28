@@ -1,0 +1,30 @@
+module Type
+
+  let of = func x
+    typeof(x)
+  end
+
+  let isNumber = func x
+    if typeof(x) == "Float" || typeof(x) == "Int"
+      return true
+    end
+    false
+  end
+
+  let toString = func x
+    String(x)
+  end
+
+  let toInt = func x
+    Int(x)
+  end
+
+  let toFloat = func x
+    Float(x)
+  end
+
+  let toArray = func x
+    [x]
+  end
+
+end
