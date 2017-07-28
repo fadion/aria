@@ -844,7 +844,7 @@ func (i *Interpreter) runStringSubscript(str, index DataType) (DataType, error) 
 
 	idx, err := i.checkStringBounds(stringObj, idx)
 	if err != nil {
-		return nil, err
+		return NIL, nil
 	}
 
 	return &StringType{Value: string(stringObj[idx])}, nil
