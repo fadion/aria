@@ -249,11 +249,16 @@ func (i *Interpreter) runModuleAccess(node *ast.ModuleAccess, scope *Scope) Data
 			// Store the interpreted results into the cache.
 			i.moduleCache[module.Name.Value] = results
 
-			return i.moduleCache[module.Name.Value][node.Parameter.Value]
+			if val, ok := i.moduleCache[module.Name.Value][node.Parameter.Value]; ok {
+				return val
+			} else {
+				i.reportError(node, fmt.Sprintf("Member '%s' in module '%s' not found", node.Parameter.Value, node.Object.Value))
+				return nil
+			}
 		}
 	}
 
-	i.reportError(node, fmt.Sprintf("Member '%s' in Module '%s' not found", node.Parameter.Value, node.Object.Value))
+	i.reportError(node, fmt.Sprintf("%s.%s not found", node.Object.Value, node.Parameter.Value))
 	return nil
 }
 
