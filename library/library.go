@@ -145,7 +145,7 @@ end
   end
 
   let random = func (min: Int, max: Int) -> Int
-    rand(min, max)
+    runtime_rand(min, max)
   end
 
   let abs = func (nr)

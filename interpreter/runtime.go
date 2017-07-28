@@ -12,29 +12,6 @@ type runtimeFunc func(args ...DataType) (DataType, error)
 
 var runtime = map[string]runtimeFunc{
 
-	// rand(min Integer, max Integer) -> Integer
-	"rand": func(args ...DataType) (DataType, error) {
-		if len(args) != 2 {
-			return nil, fmt.Errorf("rand() expects exactly 2 arguments")
-		}
-
-		if args[0].Type() != INTEGER_TYPE || args[1].Type() != INTEGER_TYPE {
-			return nil, fmt.Errorf("rand() expects min and max as Integers")
-		}
-
-		min := int(args[0].(*IntegerType).Value)
-		max := int(args[1].(*IntegerType).Value)
-
-		if max < min {
-			return nil, fmt.Errorf("rand() expects max higher than min")
-		}
-
-		rand.Seed(time.Now().UnixNano())
-		random := rand.Intn(max - min) + min
-
-		return &IntegerType{Value: int64(random)}, nil
-	},
-
 	// println(Any)
 	"println": func(args ...DataType) (DataType, error) {
 		if len(args) != 1 {
@@ -157,14 +134,37 @@ var runtime = map[string]runtimeFunc{
 		}
 	},
 
-	// utf8_tolower(String)
-	"utf8_tolower": func(args ...DataType) (DataType, error) {
+	// runtime_rand(min Integer, max Integer) -> Integer
+	"runtime_rand": func(args ...DataType) (DataType, error) {
+		if len(args) != 2 {
+			return nil, fmt.Errorf("runtime_rand() expects exactly 2 arguments")
+		}
+
+		if args[0].Type() != INTEGER_TYPE || args[1].Type() != INTEGER_TYPE {
+			return nil, fmt.Errorf("runtime_rand() expects min and max as Integers")
+		}
+
+		min := int(args[0].(*IntegerType).Value)
+		max := int(args[1].(*IntegerType).Value)
+
+		if max < min {
+			return nil, fmt.Errorf("runtime_rand() expects max higher than min")
+		}
+
+		rand.Seed(time.Now().UnixNano())
+		random := rand.Intn(max - min) + min
+
+		return &IntegerType{Value: int64(random)}, nil
+	},
+
+	// runtime_tolower(String)
+	"runtime_tolower": func(args ...DataType) (DataType, error) {
 		if len(args) != 1 {
-			return nil, fmt.Errorf("utf8_tolower() expects exactly 1 argument")
+			return nil, fmt.Errorf("runtime_tolower() expects exactly 1 argument")
 		}
 
 		if args[0].Type() != STRING_TYPE {
-			return nil, fmt.Errorf("utf8_tolower() expects a String")
+			return nil, fmt.Errorf("runtime_tolower() expects a String")
 		}
 
 		str := args[0].(*StringType).Value
@@ -172,14 +172,14 @@ var runtime = map[string]runtimeFunc{
 		return &StringType{Value: strings.ToLower(str)}, nil
 	},
 
-	// utf8_tolower(String)
-	"utf8_toupper": func(args ...DataType) (DataType, error) {
+	// runtime_toupper(String)
+	"runtime_toupper": func(args ...DataType) (DataType, error) {
 		if len(args) != 1 {
-			return nil, fmt.Errorf("utf8_toupper() expects exactly 1 argument")
+			return nil, fmt.Errorf("runtime_toupper() expects exactly 1 argument")
 		}
 
 		if args[0].Type() != STRING_TYPE {
-			return nil, fmt.Errorf("utf8_toupper() expects a String")
+			return nil, fmt.Errorf("runtime_toupper() expects a String")
 		}
 
 		str := args[0].(*StringType).Value
