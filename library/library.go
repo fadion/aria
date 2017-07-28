@@ -158,6 +158,14 @@ end
     nr
   end
 
+  let pow = func (nr, exp)
+    if !Type.isNumber(nr) || !Type.isNumber(exp)
+      panic("Math.pow() expects a Float or Int")
+    end
+
+    nr ** exp
+  end
+
 end`,
 
 
