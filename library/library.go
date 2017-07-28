@@ -114,6 +114,7 @@ end
 	`module Math
 
   let pi = 3.14159265359
+  let e = 2.718281828459
 
   let floor = func (nr: Float) -> Int
     Int(nr - nr % 1)
