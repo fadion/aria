@@ -900,9 +900,7 @@ Nothing ground breaking in here. You can write either single line or multi line 
 
 ## Standard Library
 
-The Standard Library started as a Go implementation, but is being rewritten in Aria. Not only it makes it more easy and flexible to write, but also acts as a good documentation for the language.
-
-Currently, the `Type`, `Math` and `Enum` modules are nearly complete. The old documentation can be [found here](https://github.com/fadion/aria/wiki/Standard-Library).
+The Standard Library is fully written in Aria with the help of a few essential functions provided by the runtime. That is currently the best source to check out some "production" Aria code and see what it's capable of. [Read the documentation](https://github.com/fadion/aria/wiki/Standard-Library). 
 
 ## Future Plans
 
