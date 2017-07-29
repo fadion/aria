@@ -16,7 +16,7 @@ module Math
   end
 
   let max = func (nr1, nr2)
-    if !Type.isNumber(nr1) || !Type.isNumber(nr2)
+    if !Type.isNumber?(nr1) || !Type.isNumber?(nr2)
       panic("Math.max() expects a Float or Int")
     end
 
@@ -24,7 +24,7 @@ module Math
   end
 
   let min = func (nr1, nr2)
-    if !Type.isNumber(nr1) || !Type.isNumber(nr2)
+    if !Type.isNumber?(nr1) || !Type.isNumber?(nr2)
       panic("Math.min() expects a Float or Int")
     end
 
@@ -36,7 +36,7 @@ module Math
   end
 
   let abs = func (nr)
-    if !Type.isNumber(nr)
+    if !Type.isNumber?(nr)
       panic("Math.abs() expects a Float or Int")
     end
 
@@ -47,7 +47,7 @@ module Math
   end
 
   let pow = func (nr, exp)
-    if !Type.isNumber(nr) || !Type.isNumber(exp)
+    if !Type.isNumber?(nr) || !Type.isNumber?(exp)
       panic("Math.pow() expects a Float or Int")
     end
 

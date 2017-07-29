@@ -4,7 +4,7 @@ module Type
     typeof(x)
   end
 
-  let isNumber = func x
+  let isNumber? = func x
     if typeof(x) == "Float" || typeof(x) == "Int"
       return true
     end
