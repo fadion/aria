@@ -679,8 +679,8 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 
 	function := fn.(*FunctionType)
 
-	// Non-variadic function arguments should
-	// match those of the caller parameters.
+	// Non-variadic function shouldn't be called
+	// with more arguments than declared.
 	if !function.Variadic {
 		if len(node.Arguments.Elements) > len(function.Parameters) {
 			i.reportError(node, "Too many arguments in function call")
@@ -688,56 +688,84 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 		}
 	}
 
+	// Write the function's default parameters
+	// to the scope.
+	defaultCount := 0
+	for _, param := range function.Parameters {
+		if param.Default != nil {
+			value := i.Interpret(param.Default, scope)
+			if value == nil {
+				return nil
+			}
+
+			if param.Type != nil {
+				// Check if the default value is of the
+				// same declared type.
+				if err := i.checkTypeMatch(value.Type(), param.Type.Value); err != nil {
+					i.reportError(node, err.Error())
+					return nil
+				}
+			}
+
+			function.Scope.Write(param.Name.Value, value)
+			defaultCount++
+		}
+	}
+
 	// Less parameters than arguments is always a
-	// miss match, variadic or not.
-	if len(node.Arguments.Elements) < len(function.Parameters) {
+	// miss match, variadic or not. Default parameters
+	// are also accounted for.
+	if len(node.Arguments.Elements) < len(function.Parameters) - defaultCount {
 		i.reportError(node, "Too few arguments in function call")
 		return nil
 	}
 
-	// Interpret every single argument and pass it
+	// Interpret arguments and pass them
 	// to the function's scope.
 	arguments := []DataType{}
+	countParams := len(function.Parameters) - 1
 	for index, element := range node.Arguments.Elements {
 		value := i.Interpret(element, scope)
 		if value == nil {
 			return nil
 		}
 
-		paramname := function.Parameters[index].Name
-		paramtype := function.Parameters[index].Type
+		var paramname *ast.Identifier
+		var paramtype *ast.Identifier
 
-		// A type is set.
+		// Check for variadic functions if the current
+		// argument goes to the variadic parameter. In that
+		// case, just get the last parameter. Otherwise, get
+		// the matching parameter.
+		if function.Variadic && index >= countParams {
+			paramname = function.Parameters[countParams].Name
+			paramtype = function.Parameters[countParams].Type
+		} else {
+			paramname = function.Parameters[index].Name
+			paramtype = function.Parameters[index].Type
+		}
+
+		// Check parameter type.
 		if paramtype != nil {
-			// Unknown type.
-			if !i.checkSupportedType(paramtype.Value) {
-				i.reportError(node, fmt.Sprintf("Uknown type '%s' in function parameter", paramtype.Value))
-				return nil
-			}
-
-			// The actual type is different from the
-			// requested.
-			if value.Type() != paramtype.Value {
-				i.reportError(node, fmt.Sprintf("Function asks for type '%s' but got '%s'", paramtype.Value, value.Type()))
+			if err := i.checkTypeMatch(value.Type(), paramtype.Value); err != nil {
+				i.reportError(node, err.Error())
 				return nil
 			}
 		}
 
-		// Write the argument to the scope when the function is
-		// not variadic. Even variadic functions can have more than
-		// one parameter before the last variadic one, so those are saved
-		// in the scope too.
-		if !function.Variadic || index < len(function.Parameters)-1 {
-			function.Scope.Write(paramname.Value, value)
-		} else {
-			// Variadic arguments are passed to the array.
+		// Any parameter from the variadic argument and
+		// beyond is saved as an array. Anything before it,
+		// variadic or not, is saved to the scope.
+		if function.Variadic && index >= countParams {
 			arguments = append(arguments, value)
+		} else {
+			function.Scope.Write(paramname.Value, value)
 		}
 	}
 
-	// Pass the array of arguments as a single
-	// argument on variadic functions.
-	if function.Variadic {
+	// Variadic argument is passed as a single array
+	// of parameters.
+	if function.Variadic && len(arguments) > 0 {
 		function.Scope.Write(function.Parameters[len(function.Parameters)-1].Name.Value, &ArrayType{Elements: arguments})
 	}
 
@@ -748,13 +776,8 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 
 	// Check return type if it is set.
 	if function.ReturnType != nil {
-		if !i.checkSupportedType(function.ReturnType.Value) {
-			i.reportError(node, fmt.Sprintf("Uknown type '%s' in function return", function.ReturnType.Value))
-			return nil
-		}
-
-		if result.Type() != function.ReturnType.Value {
-			i.reportError(node, fmt.Sprintf("Function asks for return type '%s' but got '%s'", function.ReturnType.Value, result.Type()))
+		if err := i.checkTypeMatch(result.Type(), function.ReturnType.Value); err != nil {
+			i.reportError(node, err.Error())
 			return nil
 		}
 	}
@@ -1449,6 +1472,19 @@ func (i *Interpreter) checkSupportedType(t string) bool {
 	default:
 		return false
 	}
+}
+
+// Check if two values are of the same type.
+func (i *Interpreter) checkTypeMatch(actual, expected string) error {
+	if !i.checkSupportedType(actual) {
+		return fmt.Errorf("Uknown type '%s' in function parameter", actual)
+	}
+
+	if actual != expected {
+		return fmt.Errorf("Function asks for type '%s' but got '%s'", expected, actual)
+	}
+
+	return nil
 }
 
 // Report an error in the current location.

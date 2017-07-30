@@ -209,10 +209,10 @@ func (e *Subscript) Inspect() string {
 
 // Subscript for arrays and dictionaries.
 type Assign struct {
-	Token token.Token
+	Token    token.Token
 	Operator string
-	Name  Expression
-	Right Expression
+	Name     Expression
+	Right    Expression
 }
 
 func (e *Assign) expression()                   {}
@@ -481,7 +481,7 @@ func (e *Function) Inspect() string {
 	for i, v := range e.Parameters {
 		param := v.Inspect()
 		if e.Variadic && i == len(e.Parameters)-1 {
-			out.WriteString("...")
+			param = "..." + param
 		}
 		parameters = append(parameters, param)
 	}
@@ -505,9 +505,10 @@ func (e *Function) Inspect() string {
 
 // Function parameters.
 type FunctionParameter struct {
-	Token token.Token
-	Name  *Identifier
-	Type  *Identifier
+	Token   token.Token
+	Name    *Identifier
+	Type    *Identifier
+	Default Expression
 }
 
 func (e *FunctionParameter) expression()                   {}
@@ -520,6 +521,10 @@ func (e *FunctionParameter) Inspect() string {
 	if e.Type != nil {
 		out.WriteString(":")
 		out.WriteString(e.Type.Value)
+	}
+	if e.Default != nil {
+		out.WriteString(" = ")
+		out.WriteString(e.Default.Inspect())
 	}
 
 	return out.String()

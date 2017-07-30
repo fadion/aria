@@ -163,7 +163,7 @@ func (t *FunctionType) Inspect() string {
 	for i, v := range t.Parameters {
 		param := v.Inspect()
 		if t.Variadic && i == len(t.Parameters)-1 {
-			out.WriteString("...")
+			param = "..." + param
 		}
 		parameters = append(parameters, param)
 	}

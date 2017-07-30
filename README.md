@@ -42,11 +42,12 @@ println(pipe) // "Expressive Aria Language"
     * [Shorthand Assignment](#shorthand-assignment)
 * [Functions](#functions)
     * [Type Hinting](#type-hinting)
+    * [Default Parameters](#default-parameters)
     * [Return Statement](#return-statement)
-    * [Closures](#closures)
-    * [Recursion](#recursion)
     * [Variadic](#variadic)
     * [Arrow Functions](#arrow-functions)
+    * [Closures](#closures)
+    * [Recursion](#recursion)
     * [Tricks](#tricks)
 * [Conditionals](#conditionals)
     * [If](#if)
@@ -456,6 +457,27 @@ println(add(5, "two"))
 
 Aria is not a strong typed language, so type hinting is completely optional. Generally, it's a good idea to use it as a validation measure. Once you enforce a certain type, you'll be sure of how the function executes.
 
+### Default Parameters
+
+Function parameters can have default values, used when the parameters are omitted from function calls.
+
+```swift
+let architecture = func bits = 6
+  2 ** bits
+end
+
+architecture() // 64
+architecture(4) // 16 
+```
+
+They can be combined with type hinting and, obviously, need to be of the same declared type.
+
+```swift
+let architecture = func bits: Int = 6
+  2 ** bits
+end
+```
+
 ### Return Statement
 
 Until now we haven't seen a single `return` statement. Functions are expressions, so the last line is considered its return value. In most cases, especially with small functions, you don't have to bother. However, there are scenarios with multiple return points that need to explicitly tell the interpreter.
@@ -472,45 +494,6 @@ end
 The last statement doesn't need a `return`, as it's the last line and will be automatically inferred. With the `if` on the other hand, the interpreter can't understand the intention, as it's just another expression. It needs the explicit `return` to stop the other statements from being interpreted.
 
 In the case of multiple return points, I'd advise to always use `return`, no matter if it's the first or last statement. It will make for clearer intentions. 
-
-### Closures
-
-Closures are functions inside functions that hold on to values from the parent and "close" them when executed. This allows for some interesting side effects, like currying:
-
-```swift
-let add = func x
-  func y
-    x + y
-  end
-end
-
-add(5)(7) // 12
-```
-
-Some would prefer more explicit way of calling:
-
-```swift
-let add_5 = add(5) // returns a function
-let add_5_7 = add_5(7) // 12
-```
-
-You could nest a virtually unlimited amount of functions inside other functions, and all of them will have the scope of the parents.
-
-### Recursion
-
-Recursive functions calculate results by calling themselves. Although loops are probably easier to mentally visualize, recursion provides for some highly expressive and clean code. Technically, they build an intermediate stack and rewind it with the correct values in place when a finishing, non-recursive result is met. It's easier to understand them if you think of how they're executed. Let's see the classic factorial example:
-
-```swift
-let fac = func n
-  if n == 0
-    return 1
-  end
-  
-  n * fac(n - 1)
-end
-``` 
-
-Keep in mind that Aria doesn't provide tail call optimization, as Go still doesn't support it. That would allow for more memory efficient recursion, especially when creating large stacks.
 
 ### Variadic
 
@@ -557,6 +540,16 @@ end
 calc(10, 1, 2, 3, 4) // 100
 ```
 
+Variadic arguments can even have default values:
+
+```swift
+let join = func (glue: String, ...words = ["hello", "there"])
+  String.join(words, glue)
+end
+
+join(" ") // "hello there"
+```
+
 ### Arrow Functions
 
 Very useful when passing short functions as arguments, arrow functions provide a very clean syntax. They're handled internally exactly like normal functions. The only difference is that they're meant as a single line of code, while normal functions can handle blocks.
@@ -581,6 +574,45 @@ They're not that useful to just spare a couple lines of code. They shine when pa
 Enum.map([1, 2, 3, 4], (x) -> x * 2)
 Enum.reduce(1..10, 0, (x, acc) -> x + acc)
 ```
+
+### Closures
+
+Closures are functions inside functions that hold on to values from the parent and "close" them when executed. This allows for some interesting side effects, like currying:
+
+```swift
+let add = func x
+  func y
+    x + y
+  end
+end
+
+add(5)(7) // 12
+```
+
+Some would prefer more explicit way of calling:
+
+```swift
+let add_5 = add(5) // returns a function
+let add_5_7 = add_5(7) // 12
+```
+
+You could nest a virtually unlimited amount of functions inside other functions, and all of them will have the scope of the parents.
+
+### Recursion
+
+Recursive functions calculate results by calling themselves. Although loops are probably easier to mentally visualize, recursion provides for some highly expressive and clean code. Technically, they build an intermediate stack and rewind it with the correct values in place when a finishing, non-recursive result is met. It's easier to understand them if you think of how they're executed. Let's see the classic factorial example:
+
+```swift
+let fac = func n
+  if n == 0
+    return 1
+  end
+  
+  n * fac(n - 1)
+end
+``` 
+
+Keep in mind that Aria doesn't provide tail call optimization, as Go still doesn't support it. That would allow for more memory efficient recursion, especially when creating large stacks.
 
 ### Tricks
 

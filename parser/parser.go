@@ -618,7 +618,7 @@ func (p *Parser) parseFunction() ast.Expression {
 		case token.EOF: // EOF reached. Something's wrong with the syntax.
 			p.reportError("Missing body in function")
 			return nil
-		case token.ARROW:
+		case token.ARROW: // Return type.
 			if p.peekMatch(token.IDENTIFIER) {
 				p.advance()
 				expression.ReturnType = &ast.Identifier{Token: p.token, Value: p.token.Lexeme}
@@ -627,6 +627,7 @@ func (p *Parser) parseFunction() ast.Expression {
 			}
 		case token.IDENTIFIER:
 			var paramtype *ast.Identifier
+			var defaultvalue ast.Expression
 			paramname := &ast.Identifier{Token: p.token, Value: p.token.Lexeme}
 
 			if p.peekMatch(token.COLON) {
@@ -640,10 +641,18 @@ func (p *Parser) parseFunction() ast.Expression {
 				}
 			}
 
+			if p.peekMatch(token.ASSIGN) {
+				// Move past the assigment.
+				p.advance()
+				p.advance()
+				defaultvalue = p.parseExpression(LOWEST)
+			}
+
 			expression.Parameters = append(expression.Parameters, &ast.FunctionParameter{
-				Token: p.token,
-				Name: paramname,
-				Type: paramtype,
+				Token:   p.token,
+				Name:    paramname,
+				Type:    paramtype,
+				Default: defaultvalue,
 			})
 		default:
 			p.reportError(fmt.Sprintf("Unexpected token '%s' as function parameter", p.token.Type))
@@ -837,7 +846,7 @@ func (p *Parser) parseArrowFunction(left ast.Expression) ast.Expression {
 		// Handle a single argument.
 		expression.Parameters = append(expression.Parameters, &ast.FunctionParameter{
 			Token: p.token,
-			Name: exprType,
+			Name:  exprType,
 		})
 	case *ast.ExpressionList:
 		// Handle a list of arguments.
@@ -848,7 +857,7 @@ func (p *Parser) parseArrowFunction(left ast.Expression) ast.Expression {
 			case *ast.Identifier:
 				expression.Parameters = append(expression.Parameters, &ast.FunctionParameter{
 					Token: p.token,
-					Name: param,
+					Name:  param,
 				})
 			default:
 				p.reportError("Arrow function expects a list of identifiers as arguments")
@@ -874,7 +883,7 @@ func (p *Parser) parseArrowFunction(left ast.Expression) ast.Expression {
 // IDENT = EXPRESSION.
 func (p *Parser) parseAssign(left ast.Expression) ast.Expression {
 	expression := &ast.Assign{
-		Token: p.token,
+		Token:    p.token,
 		Operator: p.token.Lexeme,
 	}
 
@@ -911,9 +920,9 @@ func (p *Parser) parseAssign(left ast.Expression) ast.Expression {
 	switch expression.Operator {
 	case "+=", "-=", "*=", "/=":
 		expression.Right = &ast.InfixExpression{
-			Token: p.token,
-			Left: left,
-			Right: expression.Right,
+			Token:    p.token,
+			Left:     left,
+			Right:    expression.Right,
 			Operator: string(expression.Operator[0]),
 		}
 	}
