@@ -3,7 +3,7 @@ module Enum
   let size = func (array: Array) -> Int
     var count = 0
     for v in array
-      count = count + 1
+      count += 1
     end
     count
   end

@@ -10,7 +10,7 @@ var Modules = []string{
   let size = func (array: Array) -> Int
     var count = 0
     for v in array
-      count = count + 1
+      count += 1
     end
     count
   end
@@ -108,8 +108,7 @@ var Modules = []string{
     array[rnd]
   end
 
-end
-`,
+end`,
 
 	`module Math
 
@@ -205,7 +204,7 @@ end`,
   let size = func (dict: Dictionary) -> Int
     var count = 0
     for v in dict
-      count = count + 1
+      count += 1
     end
     count
   end
@@ -259,7 +258,7 @@ end`,
   let count = func (str: String) -> Int
     var cnt = 0
     for v in str
-      cnt = cnt + 1
+      cnt += 1
     end
     cnt
   end
@@ -293,7 +292,7 @@ end`,
   let reverse = func (str: String) -> String
     var reversed = ""
     for i in String.count(str)-1..0
-      reversed = reversed + str[i]
+      reversed += str[i]
     end
     reversed
   end
@@ -307,8 +306,8 @@ end`,
     var chars = 0
     for i, v in str
       if i >= start && chars < length
-        sliced = sliced + v
-        chars = chars + 1
+        sliced += v
+        chars += 1
       end
     end
     sliced
@@ -365,7 +364,7 @@ end`,
   let join = func (array: Array, glue: String) -> String
     var glued = ""
     for v in array
-      glued = glued + v + glue
+      glued += v + glue
     end
 
     if String.count(glued) > String.count(glue)

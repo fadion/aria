@@ -2,7 +2,7 @@ module Dict
   let size = func (dict: Dictionary) -> Int
     var count = 0
     for v in dict
-      count = count + 1
+      count += 1
     end
     count
   end
