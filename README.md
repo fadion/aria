@@ -26,6 +26,7 @@ println(pipe) // "Expressive Aria Language"
     * [Run a Source File](#run-a-source-file)
     * [REPL](#repl)
 * [Variables](#variables)
+    * [Constants](#constants)
     * [Type Lock](#type-lock)
 * [Data Types](#data-types)
     * [String](#string)
@@ -38,6 +39,7 @@ println(pipe) // "Expressive Aria Language"
     * [Nil](#nil)
     * [Type Conversion](#type-conversion)
 * [Operators](#operators)
+    * [Shorthand Assignment](#shorthand-assignment)
 * [Functions](#functions)
     * [Type Hinting](#type-hinting)
     * [Return Statement](#return-statement)
@@ -84,17 +86,26 @@ aria repl
 
 ## Variables
 
-Variable declaration in Aria comes in two flavours: `let` and `var`, respectively for immutable and mutable values. The language and the [standard library](https://github.com/fadion/aria/wiki/Standard-Library) will help you enough to aim for immutability, something explained in more detail later on. However, there are occassions where a mutable value is unavoidable, so you have that option too.
-
-Immutable values aren't just for basic data types like Integers or String, but for data structures too. Elements of an array or dictionary, once declared with a `let`, can't be changed, added or deleted.
+Variables in Aria start with the keyword `var`.
 
 ```swift
-let name = "John"
-let married = false
+var name = "John"
+var married = false
+
 var age = 40
+age = 41
 ```
 
-Variable names have to start with an alphabetic character and continue either with alphanumeric, underscores, questions marks or exclamation marks. When you see a question mark, don't confuse them with optionals like in some other languages. In here they have no special lexical meaning except that they allow for some nice variable names like `is_empty?` or `do_it!`.
+Names have to start with an alphabetic character and continue either with alphanumeric, underscores, questions marks or exclamation marks. When you see a question mark, don't confuse them with optionals like in some other languages. In here they have no special lexical meaning except that they allow for some nice variable names like `is_empty?` or `do_it!`.
+
+### Constants
+
+Constants have the same traits as variables, except that they start with `let` and are immutable. Once declared, reassigning a constant will produce a runtime error. Even data structures are locked into immutability. Elements of an Array or Dictionary can't be added, updated or removed.
+
+```swift
+let name = "Ben"
+name = "John" // runtime error
+```
 
 ### Type Lock
 
@@ -392,6 +403,20 @@ Bitwise and bitshift operator apply only to Integers. Float values can't be used
 10 >> 1
 12 & 5 | 3
 5 ~ 2
+```
+
+### Shorthand Assignment
+
+Operators like `+`, `-`, `*` and `/` support shorthand assignment to variables. Basically, statements like this:
+
+```swift
+count = count + 1
+```
+
+Can be expressed as:
+
+```swift
+count += 1
 ```
 
 ## Functions

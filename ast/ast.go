@@ -210,6 +210,7 @@ func (e *Subscript) Inspect() string {
 // Subscript for arrays and dictionaries.
 type Assign struct {
 	Token token.Token
+	Operator string
 	Name  Expression
 	Right Expression
 }

@@ -55,6 +55,10 @@ func New(l *lexer.Lexer) *Parser {
 
 	// Register infix functions.
 	p.infix(token.ASSIGN, p.parseAssign)
+	p.infix(token.ASSIGNPLUS, p.parseAssign)
+	p.infix(token.ASSIGNMIN, p.parseAssign)
+	p.infix(token.ASSIGNMULT, p.parseAssign)
+	p.infix(token.ASSIGNDIV, p.parseAssign)
 	p.infix(token.DOT, p.parseModuleAccess)
 	p.infix(token.LPAREN, p.parseFunctionCall)
 	p.infix(token.LBRACK, p.parseSubscript)
@@ -869,7 +873,10 @@ func (p *Parser) parseArrowFunction(left ast.Expression) ast.Expression {
 
 // IDENT = EXPRESSION.
 func (p *Parser) parseAssign(left ast.Expression) ast.Expression {
-	expression := &ast.Assign{Token: p.token}
+	expression := &ast.Assign{
+		Token: p.token,
+		Operator: p.token.Lexeme,
+	}
 
 	// Left side of the assignement operator
 	// should be an identifier or a subscript.

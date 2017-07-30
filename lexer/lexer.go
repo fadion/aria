@@ -100,12 +100,21 @@ func (l *Lexer) NextToken() token.Token {
 			l.assignToken(token.LT, string(l.char))
 		}
 	case l.char == '+':
-		l.assignToken(token.PLUS, string(l.char))
+		switch l.peek() {
+		case '=': // +=
+			l.advance()
+			l.assignToken(token.ASSIGNPLUS, "+=")
+		default: // +
+			l.assignToken(token.PLUS, string(l.char))
+		}
 	case l.char == '-':
 		switch l.peek() {
 		case '>': // ->
 			l.advance()
 			l.assignToken(token.ARROW, string("->"))
+		case '=': // -=
+			l.advance()
+			l.assignToken(token.ASSIGNMIN, "-=")
 		default:
 			l.assignToken(token.MINUS, string(l.char))
 		}
@@ -114,6 +123,9 @@ func (l *Lexer) NextToken() token.Token {
 		case '*': // **
 			l.advance()
 			l.assignToken(token.POWER, "**")
+		case '=': // *=
+			l.advance()
+			l.assignToken(token.ASSIGNMULT, "*=")
 		default: // *
 			l.assignToken(token.ASTERISK, string(l.char))
 		}
@@ -125,6 +137,9 @@ func (l *Lexer) NextToken() token.Token {
 		case '*': // multiline comment
 			l.advance()
 			l.consumeMultilineComment()
+		case '=': // /=
+			l.advance()
+			l.assignToken(token.ASSIGNDIV, "/=")
 		default:
 			l.assignToken(token.SLASH, string(l.char))
 		}

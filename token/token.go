@@ -28,6 +28,10 @@ const (
 
 	// Operators
 	ASSIGN     = "="
+	ASSIGNPLUS = "+="
+	ASSIGNMIN  = "-="
+	ASSIGNMULT = "*="
+	ASSIGNDIV  = "/="
 	EQ         = "=="
 	UNEQ       = "!="
 	GT         = ">"
