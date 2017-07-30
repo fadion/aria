@@ -904,6 +904,20 @@ func (p *Parser) parseAssign(left ast.Expression) ast.Expression {
 		return nil
 	}
 
+	// For shorthand assignment operators, build
+	// manually an Infix expression. On the left
+	// is the identifier assigning to and on the
+	// right is the original right expression.
+	switch expression.Operator {
+	case "+=", "-=", "*=", "/=":
+		expression.Right = &ast.InfixExpression{
+			Token: p.token,
+			Left: left,
+			Right: expression.Right,
+			Operator: string(expression.Operator[0]),
+		}
+	}
+
 	return expression
 }
 

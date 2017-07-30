@@ -324,20 +324,6 @@ func (i *Interpreter) runAssign(node *ast.Assign, scope *Scope) DataType {
 		return nil
 	}
 
-	// For shorthand assignment operators, build
-	// manually an Infix expression. On the left
-	// is the identifier assigning to and on the
-	// right is the original right expression.
-	switch node.Operator {
-	case "+=", "-=", "*=", "/=":
-		node.Right = &ast.InfixExpression{
-			Token: node.Token,
-			Left: node.Name,
-			Right: node.Right,
-			Operator: string(node.Operator[0]),
-		}
-	}
-
 	object := i.Interpret(node.Right, scope)
 	if object == nil {
 		return nil
