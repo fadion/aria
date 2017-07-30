@@ -570,7 +570,7 @@ let sub = (x) -> x - 5
 
 They're not that useful to just spare a couple lines of code. They shine when passed as arguments:
 
-```
+```swift
 Enum.map([1, 2, 3, 4], (x) -> x * 2)
 Enum.reduce(1..10, 0, (x, acc) -> x + acc)
 ```
