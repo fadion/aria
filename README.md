@@ -904,43 +904,43 @@ Because modules are interpreted and cached before-hand, properties and functions
 
 ## Imports
 
-Source file imports are a good way of breaking down projects into smaller, easily digestible files. There's no special syntax or rules to imported files. They're included in the caller's scope and treated as if they were originally there.
+Source file imports are a good way of breaking down projects into smaller, easily digestible files. There's no special syntax or rules to imported files. They're included in the caller's scope and treated as if they were originally there. Imports are cached, so in multiple imports, only the first one is actually interpreted.
 
 ```swift
-// dog.ari
-let name = "Charlie"
-let bark_to = func x
-  "woof-woof " + x
+// cat.ari
+let name = "Bella"
+let hi = func x
+  "moew " + x
 end
 ```
 
 ```javascript
 // main.ari
-import "dog"
+import "cat"
 
-let phrase = name + " " + bark_to("John")
-println(phrase) // "Charlie woof-woof John"
+let phrase = name + " " + hi("John")
+println(phrase) // "Bella moew John"
 ```
 
-The file is relatively referenced from the caller and this case, both `main.ari` and `dog.ari` reside in the same folder. As the long as the extension is `.ari`, there's no need to write it in the import statement.
+The file is relatively referenced from the caller and in this case, both `main.ari` and `dog.ari` reside in the same folder. As the long as the extension is `.ari`, there's no need to write it in the import statement.
 
-A more useful pattern would be to wrap imported files into a module. That would make for a more intuitive system and prevent scope leakage. The dog case above would be written simply into:
+A more useful pattern would be to wrap imported files into a module. That would make for a more intuitive system and prevent scope leakage. The cat case above could be written simply into:
 
 ```swift
-// dog.ari
-module Dog
-  let name = "Charlie"
-  let bark_to = func x
-    "woof-woof " + x
+// cat.ari
+module Cat
+  let name = "Bella"
+  let hi = func x
+    "moew " + x
   end
 end
 ```
 
 ```javascript
 // main.ari
-import "dog"
+import "cat"
 
-let phrase = Dog.name + " " + Dog.bark_to("John")
+let phrase = Cat.name + " " + Cat.hi("John")
 ```
 
 ## Comments

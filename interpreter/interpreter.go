@@ -18,7 +18,7 @@ import (
 type Interpreter struct {
 	modules         map[string]*ModuleType
 	moduleCache     map[string]map[string]DataType
-	importCache     map[string]*ast.Program
+	importCache     map[string]DataType
 	immutables      map[string]*ast.Identifier
 	libraryFinished bool
 }
@@ -28,7 +28,7 @@ func New() *Interpreter {
 	return &Interpreter{
 		modules:         map[string]*ModuleType{},
 		moduleCache:     map[string]map[string]DataType{},
-		importCache:     map[string]*ast.Program{},
+		importCache:     map[string]DataType{},
 		immutables:      map[string]*ast.Identifier{},
 		libraryFinished: false,
 	}
@@ -901,7 +901,7 @@ func (i *Interpreter) runImport(node *ast.Import, scope *Scope) DataType {
 
 	// Check the cache fist.
 	if cache, ok := i.importCache[filename]; ok {
-		return i.Interpret(cache, scope)
+		return cache
 	}
 
 	source, err := ioutil.ReadFile(i.prepareImportFilename(filename))
@@ -921,10 +921,12 @@ func (i *Interpreter) runImport(node *ast.Import, scope *Scope) DataType {
 		return nil
 	}
 
-	// Cache the parsed program.
-	i.importCache[filename] = program
+	result := i.Interpret(program, scope)
 
-	return i.Interpret(program, scope)
+	// Cache the result.
+	i.importCache[filename] = result
+
+	return result
 }
 
 // Interpret prefix operators: (OP)OBJ
