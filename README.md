@@ -38,6 +38,7 @@ println(pipe) // "Expressive Aria Language"
     * [Dictionary](#dictionary)
     * [Nil](#nil)
     * [Type Conversion](#type-conversion)
+    * [Type Checking](#type-checking)
 * [Operators](#operators)
     * [Shorthand Assignment](#shorthand-assignment)
 * [Functions](#functions)
@@ -346,6 +347,27 @@ let str = Type.toString(10)
 let int = Type.toInt("10")
 let fl = Type.toFloat(10)
 let arr = Type.toArray(10)
+```
+
+### Type Checking
+
+There will be more than one occassion where you'll need to type check a variable. Aria provides a few ways to achieve that.
+
+The `is` operator is specialized in checking types and should be the one you'll want to use practically everywhere.
+
+```swift
+let nr = 10
+if nr is Int
+  println("Yes, an integer")
+end
+```
+
+There's also the `typeof()` runtime function and `Type.of()` from the Standard Library. They essentially do the same thing, but not only they're longer to write, but return strings. The above would be equivalent to:
+
+```swift
+if Type.of(nr) == "Int"
+  println("Yes, an integer")
+end
 ```
 
 ## Operators

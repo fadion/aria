@@ -110,6 +110,8 @@ func (i *Interpreter) Interpret(node ast.Node, scope *Scope) DataType {
 		return &ContinueType{}
 	case *ast.Placeholder:
 		return &PlaceholderType{}
+	case *ast.Is:
+		return i.runIs(node, scope)
 	}
 
 	return nil
@@ -927,6 +929,26 @@ func (i *Interpreter) runImport(node *ast.Import, scope *Scope) DataType {
 	i.importCache[filename] = result
 
 	return result
+}
+
+// IS type checking operator.
+func (i *Interpreter) runIs(node *ast.Is, scope *Scope) DataType {
+	object := i.Interpret(node.Left, scope)
+	if object == nil {
+		return nil
+	}
+
+	// Uknown type.
+	if !i.checkSupportedType(node.Right.Value) {
+		i.reportError(node, fmt.Sprintf("Uknown type '%s' in IS operator", node.Right.Value))
+		return nil
+	}
+
+	if object.Type() == node.Right.Value {
+		return TRUE
+	}
+
+	return FALSE
 }
 
 // Interpret prefix operators: (OP)OBJ

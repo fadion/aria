@@ -4,7 +4,7 @@ import "github.com/fadion/aria/token"
 
 // Precedence.
 const (
-	_           int = iota
+	_          int = iota
 	LOWEST
 	ASSIGN
 	PIPE
@@ -31,29 +31,29 @@ var precedences = map[token.TokenType]int{
 	token.ASSIGNMULT: ASSIGN,
 	token.ASSIGNDIV:  ASSIGN,
 
-	token.PLUS:       SUM,
-	token.MINUS:      SUM,
+	token.PLUS:  SUM,
+	token.MINUS: SUM,
 
-	token.ASTERISK:   PRODUCT,
-	token.SLASH:      PRODUCT,
-	token.MODULO:     PRODUCT,
+	token.ASTERISK: PRODUCT,
+	token.SLASH:    PRODUCT,
+	token.MODULO:   PRODUCT,
 
-	token.POWER:      POWER,
+	token.POWER: POWER,
 
-	token.EQ:         COMPARISON,
-	token.UNEQ:       COMPARISON,
-	token.LT:         COMPARISON,
-	token.LTE:        COMPARISON,
-	token.GTE:        COMPARISON,
-	token.GT:         COMPARISON,
+	token.EQ:   COMPARISON,
+	token.UNEQ: COMPARISON,
+	token.LT:   COMPARISON,
+	token.LTE:  COMPARISON,
+	token.GTE:  COMPARISON,
+	token.GT:   COMPARISON,
 
-	token.OR:         BOOLEAN,
-	token.AND:        BOOLEAN,
+	token.OR:  BOOLEAN,
+	token.AND: BOOLEAN,
 
-	token.DOT:        CALL,
-	token.LPAREN:     CALL,
+	token.DOT:    CALL,
+	token.LPAREN: CALL,
 
-	token.LBRACK:     INDEX,
+	token.LBRACK: INDEX,
 
 	token.BITOR:      BITWISE,
 	token.BITAND:     BITWISE,
@@ -61,8 +61,9 @@ var precedences = map[token.TokenType]int{
 	token.BITSHLEFT:  BITSHIFT,
 	token.BITSHRIGHT: BITSHIFT,
 
-	token.RANGE:      RANGE,
-	token.PIPE:       PIPE,
-	token.ARROW:      ARROW,
-	token.QUESTION:   TERNARY,
+	token.RANGE:    RANGE,
+	token.PIPE:     PIPE,
+	token.ARROW:    ARROW,
+	token.QUESTION: TERNARY,
+	token.IS:       ASSIGN,
 }

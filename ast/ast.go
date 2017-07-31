@@ -601,6 +601,28 @@ func (e *Import) Inspect() string {
 	return out.String()
 }
 
+// Is infix expression.
+type Is struct {
+	Token    token.Token
+	Left     Expression
+	Right    *Identifier
+}
+
+func (e *Is) expression()                   {}
+func (e *Is) TokenLexeme() string           { return e.Token.Lexeme }
+func (e *Is) TokenLocation() token.Location { return e.Token.Location }
+func (e *Is) Inspect() string {
+	var out bytes.Buffer
+
+	out.WriteString("(")
+	out.WriteString(e.Left.Inspect())
+	out.WriteString(" is ")
+	out.WriteString(e.Right.Inspect())
+	out.WriteString(")")
+
+	return out.String()
+}
+
 // ExpressionStatement as a statement that
 // holds expressions.
 type ExpressionStatement struct {

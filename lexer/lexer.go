@@ -42,6 +42,7 @@ func New(reader *reader.Reader) *Lexer {
 	l.symbol.Insert("else", token.ELSE)
 	l.symbol.Insert("for", token.FOR)
 	l.symbol.Insert("in", token.IN)
+	l.symbol.Insert("is", token.IS)
 	l.symbol.Insert("return", token.RETURN)
 	l.symbol.Insert("then", token.THEN)
 	l.symbol.Insert("switch", token.SWITCH)

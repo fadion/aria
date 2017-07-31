@@ -65,6 +65,7 @@ func New(l *lexer.Lexer) *Parser {
 	p.infix(token.PIPE, p.parsePipe)
 	p.infix(token.ARROW, p.parseArrowFunction)
 	p.infix(token.QUESTION, p.parseTernary)
+	p.infix(token.IS, p.parseIs)
 	p.infix(token.RANGE, p.parseInfix)
 	p.infix(token.PLUS, p.parseInfix)
 	p.infix(token.MINUS, p.parseInfix)
@@ -970,6 +971,23 @@ func (p *Parser) parseTernary(left ast.Expression) ast.Expression {
 			&ast.ExpressionStatement{Expression: elseExpr},
 		},
 	}
+
+	return expression
+}
+
+// EXPRESSION is IDENT.
+func (p *Parser) parseIs(left ast.Expression) ast.Expression {
+	expression := &ast.Is{
+		Token: p.token,
+		Left: left,
+	}
+
+	p.advance()
+	if !p.match(token.IDENTIFIER) {
+		fmt.Println("IS operator expects a type")
+	}
+
+	expression.Right = &ast.Identifier{Token: p.token, Value: p.token.Lexeme}
 
 	return expression
 }

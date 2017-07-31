@@ -80,6 +80,7 @@ const (
 	ELSE     = "ELSE"
 	FOR      = "FOR"
 	IN       = "IN"
+	IS       = "IS"
 	NIL      = "NIL"
 	RETURN   = "RETURN"
 	THEN     = "THEN"
