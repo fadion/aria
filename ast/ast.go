@@ -623,6 +623,28 @@ func (e *Is) Inspect() string {
 	return out.String()
 }
 
+// As infix expression.
+type As struct {
+	Token    token.Token
+	Left     Expression
+	Right    *Identifier
+}
+
+func (e *As) expression()                   {}
+func (e *As) TokenLexeme() string           { return e.Token.Lexeme }
+func (e *As) TokenLocation() token.Location { return e.Token.Location }
+func (e *As) Inspect() string {
+	var out bytes.Buffer
+
+	out.WriteString("(")
+	out.WriteString(e.Left.Inspect())
+	out.WriteString(" as ")
+	out.WriteString(e.Right.Inspect())
+	out.WriteString(")")
+
+	return out.String()
+}
+
 // ExpressionStatement as a statement that
 // holds expressions.
 type ExpressionStatement struct {

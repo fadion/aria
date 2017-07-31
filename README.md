@@ -331,7 +331,17 @@ let empty = nil
 
 ### Type Conversion
 
-Converting between types is handled via runtime functions of the same name as the data type: `String()`, `Int()`, `Float()` and `Array`.
+Converting between types is handle in a few ways that produce exactly the same results. The `as` operator is probably the more convenient and more expressive of the bunch. Like all type conversion methods, it can convert to `String`, `Int`, `Float` and `Array`:
+
+```swift
+let nr = 10
+nr as String
+nr as Int
+nr as Float
+nr as Array
+```
+
+Provided by the runtime are the appropriately named functions: `String()`, `Int()`, `Float()` and `Array()`.
 
 ```swift
 let str = String(10)
@@ -340,7 +350,7 @@ let fl = Float(10)
 let arr = Array(10)
 ```
 
-The `Type` module of the Standard Library provides interfaces to those same functions and even adds some more, like `Type.of()` and `Type.isNumber()`. Which method you choose to use is strictly preferential.
+The `Type` module of the Standard Library provides interfaces to those same functions and even adds some more, like `Type.of()` and `Type.isNumber()`.
 
 ```swift
 let str = Type.toString(10)
@@ -348,6 +358,8 @@ let int = Type.toInt("10")
 let fl = Type.toFloat(10)
 let arr = Type.toArray(10)
 ```
+
+Which method you choose to use is strictly preferential and depends on your background.
 
 ### Type Checking
 

@@ -21,6 +21,7 @@ const (
 	PREFIX
 	CALL
 	INDEX
+	AS
 )
 
 // List of tokens and their respective precedence.
@@ -66,4 +67,5 @@ var precedences = map[token.TokenType]int{
 	token.ARROW:    ARROW,
 	token.QUESTION: TERNARY,
 	token.IS:       ASSIGN,
+	token.AS:       AS,
 }

@@ -112,6 +112,8 @@ func (i *Interpreter) Interpret(node ast.Node, scope *Scope) DataType {
 		return &PlaceholderType{}
 	case *ast.Is:
 		return i.runIs(node, scope)
+	case *ast.As:
+		return i.runAs(node, scope)
 	}
 
 	return nil
@@ -949,6 +951,39 @@ func (i *Interpreter) runIs(node *ast.Is, scope *Scope) DataType {
 	}
 
 	return FALSE
+}
+
+// AS type converting operator.
+func (i *Interpreter) runAs(node *ast.As, scope *Scope) DataType {
+	// Uknown type.
+	if !i.checkSupportedType(node.Right.Value) {
+		i.reportError(node, fmt.Sprintf("Uknown type '%s' in AS operator", node.Right.Value))
+		return nil
+	}
+
+	// It will use the type conversion functions
+	// of the runtime. The runRuntimeFunction() needs
+	// a FunctionCall from the AST, so we're creating one.
+	nodeFunc := &ast.FunctionCall{
+		Token: node.Token,
+		Arguments: &ast.ExpressionList{Elements: []ast.Expression{node.Left}},
+	}
+
+	// Call the relevant function from the runtime
+	// depending on the type.
+	switch node.Right.Value {
+	case "String":
+		return i.runRuntimeFunction(nodeFunc, runtime["String"], scope)
+	case "Int":
+		return i.runRuntimeFunction(nodeFunc, runtime["Int"], scope)
+	case "Float":
+		return i.runRuntimeFunction(nodeFunc, runtime["Float"], scope)
+	case "Array":
+		return i.runRuntimeFunction(nodeFunc, runtime["Array"], scope)
+	default:
+		i.reportError(node, fmt.Sprintf("Can't convert to type '%s'", node.Right.Value))
+		return nil
+	}
 }
 
 // Interpret prefix operators: (OP)OBJ
