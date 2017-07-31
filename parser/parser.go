@@ -695,15 +695,12 @@ func (p *Parser) parseFunctionCall(function ast.Expression) ast.Expression {
 func (p *Parser) parseImport() ast.Expression {
 	expression := &ast.Import{Token: p.token}
 	p.advance()
-	file := p.parseExpression(LOWEST)
 
-	// Import needs a string as the filename
-	// to be imported.
-	switch fileString := file.(type) {
-	case *ast.String:
-		expression.File = fileString
+	switch {
+	case p.match(token.STRING, token.IDENTIFIER):
+		expression.File = &ast.String{Token: p.token, Value: p.token.Lexeme}
 	default:
-		p.reportError("IMPORT expects a string as filename")
+		p.reportError("IMPORT expects a string or identifier as filename")
 		return nil
 	}
 
