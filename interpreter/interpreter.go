@@ -682,6 +682,7 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 	}
 
 	function := fn.(*FunctionType)
+	fnscope := NewScopeFrom(function.Scope)
 
 	// Non-variadic function shouldn't be called
 	// with more arguments than declared.
@@ -711,7 +712,7 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 				}
 			}
 
-			function.Scope.Write(param.Name.Value, value)
+			fnscope.Write(param.Name.Value, value)
 			defaultCount++
 		}
 	}
@@ -763,17 +764,17 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 		if function.Variadic && index >= countParams {
 			arguments = append(arguments, value)
 		} else {
-			function.Scope.Write(paramname.Value, value)
+			fnscope.Write(paramname.Value, value)
 		}
 	}
 
 	// Variadic argument is passed as a single array
 	// of parameters.
 	if function.Variadic && len(arguments) > 0 {
-		function.Scope.Write(function.Parameters[len(function.Parameters)-1].Name.Value, &ArrayType{Elements: arguments})
+		fnscope.Write(function.Parameters[len(function.Parameters)-1].Name.Value, &ArrayType{Elements: arguments})
 	}
 
-	result := i.unwrapReturnValue(i.Interpret(function.Body, function.Scope))
+	result := i.unwrapReturnValue(i.Interpret(function.Body, fnscope))
 	if result == nil {
 		return nil
 	}
@@ -785,10 +786,6 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 			return nil
 		}
 	}
-
-	// Reset the scope so inner variables aren't
-	// carried over to the next call.
-	function.Scope = NewScopeFrom(scope)
 
 	return result
 }
