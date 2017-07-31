@@ -80,7 +80,7 @@ type StringType struct {
 }
 
 func (t *StringType) Type() string    { return STRING_TYPE }
-func (t *StringType) Inspect() string { return "\"" + t.Value + "\"" }
+func (t *StringType) Inspect() string { return t.Value }
 
 // AtomType for atoms.
 type AtomType struct {

@@ -121,7 +121,7 @@ type String struct {
 func (e *String) expression()                   {}
 func (e *String) TokenLexeme() string           { return e.Token.Lexeme }
 func (e *String) TokenLocation() token.Location { return e.Token.Location }
-func (e *String) Inspect() string               { return "\"" + e.Token.Lexeme + "\"" }
+func (e *String) Inspect() string               { return e.Token.Lexeme }
 
 // Atom literal.
 type Atom struct {
