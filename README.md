@@ -938,7 +938,7 @@ end
 
 ```javascript
 // main.ari
-import "cat"
+import cat
 
 let phrase = Cat.name + " " + Cat.hi("John")
 ```
@@ -954,10 +954,10 @@ x + y
 
 ```javascript
 // main.ari
-let value = import "exp"
+let value = import exp
 println(value) // 25
 
-if import "exp" == 25
+if import exp == 25
   println("Yay")
 end
 ```
