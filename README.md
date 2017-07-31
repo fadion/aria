@@ -87,7 +87,7 @@ aria repl
 
 ## Variables
 
-Variables in Aria start with the keyword `var`.
+Variables in Aria start with the keyword `var`. Accessing an undeclared variable, in contrast with some languages, will not create it, but instead throw a runtime error.
 
 ```swift
 var name = "John"
@@ -438,7 +438,7 @@ let sum = add(1335, 2)
 
 ### Type Hinting
 
-Taking hints from strong typed languages, type hinting can be a very useful feature to validate function arguments and its return type. It's extra useful for library functions that have no assurance of the data types they're going to get.
+Like in strong typed languages, type hinting can be a very useful feature to validate function arguments and its return type. It's extra useful for library functions that have no assurance of the data types they're going to get.
 
 This function call will produce output:
 
@@ -900,7 +900,7 @@ let background = Color.white
 let font_color = Color.hexToRGB(Color.grey)
 ```
 
-Module properties and functions have access to each other. The module is interpreted and cached before-hand to allow for such behavious. In contrast to modules, everything else in Aria is single pass and as such, it will only recognize calls to a module that has already been declared.
+Because modules are interpreted and cached before-hand, properties and functions have access to each other. In contrast to modules, everything else in Aria is single pass and as such, it will only recognize calls to a module that has already been declared.
 
 ## Imports
 
