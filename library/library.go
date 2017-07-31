@@ -195,7 +195,7 @@ end`,
   end
 
   let toArray = func x
-    [x]
+    Array(x)
   end
 
 end`,

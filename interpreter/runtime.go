@@ -150,6 +150,20 @@ var runtime = map[string]runtimeFunc{
 		}
 	},
 
+	// Array(Any) -> Array
+	"Array": func(args ...DataType) (DataType, error) {
+		if len(args) != 1 {
+			return nil, fmt.Errorf("Array() expects exactly 1 argument")
+		}
+
+		switch object := args[0].(type) {
+		case *ArrayType:
+			return object, nil
+		default:
+			return &ArrayType{Elements: []DataType{object}}, nil
+		}
+	},
+
 	// runtime_rand(min Integer, max Integer) -> Integer
 	"runtime_rand": func(args ...DataType) (DataType, error) {
 		if len(args) != 2 {

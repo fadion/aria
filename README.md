@@ -330,13 +330,22 @@ let empty = nil
 
 ### Type Conversion
 
-Converting between types is handled via runtime function of the same name as the data type: `String()`, `Int()` and `Float()`. The `Type` module of the Standard Library provides interfaces to those same functions and even adds some more, like `Type.of()`, `Type.isNumber()` and `Type.toArray()`.
+Converting between types is handled via runtime functions of the same name as the data type: `String()`, `Int()`, `Float()` and `Array`.
 
 ```swift
-let nr = 10
-let str = String(nr)
-let fl = Float(nr)
-let arr = Type.toArray(nr)
+let str = String(10)
+let int = Int("10")
+let fl = Float(10)
+let arr = Array(10)
+```
+
+The `Type` module of the Standard Library provides interfaces to those same functions and even adds some more, like `Type.of()` and `Type.isNumber()`. Which method you choose to use is strictly preferential.
+
+```swift
+let str = Type.toString(10)
+let int = Type.toInt("10")
+let fl = Type.toFloat(10)
+let arr = Type.toArray(10)
 ```
 
 ## Operators
