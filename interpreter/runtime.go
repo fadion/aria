@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"regexp"
+	"bufio"
+	"os"
 )
 
 type runtimeFunc func(args ...DataType) (DataType, error)
@@ -37,6 +39,19 @@ var runtime = map[string]runtimeFunc{
 		// Return a dummy string just to suppress errors,
 		// as there's nothing to return.
 		return &StringType{Value: ""}, nil
+	},
+
+	// prompt(Any)
+	"prompt": func(args ...DataType) (DataType, error) {
+		reader := bufio.NewReader(os.Stdin)
+		if len(args) > 0 {
+			fmt.Print(strings.Trim(args[0].Inspect(), "\""))
+		}
+		out, _ := reader.ReadString('\n')
+
+		// Return a dummy string just to suppress errors,
+		// as there's nothing to return.
+		return &StringType{Value: out}, nil
 	},
 
 	// panic(Any)
