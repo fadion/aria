@@ -922,7 +922,7 @@ let phrase = name + " " + hi("John")
 println(phrase) // "Bella moew John"
 ```
 
-The file is relatively referenced from the caller and in this case, both `main.ari` and `dog.ari` reside in the same folder. As the long as the extension is `.ari`, there's no need to write it in the import statement.
+The file is relatively referenced from the caller and in this case, both `main.ari` and `dog.ari` reside in the same folder. As the long as the extension is `.ari`, there's no need to write it in the import statement. Even the quotes can be omited and the file written as an identifier, as long as it doesn't include a dot (as in `cat.ari`) and isn't a reserved keyword.
 
 A more useful pattern would be to wrap imported files into a module. That would make for a more intuitive system and prevent scope leakage. The cat case above could be written simply into:
 
@@ -941,6 +941,25 @@ end
 import "cat"
 
 let phrase = Cat.name + " " + Cat.hi("John")
+```
+
+Imports are expressions too! Technically, they can be used anywhere else an Integer or String can, even though it probably wouldn't make for the classiest code ever.
+
+```javascript
+// exp.ari
+let x = 10
+let y = 15
+x + y
+```
+
+```javascript
+// main.ari
+let value = import "exp"
+println(value) // 25
+
+if import "exp" == 25
+  println("Yay")
+end
 ```
 
 ## Comments
