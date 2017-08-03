@@ -51,7 +51,7 @@ var runtime = map[string]runtimeFunc{
 
 		// Return a dummy string just to suppress errors,
 		// as there's nothing to return.
-		return &StringType{Value: out}, nil
+		return &StringType{Value: strings.Trim(out, "\r\n")}, nil
 	},
 
 	// panic(Any)
