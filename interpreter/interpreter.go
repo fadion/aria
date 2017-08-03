@@ -568,17 +568,17 @@ func (i *Interpreter) runFor(node *ast.For, scope *Scope) DataType {
 	// Arrays, Dictionaries and Strings.
 	switch enum := enumObj.(type) {
 	case *ArrayType:
-		return i.runForArray(node, enum, NewScopeFrom(scope))
+		return i.runForArray(node, enum, scope)
 	case *DictionaryType:
-		return i.runForDictionary(node, enum, NewScopeFrom(scope))
+		return i.runForDictionary(node, enum, scope)
 	case *StringType:
 		// Convert the string to an array so it can
 		// be interpreted with the same function.
-		return i.runForArray(node, i.stringToArray(enum), NewScopeFrom(scope))
+		return i.runForArray(node, i.stringToArray(enum), scope)
 	case *AtomType:
 		// Treat the atom as a string.
 		str := &StringType{Value: enum.Value}
-		return i.runForArray(node, i.stringToArray(str), NewScopeFrom(scope))
+		return i.runForArray(node, i.stringToArray(str), scope)
 	default:
 		i.reportError(node, fmt.Sprintf("Type %s is not an enumerable", enumObj.Type()))
 		return nil
@@ -590,7 +590,9 @@ func (i *Interpreter) runForInfinite(node *ast.For, scope *Scope) DataType {
 	out := []DataType{}
 
 	for {
-		result := i.Interpret(node.Body, scope)
+		// Create a new scope for each iteration.
+		newscope := NewScopeFrom(scope)
+		result := i.Interpret(node.Body, newscope)
 		// Close the loop immediately, so it doesn't report
 		// multiple of the same possible error.
 		if result == nil {
@@ -619,6 +621,9 @@ func (i *Interpreter) runForArray(node *ast.For, array *ArrayType, scope *Scope)
 	out := []DataType{}
 
 	for idx, v := range array.Elements {
+		// Create a new scope for each iteration.
+		newscope := NewScopeFrom(scope)
+
 		// A single arguments gets only the current loop value.
 		// Two arguments get both the key and value.
 		switch len(node.Arguments.Elements) {
@@ -632,7 +637,7 @@ func (i *Interpreter) runForArray(node *ast.For, array *ArrayType, scope *Scope)
 			return nil
 		}
 
-		result := i.Interpret(node.Body, scope)
+		result := i.Interpret(node.Body, newscope)
 		// Close the loop immediately, so it doesn't report
 		// multiple of the same possible error.
 		if result == nil {
@@ -661,6 +666,9 @@ func (i *Interpreter) runForDictionary(node *ast.For, dictionary *DictionaryType
 	out := []DataType{}
 
 	for k, v := range dictionary.Pairs {
+		// Create a new scope for each iteration.
+		newscope := NewScopeFrom(scope)
+
 		// A single argument get the current loop value.
 		// Two arguments get the key and value.
 		switch len(node.Arguments.Elements) {
@@ -674,7 +682,7 @@ func (i *Interpreter) runForDictionary(node *ast.For, dictionary *DictionaryType
 			return nil
 		}
 
-		result := i.Interpret(node.Body, scope)
+		result := i.Interpret(node.Body, newscope)
 		if result == nil {
 			return nil
 		}
