@@ -55,7 +55,7 @@ println(pipe) // "Expressive Aria Language"
     * [Ternary Operator](#ternary-operator)
     * [Switch](#switch)
     * [Pattern Matching](#pattern-matching)
-* [For Loop](#foor-loop)
+* [For Loop](#for-loop)
 * [Range Operator](#range-operator)
 * [Pipe Operator](#pipe-operator)
 * [Immutability](#immutability)
@@ -779,7 +779,7 @@ The `_` is a placeholder that will match any type and value. That makes it power
 
 ## For Loop
 
-There's an abundance of `for` loop variations around so Aria takes the short way: a single `for in` loop that's useful to iterate arrays, strings or dictionaries, but that does nothing else. It looks boring, but it does more than meets the eye.
+Aria takes a modern approach to the `for` loop, evading from the traditional, 3-parts `for` we've been using for decades. Instead, it focuses on a flexible `for in` loop that iterates arrays, dictionaries, and as you'll see later, ranges.
 
 ```swift
 for v in [1, 2, 3, 4]
@@ -825,6 +825,18 @@ let plus_one = map([1, 2, 3, 4], (x) -> x + 1)
 println(plus_one) // [2, 3, 4, 5]
 ```
 
+Without arguments, the `for` loop can behave as an infite loop, much like a traditional `while`. Although there's not too many usecases, it does its job when needed. An example would be prompting the user for input and only breaking the infinite loop on a specific text.
+
+```swift
+for
+  let pass = prompt("Enter the password: ")
+  if pass == "123"
+    println("Good, strong password!")
+    break
+  end
+end
+```
+
 The `break` and `continue` keywords, well break or skip the iteration. They function exactly like you're used to.
 
 ```swift
@@ -834,6 +846,8 @@ for i in 1..10
   end
 end
 ```
+
+*The `for` loop is currently naively parsed. It works for most cases, but still, it's not robust enough. I'm working to find a better solution.*
 
 ## Range Operator
 

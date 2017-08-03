@@ -518,50 +518,30 @@ func (p *Parser) parseSwitchCase() *ast.BlockStatement {
 // for IDENT1, IDENT2 in IDENT3 STATEMENTS end
 func (p *Parser) parseFor() ast.Expression {
 	expression := &ast.For{Token: p.token}
-	list := &ast.IdentifierList{}
+	expression.Arguments = &ast.IdentifierList{}
+	arguments := []*ast.Identifier{}
 
 	p.advance()
 
-	// An immediate DO or NEWLINE token mean there
-	// is no expression after FOR.
-	if p.match(token.NEWLINE, token.DO) {
-		p.reportError("Missing expression in FOR loop")
-		return nil
-	}
-
-	// Get the arguments until an IN token.
-	for !p.match(token.IN, token.EOF) {
+loop:
+	for !p.match(token.DO, token.NEWLINE, token.EOF) {
 		switch p.token.Type {
 		case token.COMMA: // Ignore commas.
-		case token.DO, token.NEWLINE:
-			// An IN is expected to close the arguments.
-			// Anything else means it's missing.
-			p.reportError("IN statement missing in FOR loop")
-			return nil
+		case token.IN:
+			p.advance()
+			expression.Arguments.Elements = arguments
+			expression.Enumerable = p.parseExpression(LOWEST)
+			if expression.Enumerable == nil {
+				p.reportError("Missing enumerable in FOR loop")
+				return nil
+			}
+
+			break loop
 		default:
-			list.Elements = append(list.Elements, &ast.Identifier{Token: p.token, Value: p.token.Lexeme})
+			arguments = append(arguments, &ast.Identifier{Token: p.token, Value: p.token.Lexeme})
 		}
 
 		p.advance()
-	}
-
-	if len(list.Elements) == 0 {
-		p.reportError("Missing arguments in FOR loop")
-		return nil
-	}
-
-	expression.Arguments = list
-
-	// Ignore the IN token.
-	if p.match(token.IN) {
-		p.advance()
-	}
-
-	expression.Enumerable = p.parseExpression(LOWEST)
-	// Missing enumerable.
-	if expression.Enumerable == nil {
-		p.reportError("Missing enumerable in FOR loop")
-		return nil
 	}
 
 	// Remove the optional DO token.
@@ -980,12 +960,13 @@ func (p *Parser) parseTernary(left ast.Expression) ast.Expression {
 func (p *Parser) parseIs(left ast.Expression) ast.Expression {
 	expression := &ast.Is{
 		Token: p.token,
-		Left: left,
+		Left:  left,
 	}
 
 	p.advance()
 	if !p.match(token.IDENTIFIER) {
-		fmt.Println("IS operator expects a type")
+		p.reportError("IS operator expects a type")
+		return nil
 	}
 
 	expression.Right = &ast.Identifier{Token: p.token, Value: p.token.Lexeme}
@@ -997,12 +978,13 @@ func (p *Parser) parseIs(left ast.Expression) ast.Expression {
 func (p *Parser) parseAs(left ast.Expression) ast.Expression {
 	expression := &ast.As{
 		Token: p.token,
-		Left: left,
+		Left:  left,
 	}
 
 	p.advance()
 	if !p.match(token.IDENTIFIER) {
-		fmt.Println("AS operator expects a type")
+		p.reportError("AS operator expects a type")
+		return nil
 	}
 
 	expression.Right = &ast.Identifier{Token: p.token, Value: p.token.Lexeme}

@@ -553,6 +553,12 @@ func (i *Interpreter) runSwitchCase(cases []*ast.SwitchCase, control DataType, s
 
 // Interpret a For expression.
 func (i *Interpreter) runFor(node *ast.For, scope *Scope) DataType {
+	// No enumerable present. Run an infinite
+	// for loop.
+	if node.Enumerable == nil {
+		return i.runForInfinite(node, scope)
+	}
+
 	enumObj := i.Interpret(node.Enumerable, scope)
 	if enumObj == nil {
 		return nil
@@ -577,6 +583,35 @@ func (i *Interpreter) runFor(node *ast.For, scope *Scope) DataType {
 		i.reportError(node, fmt.Sprintf("Type %s is not an enumerable", enumObj.Type()))
 		return nil
 	}
+}
+
+// Run an infite for.
+func (i *Interpreter) runForInfinite(node *ast.For, scope *Scope) DataType {
+	out := []DataType{}
+
+	for {
+		result := i.Interpret(node.Body, scope)
+		// Close the loop immediately, so it doesn't report
+		// multiple of the same possible error.
+		if result == nil {
+			return nil
+		}
+
+		// Handle special flow-breaking keywords.
+		if result.Type() == BREAK_TYPE {
+			break
+		} else if result.Type() == CONTINUE_TYPE {
+			continue
+		} else if result.Type() == RETURN_TYPE {
+			// A return immediately returns
+			// the object.
+			return result
+		}
+
+		out = append(out, result)
+	}
+
+	return &ArrayType{Elements: out}
 }
 
 // Interpret a FOR IN Array expression.
@@ -682,6 +717,9 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 	}
 
 	function := fn.(*FunctionType)
+	// Create a new scope using the function's scope.
+	// After the function is interpreted, its original
+	// scope remains untouched.
 	fnscope := NewScopeFrom(function.Scope)
 
 	// Non-variadic function shouldn't be called

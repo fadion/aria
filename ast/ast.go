@@ -116,6 +116,7 @@ func (e *Identifier) Inspect() string               { return e.Value }
 type String struct {
 	Token token.Token
 	Value string
+	Interpolated map[string]Expression
 }
 
 func (e *String) expression()                   {}
