@@ -5,7 +5,7 @@
 
 Aria is an expressive, interpreted, toy language built as an exercise on designing and interpreting a programming language. It has a noiseless syntax, free of useless semi colons, braces or parantheses, and treats everything as an expression. Technically, it's built with a hand written lexer and parser, a recursive decent one (Pratt), and a tree-walk interpreter. I have never set any goals for it to be either fast, nor bulletproof, so don't expect neither of them.
 
-If features mutable and immutable values, if and switch conditionals, functions, type hinting, for loops, modules, the pipe operator, imports and many more. More importantly, it's getting expanded frequently with new features, more functions for the standard library and bug fixes. All of that while retaining it's expressiveness, clean syntax and easy of use.
+It features mutable and immutable values, if and switch conditionals, functions, type hinting, for loops, modules, the pipe operator, imports and many more. More importantly, it's getting expanded frequently with new features, more functions for the standard library and bug fixes. All of that while retaining it's expressiveness, clean syntax and easy of use.
 
 ```swift
 var name = "aria language"
@@ -331,7 +331,7 @@ let empty = nil
 
 ### Type Conversion
 
-Converting between types is handle in a few ways that produce exactly the same results. The `as` operator is probably the more convenient and more expressive of the bunch. Like all type conversion methods, it can convert to `String`, `Int`, `Float` and `Array`:
+Converting between types is handled in a few ways that produce exactly the same results. The `as` operator is probably the more convenient and more expressive of the bunch. Like all type conversion methods, it can convert to `String`, `Int`, `Float` and `Array`:
 
 ```swift
 let nr = 10
@@ -632,7 +632,7 @@ end
 add(5)(7) // 12
 ```
 
-Some would prefer more explicit way of calling:
+Some would prefer a more explicit way of calling:
 
 ```swift
 let add_5 = add(5) // returns a function
