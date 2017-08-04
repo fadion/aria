@@ -60,7 +60,7 @@ type Let struct {
 	Value Expression
 }
 
-func (e *Let) statement()                    {}
+func (e *Let) expression()                   {}
 func (e *Let) TokenLexeme() string           { return e.Token.Lexeme }
 func (e *Let) TokenLocation() token.Location { return e.Token.Location }
 func (e *Let) Inspect() string {
@@ -84,7 +84,7 @@ type Var struct {
 	Value Expression
 }
 
-func (e *Var) statement()                    {}
+func (e *Var) expression()                   {}
 func (e *Var) TokenLexeme() string           { return e.Token.Lexeme }
 func (e *Var) TokenLocation() token.Location { return e.Token.Location }
 func (e *Var) Inspect() string {
@@ -114,8 +114,8 @@ func (e *Identifier) Inspect() string               { return e.Value }
 
 // String literal.
 type String struct {
-	Token token.Token
-	Value string
+	Token        token.Token
+	Value        string
 	Interpolated map[string]Expression
 }
 
@@ -604,9 +604,9 @@ func (e *Import) Inspect() string {
 
 // Is infix expression.
 type Is struct {
-	Token    token.Token
-	Left     Expression
-	Right    *Identifier
+	Token token.Token
+	Left  Expression
+	Right *Identifier
 }
 
 func (e *Is) expression()                   {}
@@ -626,9 +626,9 @@ func (e *Is) Inspect() string {
 
 // As infix expression.
 type As struct {
-	Token    token.Token
-	Left     Expression
-	Right    *Identifier
+	Token token.Token
+	Left  Expression
+	Right *Identifier
 }
 
 func (e *As) expression()                   {}

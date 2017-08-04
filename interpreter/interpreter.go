@@ -237,13 +237,19 @@ func (i *Interpreter) runModuleAccess(node *ast.ModuleAccess, scope *Scope) Data
 			// store them into the cache.
 			for _, statement := range module.Body.Statements {
 				switch sType := statement.(type) {
-				case *ast.Let: // All module statements should be LET.
-					result := i.Interpret(statement, scope)
-					if result == nil {
+				case *ast.ExpressionStatement:
+					switch eType := sType.Expression.(type) {
+					case *ast.Let: // All module statements should be LET.
+						result := i.Interpret(statement, scope)
+						if result == nil {
+							return nil
+						}
+
+						results[eType.Name.Value] = result
+					default:
+						i.reportError(node, "Only LET statements are accepted as Module members")
 						return nil
 					}
-
-					results[sType.Name.Value] = result
 				default:
 					i.reportError(node, "Only LET statements are accepted as Module members")
 					return nil

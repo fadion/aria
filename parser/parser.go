@@ -33,6 +33,8 @@ func New(l *lexer.Lexer) *Parser {
 	p.infixFunctions = make(map[token.TokenType]infixParseFn)
 
 	// Register prefix functions.
+	p.prefix(token.LET, p.parseLet)
+	p.prefix(token.VAR, p.parseVar)
 	p.prefix(token.MODULE, p.parseModule)
 	p.prefix(token.IF, p.parseIf)
 	p.prefix(token.SWITCH, p.parseSwitch)
@@ -174,10 +176,6 @@ func (p *Parser) Parse() *ast.Program {
 // Parse a statetement.
 func (p *Parser) parseStatement() ast.Statement {
 	switch p.token.Type {
-	case token.LET:
-		return p.parseLet()
-	case token.VAR:
-		return p.parseVar()
 	case token.RETURN:
 		return p.parseReturn()
 	case token.BREAK:
@@ -191,6 +189,58 @@ func (p *Parser) parseStatement() ast.Statement {
 	default:
 		return p.parseExpressionStatement()
 	}
+}
+
+// let IDENT = EXPRESSION
+func (p *Parser) parseLet() ast.Expression {
+	expression := &ast.Let{Token: p.token}
+
+	// Check for identifier.
+	if !p.peekMatch(token.IDENTIFIER) {
+		p.reportError("LET expects an identifier")
+		return nil
+	}
+
+	p.advance()
+	expression.Name = &ast.Identifier{Token: p.token, Value: p.token.Lexeme}
+
+	// Check for assignment operator.
+	if !p.peekMatch(token.ASSIGN) {
+		p.reportError("Missing assignment in LET")
+		return nil
+	}
+
+	p.advance()
+	p.advance()
+	expression.Value = p.parseExpression(LOWEST)
+
+	return expression
+}
+
+// var IDENT = EXPRESSION
+func (p *Parser) parseVar() ast.Expression {
+	expression := &ast.Var{Token: p.token}
+
+	// Check for identifier.
+	if !p.peekMatch(token.IDENTIFIER) {
+		p.reportError("VAR expects an identifier")
+		return nil
+	}
+
+	p.advance()
+	expression.Name = &ast.Identifier{Token: p.token, Value: p.token.Lexeme}
+
+	// Check for assignment operator.
+	if !p.peekMatch(token.ASSIGN) {
+		p.reportError("Missing assignment in VAR")
+		return nil
+	}
+
+	p.advance()
+	p.advance()
+	expression.Value = p.parseExpression(LOWEST)
+
+	return expression
 }
 
 // module IDENT BODY
@@ -239,58 +289,6 @@ func (p *Parser) parseModuleAccess(left ast.Expression) ast.Expression {
 	}
 
 	return nil
-}
-
-// let IDENT = EXPRESSION
-func (p *Parser) parseLet() *ast.Let {
-	statement := &ast.Let{Token: p.token}
-
-	// Check for identifier.
-	if !p.peekMatch(token.IDENTIFIER) {
-		p.reportError("LET statement expects an identifier")
-		return nil
-	}
-
-	p.advance()
-	statement.Name = &ast.Identifier{Token: p.token, Value: p.token.Lexeme}
-
-	// Check for assignment operator.
-	if !p.peekMatch(token.ASSIGN) {
-		p.reportError("Missing assignment in LET statement")
-		return nil
-	}
-
-	p.advance()
-	p.advance()
-	statement.Value = p.parseExpression(LOWEST)
-
-	return statement
-}
-
-// var IDENT = EXPRESSION
-func (p *Parser) parseVar() *ast.Var {
-	statement := &ast.Var{Token: p.token}
-
-	// Check for identifier.
-	if !p.peekMatch(token.IDENTIFIER) {
-		p.reportError("VAR statement expects an identifier")
-		return nil
-	}
-
-	p.advance()
-	statement.Name = &ast.Identifier{Token: p.token, Value: p.token.Lexeme}
-
-	// Check for assignment operator.
-	if !p.peekMatch(token.ASSIGN) {
-		p.reportError("Missing assignment in VAR statement")
-		return nil
-	}
-
-	p.advance()
-	p.advance()
-	statement.Value = p.parseExpression(LOWEST)
-
-	return statement
 }
 
 // A variable, function, etc.
