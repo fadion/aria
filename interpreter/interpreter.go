@@ -36,10 +36,10 @@ func New() *Interpreter {
 
 // Interpret runs the interpreter.
 func (i *Interpreter) Interpret(node ast.Node, scope *Scope) DataType {
-	if err := i.importLibraryModules(scope); err != nil {
-		i.reportError(node, err.Error())
-		return nil
-	}
+	//if err := i.importLibraryModules(scope); err != nil {
+	//	i.reportError(node, err.Error())
+	//	return nil
+	//}
 
 	switch node := node.(type) {
 	case *ast.Program:

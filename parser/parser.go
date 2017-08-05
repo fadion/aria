@@ -426,7 +426,7 @@ func (p *Parser) parseSwitch() ast.Expression {
 	p.advance()
 	expression.Control = p.parseExpression(LOWEST)
 
-	// Control is required.
+	// Missing control makes it a SWITCH true.
 	if expression.Control != nil {
 		p.advance()
 	}
@@ -1047,26 +1047,8 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	return statement
 }
 
-// Check if a token is ignored in expression parsing.
-func (p *Parser) isIgnoredAsExpression(tok token.TokenType) bool {
-	ignored := []token.TokenType{token.NEWLINE, token.EOF, token.RBRACK, token.DO, token.COMMA}
-	for _, v := range ignored {
-		if v == tok {
-			return true
-		}
-	}
-
-	return false
-}
-
 // Parse an expression, ie: 1 + 2 | 3 * 5 | func (x)...
 func (p *Parser) parseExpression(precedence int) ast.Expression {
-	// Return if token shouldn't be considered in
-	// expression parsing.
-	if p.isIgnoredAsExpression(p.token.Type) {
-		return nil
-	}
-
 	// Check if it's a prefix function.
 	prefix := p.prefixFunctions[p.token.Type]
 	if prefix == nil {
