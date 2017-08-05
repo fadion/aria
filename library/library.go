@@ -168,7 +168,6 @@ end`,
 
 end`,
 
-
 	`module Type
 
   let of = func x

@@ -1,14 +1,14 @@
 package interpreter
 
 import (
+	"bufio"
 	"fmt"
-	"time"
 	"math/rand"
+	"os"
+	"regexp"
 	"strconv"
 	"strings"
-	"regexp"
-	"bufio"
-	"os"
+	"time"
 )
 
 type runtimeFunc func(args ...DataType) (DataType, error)
@@ -182,7 +182,7 @@ var runtime = map[string]runtimeFunc{
 		}
 
 		rand.Seed(time.Now().UnixNano())
-		random := rand.Intn(max - min) + min
+		random := rand.Intn(max-min) + min
 
 		return &IntegerType{Value: int64(random)}, nil
 	},
@@ -241,5 +241,4 @@ var runtime = map[string]runtimeFunc{
 
 		return &BooleanType{Value: regx.Find([]byte(object)) != nil}, nil
 	},
-
 }

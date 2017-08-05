@@ -4,7 +4,7 @@ import "github.com/fadion/aria/token"
 
 // Precedence.
 const (
-	_          int = iota
+	_ int = iota
 	LOWEST
 	ASSIGN
 	PIPE

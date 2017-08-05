@@ -3,15 +3,15 @@ package interpreter
 import (
 	"fmt"
 	"github.com/fadion/aria/ast"
-	"github.com/fadion/aria/reporter"
-	"math"
-	"strings"
-	"io/ioutil"
 	"github.com/fadion/aria/lexer"
 	"github.com/fadion/aria/library"
-	"github.com/fadion/aria/reader"
 	"github.com/fadion/aria/parser"
+	"github.com/fadion/aria/reader"
+	"github.com/fadion/aria/reporter"
+	"io/ioutil"
+	"math"
 	"path/filepath"
+	"strings"
 )
 
 // Interpreter represents the interpreter.
@@ -772,7 +772,7 @@ func (i *Interpreter) runFunction(node *ast.FunctionCall, scope *Scope) DataType
 	// Less parameters than arguments is always a
 	// miss match, variadic or not. Default parameters
 	// are also accounted for.
-	if len(node.Arguments.Elements) < len(function.Parameters) - defaultCount {
+	if len(node.Arguments.Elements) < len(function.Parameters)-defaultCount {
 		i.reportError(node, "Too few arguments in function call")
 		return nil
 	}
@@ -1014,7 +1014,7 @@ func (i *Interpreter) runAs(node *ast.As, scope *Scope) DataType {
 	// of the runtime. The runRuntimeFunction() needs
 	// a FunctionCall from the AST, so we're creating one.
 	nodeFunc := &ast.FunctionCall{
-		Token: node.Token,
+		Token:     node.Token,
 		Arguments: &ast.ExpressionList{Elements: []ast.Expression{node.Left}},
 	}
 

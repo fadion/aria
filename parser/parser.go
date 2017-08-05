@@ -22,7 +22,7 @@ type Parser struct {
 
 type (
 	prefixParseFn func() ast.Expression
-	infixParseFn func(ast.Expression) ast.Expression
+	infixParseFn  func(ast.Expression) ast.Expression
 )
 
 // New initializes a parser.

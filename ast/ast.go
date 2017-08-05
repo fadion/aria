@@ -2,9 +2,9 @@ package ast
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/fadion/aria/token"
 	"strings"
-	"fmt"
 )
 
 // A Node on the AST.
