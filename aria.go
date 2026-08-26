@@ -1,18 +1,18 @@
+// Command aria is the Aria language CLI.
 package main
 
 import (
 	"bufio"
 	"fmt"
-	"github.com/fadion/aria/interpreter"
-	"github.com/fadion/aria/lexer"
-	"github.com/fadion/aria/parser"
-	"github.com/fadion/aria/reader"
-	"github.com/fadion/aria/reporter"
+	"os"
+
+	"github.com/fadion/aria/internal/interp"
+	"github.com/fadion/aria/internal/source"
 	"github.com/fatih/color"
 	"github.com/urfave/cli"
-	"io/ioutil"
-	"os"
 )
+
+const version = "0.6.0"
 
 func main() {
 	app := cli.NewApp()
@@ -22,107 +22,104 @@ func main() {
 		Name:  "Fadion Dashi",
 		Email: "jonidashi@gmail.com",
 	}}
-	app.Version = "0.5.0"
+	app.Version = version
 
 	app.Commands = []cli.Command{
 		{
-			Name:  "run",
-			Usage: "Run an Aria source file",
-			Action: func(c *cli.Context) error {
-				if len(c.Args()) != 1 {
-					color.Red("Run expects a source file as argument.")
-				}
-
-				file := c.Args()[0]
-				source, err := ioutil.ReadFile(file)
-				if err != nil {
-					color.Red("Couldn't read '%s'", file)
-					return nil
-				}
-
-				lex := lexer.New(reader.New(source))
-				if reporter.HasErrors() {
-					printErrors()
-					return nil
-				}
-
-				parse := parser.New(lex)
-				program := parse.Parse()
-				if reporter.HasErrors() {
-					printErrors()
-					return nil
-				}
-
-				runner := interpreter.New()
-				runner.Interpret(program, interpreter.NewScope())
-				if reporter.HasErrors() {
-					printErrors()
-					return nil
-				}
-
-				return nil
-			},
+			Name:      "run",
+			Usage:     "Run an Aria source file",
+			ArgsUsage: "FILE",
+			Action:    runFile,
 		},
 		{
-			Name:  "repl",
-			Usage: "Start the interactive repl",
-			Action: func(c *cli.Context) error {
-				input := bufio.NewReader(os.Stdin)
-				color.Yellow(`    _   ___ ___   _
-   /_\ | _ \_ _| /_\
-  / _ \|   /| | / _ \
- /_/ \_\_|_\___/_/ \_\
- `)
-				color.White("Close by pressing CTRL+C")
-				fmt.Println()
-
-				scope := interpreter.NewScope()
-
-				for {
-					color.Set(color.FgWhite)
-					fmt.Print(">> ")
-					color.Unset()
-
-					source, _ := input.ReadBytes('\n')
-					lex := lexer.New(reader.New(source))
-					if reporter.HasErrors() {
-						printErrors()
-						continue
-					}
-
-					parse := parser.New(lex)
-					program := parse.Parse()
-					if reporter.HasErrors() {
-						printErrors()
-						continue
-					}
-
-					runner := interpreter.New()
-					object := runner.Interpret(program, scope)
-					if reporter.HasErrors() {
-						printErrors()
-						continue
-					}
-
-					if object != nil {
-						fmt.Println(object.Inspect())
-					}
-				}
-			},
+			Name:   "repl",
+			Usage:  "Start the interactive repl",
+			Action: runREPL,
 		},
 	}
 
 	app.CommandNotFound = func(ctx *cli.Context, command string) {
 		fmt.Fprintf(ctx.App.Writer, "Command %q doesn't exist.\n", command)
+		os.Exit(2)
 	}
 
-	app.Run(os.Args)
+	if err := app.Run(os.Args); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 }
 
-func printErrors() {
-	color.White("Oops, found some errors:")
-	for _, v := range reporter.GetErrors() {
-		color.Red(v)
+func runFile(c *cli.Context) error {
+	args := c.Args()
+	if len(args) != 1 {
+		// The original printed this and then indexed the empty argument list,
+		// panicking with an index-out-of-range.
+		color.Red("Run expects exactly one source file.")
+		os.Exit(2)
 	}
-	reporter.ClearErrors()
+
+	path := args[0]
+	src, err := os.ReadFile(path)
+	if err != nil {
+		color.Red("Couldn't read '%s'", path)
+		os.Exit(1)
+	}
+
+	if !interp.Run(source.NewFile(path, src), interp.Options{
+		Out: os.Stdout,
+		Err: os.Stderr,
+		In:  os.Stdin,
+	}) {
+		// A failed run exits non-zero, so a script or CI can tell. The original
+		// exited 0 on every parse and runtime error alike.
+		os.Exit(1)
+	}
+	return nil
+}
+
+func runREPL(c *cli.Context) error {
+	color.Yellow(`    _   ___ ___   _
+   /_\ | _ \_ _| /_\
+  / _ \|   /| | / _ \
+ /_/ \_\_|_\___/_/ \_\
+ `)
+	color.White("Close by pressing CTRL+C")
+	fmt.Println()
+
+	session, err := interp.NewSession(interp.Options{
+		Out: os.Stdout,
+		Err: os.Stderr,
+		In:  os.Stdin,
+	})
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	input := bufio.NewScanner(os.Stdin)
+	for {
+		color.Set(color.FgWhite)
+		fmt.Print(">> ")
+		color.Unset()
+
+		if !input.Scan() {
+			fmt.Println()
+			return nil
+		}
+
+		line := input.Text()
+		if line == "" {
+			continue
+		}
+
+		v, err := session.Eval(line)
+		if err != nil {
+			// A failed line leaves the session intact, so a typo does not end it.
+			color.Red("%s", err)
+			continue
+		}
+		if v != nil {
+			fmt.Println(v.Inspect())
+		}
+	}
 }
