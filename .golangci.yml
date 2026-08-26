@@ -1,0 +1,45 @@
+# golangci-lint configuration.
+#
+# Go Report Card, which the README used to badge, is retired; its own site now
+# points at golangci-lint. This runs in CI as the `lint` job, so the CI badge
+# covers it.
+#
+# `go vet`, `gofmt` and `go test` still run separately in CI. They are the
+# checks CLAUDE.md tells a contributor to run locally, and they should not
+# require installing anything.
+version: "2"
+
+linters:
+  default: standard # errcheck, govet, ineffassign, staticcheck, unused
+  enable:
+    - errorlint # errors compared with == rather than errors.Is
+    - misspell # the comments here carry most of the design rationale
+    - predeclared # a local named `len` or `new` shadowing the builtin
+    - unconvert # conversions that do nothing
+    - usestdlibvars # http.MethodGet and friends over string literals
+
+  settings:
+    errcheck:
+      # Writing a diagnostic to a stream and ignoring the result is deliberate:
+      # if stderr is gone there is nothing useful left to do about it, and the
+      # alternative is `_ =` on every message the interpreter prints.
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+
+    staticcheck:
+      checks:
+        - all
+        # QF are editor quickfixes rather than defects. QF1006 wants
+        # `for cond() {}` where interp.loop spells the break out; the explicit
+        # form reads better next to the signal handling around it.
+        - -QF1006
+
+  exclusions:
+    rules:
+      # A test that ignores an error is usually asserting something else about
+      # the call; the assertion is the check.
+      - path: _test\.go
+        linters:
+          - errcheck

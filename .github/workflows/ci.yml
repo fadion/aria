@@ -52,6 +52,30 @@ jobs:
             exit 1
           fi
 
+  # Static analysis beyond `go vet`. Ubuntu only: the linters are
+  # platform-independent, and running them three times says the same thing
+  # three times.
+  #
+  # This replaces the Go Report Card badge the README used to carry. That
+  # service is retired -- its badge now renders the word "retired" -- and its
+  # own site points at golangci-lint instead.
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      # The linter version is pinned, unlike the actions above. A new
+      # golangci-lint release can add checks, and a green branch turning red
+      # because a tool updated overnight is not a signal about this repo.
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.13.1
+
   # The language side. Ubuntu only: both scripts need bash 4 (mapfile) and GNU
   # coreutils (timeout), and the macOS runner ships bash 3.2 with neither.
   language:
