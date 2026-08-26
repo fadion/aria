@@ -364,3 +364,91 @@ func TestBadNodesAreSkipped(t *testing.T) {
 			bag.Len()-before, bag.Render())
 	}
 }
+
+// tryResolve parses and resolves src, reporting whether it parsed at all.
+func tryResolve(src string) (*diag.Bag, bool) {
+	file := source.NewFile("test.ari", []byte(src))
+	bag := diag.New(file)
+
+	prog := parser.New(file, bag).Parse()
+	if bag.HasErrors() {
+		return bag, false
+	}
+	New(file, bag).Resolve(prog)
+	return bag, true
+}
+
+// break, continue and return outside the construct they control are resolver
+// errors. Interp.Run stops its node loop on any signal, so a stray one at top
+// level used to discard the rest of the file with no diagnostic at all.
+func TestStrayControlKeywords(t *testing.T) {
+	for _, src := range []string{
+		"break",
+		"continue",
+		"return 1",
+		"for v in [1]\n  let f = func () do break end\nend",
+	} {
+		bag, ok := tryResolve(src)
+		if !ok {
+			t.Fatalf("%q did not parse", src)
+		}
+		if !bag.HasErrors() {
+			t.Errorf("%q resolved cleanly, expected a diagnostic", src)
+		}
+	}
+
+	// The legal placements stay legal.
+	for _, src := range []string{
+		"for v in [1]\n  break\nend",
+		"for v in [1]\n  continue\nend",
+		"let f = func () do return 1 end",
+	} {
+		bag, ok := tryResolve(src)
+		if !ok {
+			t.Fatalf("%q did not parse", src)
+		}
+		if bag.HasErrors() {
+			t.Errorf("%q was rejected:\n%s", src, bag.Render())
+		}
+	}
+}
+
+// `_` means something as a switch case value and as an append target, and
+// nothing anywhere else — where it used to evaluate to nil.
+func TestPlaceholderOutOfPosition(t *testing.T) {
+	for _, src := range []string{"let x = _", "println([1][_])", "let a = [_]"} {
+		bag, ok := tryResolve(src)
+		if !ok {
+			t.Fatalf("%q did not parse", src)
+		}
+		if !bag.HasErrors() {
+			t.Errorf("%q resolved cleanly, expected a diagnostic", src)
+		}
+	}
+
+	for _, src := range []string{
+		"var a = [1]\na[] = 2",
+		"var a = [1]\na[_] = 2",
+		"switch 1\ncase _ then 2\nend",
+	} {
+		bag, ok := tryResolve(src)
+		if !ok {
+			t.Fatalf("%q did not parse", src)
+		}
+		if bag.HasErrors() {
+			t.Errorf("%q was rejected:\n%s", src, bag.Render())
+		}
+	}
+}
+
+// The evaluator checked loop-variable arity once per iteration, so an empty
+// enumerable never reached the check.
+func TestForLoopVariableArity(t *testing.T) {
+	bag, ok := tryResolve("for a, b, c in []\n  println(a)\nend")
+	if !ok {
+		t.Fatal("did not parse")
+	}
+	if !bag.HasErrors() {
+		t.Error("three loop variables resolved cleanly, expected a diagnostic")
+	}
+}

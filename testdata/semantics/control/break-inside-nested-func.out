@@ -1,0 +1,4 @@
+break-inside-nested-func.ari:5:22: error: 'break' outside a loop
+    let f = func () do break end
+                       ^^^^^
+--- exit: 1

@@ -1,0 +1,4 @@
+toplevel-return.ari:3:1: error: 'return' outside a function
+  return 1
+  ^^^^^^^^
+--- exit: 1

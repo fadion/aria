@@ -1,0 +1,4 @@
+placeholder-as-value.ari:3:9: error: '_' is a placeholder: it means something only as a switch case value or an append target
+  let x = _
+          ^
+--- exit: 1

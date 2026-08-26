@@ -1,0 +1,6 @@
+// The arity check lived inside the per-iteration closure, so an empty
+// enumerable never reached it and this ran to completion.
+for a, b, c in []
+  println(a)
+end
+println("survived")

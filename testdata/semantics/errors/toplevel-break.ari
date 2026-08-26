@@ -1,0 +1,5 @@
+// Interp.Run stops its node loop on any control signal, so a `break` where no
+// loop is running discarded the rest of the file: no output, no diagnostic, and
+// exit code 0. Nothing downstream could tell anything had gone wrong.
+break
+println("after")

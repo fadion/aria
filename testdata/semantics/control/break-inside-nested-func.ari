@@ -1,0 +1,7 @@
+// A `break` inside a function that happens to be defined in a loop belongs to
+// neither: the call is not the loop's body. It used to unwind out of the call
+// and quietly end the loop.
+for v in [1, 2, 3]
+  let f = func () do break end
+  f()
+end
