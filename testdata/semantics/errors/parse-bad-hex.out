@@ -1,0 +1,4 @@
+parse-bad-hex.ari:1:9: error: hexadecimal literal "0x" has no digits
+  let x = 0x
+          ^^
+--- exit: 1

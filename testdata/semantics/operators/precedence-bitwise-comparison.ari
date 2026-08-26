@@ -1,0 +1,6 @@
+// Bitwise against comparison, and shift against additive (2.4).
+println(1 | 2 == 3)
+println(6 & 3 != 2)
+println(1 + 2 << 3)
+println((1 + 2) << 3)
+println(1 + (2 << 3))

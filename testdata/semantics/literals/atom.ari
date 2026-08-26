@@ -1,0 +1,3 @@
+println(:ok)
+println(:some_atom)
+println(typeof(:ok))

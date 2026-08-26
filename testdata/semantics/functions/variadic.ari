@@ -1,0 +1,9 @@
+let sum = func (...nums) do
+  var total = 0
+  for n in nums
+    total += n
+  end
+  total
+end
+println(sum(1, 2, 3, 4))
+println(sum(5))

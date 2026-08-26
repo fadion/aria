@@ -1,0 +1,8 @@
+let f = func (x) do
+  if x > 0 then
+    return "positive"
+  end
+  "non-positive"
+end
+println(f(1))
+println(f(-1))

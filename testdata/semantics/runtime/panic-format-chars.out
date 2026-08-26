@@ -1,0 +1,4 @@
+panic-format-chars.ari:2:1: error: progress is 100% complete for %s
+  panic("progress is 100% complete for %s")
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--- exit: 1

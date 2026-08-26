@@ -1,0 +1,2 @@
+// A panic message containing printf verbs.
+panic("progress is 100% complete for %s")

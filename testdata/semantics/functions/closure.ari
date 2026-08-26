@@ -1,0 +1,10 @@
+let makeCounter = func () do
+  var count = 0
+  func () do
+    count += 1
+    count
+  end
+end
+let c = makeCounter()
+println(c())
+println(c())

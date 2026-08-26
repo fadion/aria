@@ -1,0 +1,4 @@
+// Whether a parse error suppresses reporting of LATER statements.
+let x = ]
+var y = 1
+println(y)

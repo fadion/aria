@@ -1,0 +1,6 @@
+// Whether the loop variable survives after the loop ends.
+let items = [1, 2, 3]
+for v in items
+  v
+end
+println(v)

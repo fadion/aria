@@ -1,0 +1,10 @@
+// A `let` inside a function marks that NAME immutable process-wide, so an
+// unrelated top-level `var` of the same name cannot be reassigned.
+let f = func () do
+  let counter = 1
+  counter
+end
+println(f())
+var counter = 99
+counter = 5
+println(counter)

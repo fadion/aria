@@ -1,0 +1,4 @@
+panic.ari:1:1: error: something went wrong
+  panic("something went wrong")
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--- exit: 1

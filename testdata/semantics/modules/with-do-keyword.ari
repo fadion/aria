@@ -1,0 +1,5 @@
+// parseModule() contains a branch for an optional DO after the module name.
+module M do
+  let a = 1
+end
+println(M.a)

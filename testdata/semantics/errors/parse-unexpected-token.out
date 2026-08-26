@@ -1,0 +1,4 @@
+parse-unexpected-token.ari:1:9: error: unexpected ']'
+  let x = ]
+          ^
+--- exit: 1

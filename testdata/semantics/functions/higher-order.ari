@@ -1,0 +1,4 @@
+let apply = func (fn: Function, v) do
+  fn(v)
+end
+println(apply(x -> x + 1, 41))

@@ -1,0 +1,5 @@
+// An Atom case can match a String control.
+println(switch "ok" do
+  case :ok then "matched atom"
+  default then "no match"
+end)

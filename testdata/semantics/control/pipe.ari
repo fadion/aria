@@ -1,0 +1,4 @@
+let double = func (x) do x * 2 end
+let inc = func (x) do x + 1 end
+println(5 |> double())
+println(5 |> double() |> inc())

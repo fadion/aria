@@ -1,0 +1,7 @@
+// Concatenation of two dictionaries, and whether the operands survive it.
+let a = [:k => 1]
+let b = [:j => 2]
+let c = a + b
+println(c[:k])
+println(c[:j])
+println(b[:k])

@@ -1,0 +1,10 @@
+let describe = func (n) do
+  switch n do
+    case 1 then "one"
+    case 2, 3 then "two or three"
+    default then "many"
+  end
+end
+println(describe(1))
+println(describe(3))
+println(describe(9))

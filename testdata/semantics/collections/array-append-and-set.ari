@@ -1,0 +1,7 @@
+var a = [1, 2, 3]
+a[] = 4
+println(a)
+a[0] = 100
+println(a)
+a[-1] = 400
+println(a)

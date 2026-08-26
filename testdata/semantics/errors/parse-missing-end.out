@@ -1,0 +1,4 @@
+parse-missing-end.ari:1:9: error: missing 'end' to close 'func'
+  let f = func (a) do
+          ^^^^^^^^^^^
+--- exit: 1

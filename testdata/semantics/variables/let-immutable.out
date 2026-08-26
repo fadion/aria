@@ -1,0 +1,7 @@
+let-immutable.ari:3:1: error: cannot assign to 'a': it is bound with let, which cannot be rebound
+  a = 2
+  ^
+let-immutable.ari:2:5: note: 'a' is declared here
+  let a = 1
+      ^
+--- exit: 1

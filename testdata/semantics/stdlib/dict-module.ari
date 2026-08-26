@@ -1,0 +1,5 @@
+let d = [:a => 1]
+println(Dict.size(d))
+println(Dict.contains?(d, :a))
+println(Dict.empty?(d))
+println(Dict.empty?([:x => 1]))

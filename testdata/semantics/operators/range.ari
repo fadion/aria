@@ -1,0 +1,5 @@
+println(1..5)
+println(5..1)
+println(3..3)
+println("a".."e")
+println("e".."a")

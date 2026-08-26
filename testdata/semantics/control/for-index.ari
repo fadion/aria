@@ -1,0 +1,3 @@
+for i, v in ["a", "b"]
+  println((i as String) + "=" + v)
+end

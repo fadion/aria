@@ -1,0 +1,10 @@
+// isTruthy across every data type.
+println(if 0 then "t" else "f" end)
+println(if 1 then "t" else "f" end)
+println(if 0.0 then "t" else "f" end)
+println(if "" then "t" else "f" end)
+println(if "x" then "t" else "f" end)
+println(if nil then "t" else "f" end)
+println(if [] then "t" else "f" end)
+println(if [1] then "t" else "f" end)
+println(if :atom then "t" else "f" end)

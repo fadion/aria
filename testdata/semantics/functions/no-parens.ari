@@ -1,0 +1,5 @@
+// Parentheses around parameters are optional.
+let double = func x do
+  x * 2
+end
+println(double(21))

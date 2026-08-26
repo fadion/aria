@@ -1,0 +1,4 @@
+runtime-call-non-function.ari:2:9: error: cannot call Int
+  println(x(1))
+          ^^^^
+--- exit: 1

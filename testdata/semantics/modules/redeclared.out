@@ -1,0 +1,4 @@
+redeclared.ari:4:8: error: module 'M' is already declared
+  module M
+         ^
+--- exit: 1

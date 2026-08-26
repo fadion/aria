@@ -1,0 +1,6 @@
+// String ordering compares LENGTH, not lexicographic order.
+println("abc" == "abc")
+println("abc" != "abd")
+println("abc" < "zz")
+println("a" < "bbb")
+println("zzz" > "a")

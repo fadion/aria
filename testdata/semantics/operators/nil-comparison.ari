@@ -1,0 +1,4 @@
+println(nil == nil)
+println(nil != nil)
+println(nil == false)
+println(nil == 0)

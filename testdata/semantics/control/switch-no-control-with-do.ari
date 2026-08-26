@@ -1,0 +1,4 @@
+// The same feature written with an explicit DO.
+println(switch do
+  case 1 == 1 then 10
+end)

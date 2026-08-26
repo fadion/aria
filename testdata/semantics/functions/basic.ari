@@ -1,0 +1,4 @@
+let add = func (a, b) do
+  a + b
+end
+println(add(1, 2))

@@ -1,0 +1,5 @@
+// Declared return type vs. what the body actually produces.
+let f = func (n: Int) -> Int
+  n / 4
+end
+println(f(10))

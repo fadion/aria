@@ -1,0 +1,4 @@
+module M
+  let a = 1
+end
+println(M.nope)

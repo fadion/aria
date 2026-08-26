@@ -1,0 +1,7 @@
+let s = "Hello World"
+println(String.count(s))
+println(String.first(s))
+println(String.last(s))
+println(String.lower(s))
+println(String.upper(s))
+println(String.reverse("abc"))

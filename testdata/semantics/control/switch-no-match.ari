@@ -1,0 +1,3 @@
+println(switch 99 do
+  case 1 then "one"
+end)

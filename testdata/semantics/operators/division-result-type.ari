@@ -1,0 +1,7 @@
+// Division returns Int when the result divides evenly, Float otherwise.
+// The RESULT TYPE therefore depends on runtime values, not operand types.
+println(10 / 5)
+println(typeof(10 / 5))
+println(10 / 4)
+println(typeof(10 / 4))
+println(1 / 3)

@@ -1,0 +1,7 @@
+// Two independent concatenations off the same base array.
+// b must not be affected by the later c.
+let a = [1, 2, 3, 4, 5]
+let b = a + [98]
+let c = a + [99]
+println(b)
+println(c)

@@ -1,0 +1,6 @@
+// A statement that evaluates to nothing, followed by more statements.
+let f = func () do
+  println("before")
+  42
+end
+println(f())

@@ -1,0 +1,4 @@
+println("foo" + "bar")
+println("" + "x")
+println("a" + :b)
+println(:a + "b")

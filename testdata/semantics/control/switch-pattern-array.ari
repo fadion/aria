@@ -1,0 +1,8 @@
+println(switch [1, 2] do
+  case 1, 2 then "one two"
+  default then "other"
+end)
+println(switch [1, 9] do
+  case 1, _ then "one anything"
+  default then "other"
+end)

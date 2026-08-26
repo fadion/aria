@@ -1,0 +1,6 @@
+let a = [1, 2, 3, 4]
+println(Enum.map(a, x -> x * 2))
+println(Enum.filter(a, x -> x > 2))
+println(Enum.find(a, x -> x > 2))
+println(Enum.contains?(a, 3))
+println(Enum.contains?(a, 99))

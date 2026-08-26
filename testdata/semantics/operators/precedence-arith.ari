@@ -1,0 +1,6 @@
+println(1 + 2 * 3)
+println((1 + 2) * 3)
+println(2 * 3 ** 2)
+println(1 + 2 == 3)
+println(10 - 2 - 3)
+println(100 / 10 / 2)

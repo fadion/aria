@@ -1,0 +1,7 @@
+redeclare-same-scope.ari:2:5: error: 'x' is already declared in this scope
+  let x = 2
+      ^
+redeclare-same-scope.ari:1:5: note: 'x' was first declared here
+  let x = 1
+      ^
+--- exit: 1

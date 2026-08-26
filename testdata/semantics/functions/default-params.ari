@@ -1,0 +1,5 @@
+let greet = func (name, greeting = "Hello") do
+  greeting + ", " + name
+end
+println(greet("Ada"))
+println(greet("Ada", "Hi"))

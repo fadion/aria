@@ -1,0 +1,6 @@
+let a = [1, 2, 3]
+println(a)
+println(a[0])
+println(a[2])
+println([])
+println([1, "two", :three, 4.0, nil])

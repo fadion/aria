@@ -1,0 +1,7 @@
+// Bitwise operators bind LOWER than comparison, as in C.
+println(6 & 3)
+println(6 | 3)
+println(1 << 4)
+println(256 >> 4)
+println(~9)
+println((6 & 3) == 2)

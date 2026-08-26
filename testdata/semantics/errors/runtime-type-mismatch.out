@@ -1,0 +1,4 @@
+runtime-type-mismatch.ari:1:9: error: cannot apply '+' to String and Int
+  println("string" + 1)
+          ^^^^^^^^^^^^
+--- exit: 1

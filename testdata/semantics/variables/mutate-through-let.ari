@@ -1,0 +1,10 @@
+// Mutating the CONTENTS of a let-bound collection (3.4).
+let a = [1, 2, 3]
+a[] = 4
+println(a)
+a[0] = 99
+println(a)
+
+let d = [:k => 1]
+d[:k] = 2
+println(d[:k])

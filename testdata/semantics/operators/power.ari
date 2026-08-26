@@ -1,0 +1,7 @@
+// Exponentiation, including associativity and negative exponents.
+println(2 ** 8)
+println(2 ** 3 ** 2)
+println(2 ** -1)
+println(2.0 ** -1)
+println(-2 ** 2)
+println(9 ** 0.5)

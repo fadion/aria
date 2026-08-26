@@ -1,0 +1,4 @@
+arity-too-many.ari:2:9: error: function (a) expects at most 1 argument(s), got 3
+  println(f(1, 2, 3))
+          ^^^^^^^^^^
+--- exit: 1

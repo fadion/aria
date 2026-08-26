@@ -1,0 +1,5 @@
+// Escape handling in the lexer's consumeString.
+println("tab:\there")
+println("newline:\nsecond")
+println("quote:\"quoted\"")
+println("backslash:\\")

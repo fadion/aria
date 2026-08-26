@@ -1,0 +1,2 @@
+let f = func (a, b) do a end
+println(f(1))

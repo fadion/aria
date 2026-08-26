@@ -1,0 +1,7 @@
+let s = "Hello World"
+println(String.starts?(s, "Hello"))
+println(String.ends?(s, "World"))
+println(String.contains?(s, "lo W"))
+println(String.replace(s, "World", "There"))
+println(String.slice(s, 0, 5))
+println(String.match?("abc123", "[0-9]+"))

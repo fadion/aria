@@ -1,0 +1,8 @@
+println(true && true)
+println(true && false)
+println(true || false)
+println(!true)
+println(!false)
+println(!0)
+println(!"")
+println(!nil)

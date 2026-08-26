@@ -1,0 +1,4 @@
+missing-member.ari:4:11: error: module 'M' has no member 'nope'
+  println(M.nope)
+            ^^^^
+--- exit: 1

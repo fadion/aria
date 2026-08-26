@@ -1,0 +1,6 @@
+println(Math.floor(1.7))
+println(Math.ceil(1.2))
+println(Math.max(3, 7))
+println(Math.min(3, 7))
+println(Math.abs(-5))
+println(Math.pow(2, 8))

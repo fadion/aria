@@ -1,0 +1,4 @@
+let out = for v in [1, 2, 3]
+  v * 2
+end
+println(out)

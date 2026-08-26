@@ -1,0 +1,8 @@
+module Greeter
+  let hello = func (name) do
+    "Hello, " + name
+  end
+  let version = 1
+end
+println(Greeter.hello("world"))
+println(Greeter.version)

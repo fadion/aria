@@ -1,0 +1,12 @@
+// A switch with no matching case yields nothing. Everything after it in the
+// same block is discarded: neither the println nor the 42 is reached, and the
+// only diagnostic points at the caller's line rather than the cause.
+let f = func () do
+  switch 99
+    case 1 then "one"
+  end
+  println("this line should run")
+  42
+end
+println(f())
+println("done")

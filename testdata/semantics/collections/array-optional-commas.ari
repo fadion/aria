@@ -1,0 +1,3 @@
+// Commas between collection elements are optional, as the README documents.
+println([5 7 9 "Hi"])
+println([:a => 1 :b => 2])

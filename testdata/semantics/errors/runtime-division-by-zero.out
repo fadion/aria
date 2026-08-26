@@ -1,0 +1,4 @@
+runtime-division-by-zero.ari:1:9: error: division by zero
+  println(1 / 0)
+          ^^^^^
+--- exit: 1

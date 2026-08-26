@@ -1,0 +1,6 @@
+// && and || share a precedence level, so mixing them without parentheses
+// does not follow the usual "&& binds tighter than ||" rule.
+println(false && false || true)
+println((false && false) || true)
+println(false && (false || true))
+println(true || false && false)
