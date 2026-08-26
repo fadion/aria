@@ -86,39 +86,27 @@ jobs:
         with:
           go-version-file: go.mod
 
-      # `go test -fuzz` fails for two unrelated reasons, and they need telling
-      # apart. A failing input is a bug and gets written to testdata/fuzz. A
-      # coordinator that cannot shut its workers down inside the deadline
-      # reports "context deadline exceeded", writes nothing, and means only
-      # that the runner was busy -- one run failed that way a second after
-      # fuzztime elapsed, having already stalled at 0 execs/sec for 21s.
-      #
-      # So: a written input fails the job immediately. Anything else is retried
-      # once, on the same runner, where GOCACHE still holds the corpus the
-      # first attempt built up -- a real hang has a good chance of being found
-      # again rather than waved through. Twice with nothing written still fails.
-      - name: Fuzz the scanner and parser
+      # Any failure fails the job, timeouts included. A parser that hangs on
+      # some input and a runner too busy to shut the coordinator down look
+      # identical from here -- both come back as "context deadline exceeded"
+      # with nothing written -- and non-termination is a bug class this repo
+      # takes seriously enough not to guess about.
+      - name: Fuzz the scanner
+        run: go test ./internal/scanner/ -run=Fuzz -fuzz=FuzzScan -fuzztime=30s
+
+      - name: Fuzz the parser
+        run: go test ./internal/parser/ -run=Fuzz -fuzz=FuzzParse -fuzztime=30s
+
+      # Which of the two it was, without having to download anything. This
+      # only labels the failure; the job is already failing either way.
+      - name: Say which kind of failure it was
+        if: failure()
         run: |
-          crashers() { find internal -path '*/testdata/fuzz/*' -type f 2>/dev/null; }
-
-          fuzz() {
-            local pkg=$1 target=$2 attempt
-            for attempt in 1 2; do
-              if go test "$pkg" -run=Fuzz -fuzz="$target" -fuzztime=30s; then
-                return 0
-              fi
-              if [ -n "$(crashers)" ]; then
-                echo "::error::$target found a failing input"
-                return 1
-              fi
-              echo "::warning::$target failed on attempt $attempt without writing a failing input, which points at the fuzzing harness rather than at $pkg"
-            done
-            echo "::error::$target failed twice without writing a failing input"
-            return 1
-          }
-
-          fuzz ./internal/scanner/ FuzzScan || exit 1
-          fuzz ./internal/parser/  FuzzParse || exit 1
+          if [ -n "$(find internal -path '*/testdata/fuzz/*' -type f 2>/dev/null)" ]; then
+            echo "::error::a fuzz target found a failing input, attached below as fuzz-corpus"
+          else
+            echo "::warning::no failing input was written, so this is a hang or a loaded runner; re-run to tell them apart"
+          fi
 
       # A crasher is written to testdata/fuzz, which is gitignored and would
       # otherwise be thrown away with the runner.
