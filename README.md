@@ -1,6 +1,5 @@
 [![CI](https://github.com/fadion/aria/actions/workflows/ci.yml/badge.svg)](https://github.com/fadion/aria/actions/workflows/ci.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/fadion/aria.svg)](https://pkg.go.dev/github.com/fadion/aria)
-[![Go Report Card](https://goreportcard.com/badge/github.com/fadion/aria)](https://goreportcard.com/report/github.com/fadion/aria)
 
 # Aria Language
 
