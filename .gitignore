@@ -1,19 +1,21 @@
-# Binaries for programs and plugins
+# Built binaries. `aria` has no extension on Unix, so the wildcards below do not
+# cover it.
+/aria
+/aria.exe
 *.exe
 *.dll
 *.so
 *.dylib
 
-# Test binary, build with `go test -c`
+# Test binaries and fuzz corpora. A corpus entry is only useful alongside the
+# failing input it was minimised from, which belongs in a test instead.
 *.test
-
-# Project-local glide cache
-.glide/
+**/testdata/fuzz/
 
 # System and IDE files
 .idea
+.vscode
 .DS_STORE
-release
 
-# Testing files
+# Scratch files
 source.ari
