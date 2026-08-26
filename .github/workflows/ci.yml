@@ -86,11 +86,39 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Fuzz the scanner
-        run: go test ./internal/scanner/ -run=Fuzz -fuzz=FuzzScan -fuzztime=30s
+      # `go test -fuzz` fails for two unrelated reasons, and they need telling
+      # apart. A failing input is a bug and gets written to testdata/fuzz. A
+      # coordinator that cannot shut its workers down inside the deadline
+      # reports "context deadline exceeded", writes nothing, and means only
+      # that the runner was busy -- one run failed that way a second after
+      # fuzztime elapsed, having already stalled at 0 execs/sec for 21s.
+      #
+      # So: a written input fails the job immediately. Anything else is retried
+      # once, on the same runner, where GOCACHE still holds the corpus the
+      # first attempt built up -- a real hang has a good chance of being found
+      # again rather than waved through. Twice with nothing written still fails.
+      - name: Fuzz the scanner and parser
+        run: |
+          crashers() { find internal -path '*/testdata/fuzz/*' -type f 2>/dev/null; }
 
-      - name: Fuzz the parser
-        run: go test ./internal/parser/ -run=Fuzz -fuzz=FuzzParse -fuzztime=30s
+          fuzz() {
+            local pkg=$1 target=$2 attempt
+            for attempt in 1 2; do
+              if go test "$pkg" -run=Fuzz -fuzz="$target" -fuzztime=30s; then
+                return 0
+              fi
+              if [ -n "$(crashers)" ]; then
+                echo "::error::$target found a failing input"
+                return 1
+              fi
+              echo "::warning::$target failed on attempt $attempt without writing a failing input, which points at the fuzzing harness rather than at $pkg"
+            done
+            echo "::error::$target failed twice without writing a failing input"
+            return 1
+          }
+
+          fuzz ./internal/scanner/ FuzzScan || exit 1
+          fuzz ./internal/parser/  FuzzParse || exit 1
 
       # A crasher is written to testdata/fuzz, which is gitignored and would
       # otherwise be thrown away with the runner.
