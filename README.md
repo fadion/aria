@@ -64,6 +64,9 @@ println(pipe) // "Expressive Aria Language"
 * [Comments](#comments)
 * [Standard Library](#standard-library)
 
+_Working on the interpreter itself? [docs/architecture.md](docs/architecture.md) covers how it is put
+together and why the design decisions went the way they did._
+
 ## Usage
 
 If you want to play with the language, but have no interest in toying with its code, you can download a built binary for your operating system. Just head to the [latest release](https://github.com/fadion/aria/releases/latest) and download one of the archives.
@@ -88,7 +91,7 @@ aria repl
 
 ## Variables
 
-Variables in Aria start with the keyword `var`. Accessing an undeclared variable, in contrast with some languages, will not create it, but instead throw a runtime error.
+Variables in Aria start with the keyword `var`. Accessing an undeclared variable, in contrast with some languages, will not create it. Names are checked before the program runs, so a typo is reported without the program having had any effect.
 
 ```swift
 var name = "John"
@@ -102,11 +105,13 @@ Names have to start with an alphabetic character and continue either with alphan
 
 ### Constants
 
-Constants have the same traits as variables, except that they start with `let` and are immutable. Once declared, reassigning a constant will produce a runtime error. Even data structures are locked into immutability. Elements of an Array or Dictionary can't be added, updated or removed.
+Constants have the same traits as variables, except that they start with `let` and are immutable. Once declared, reassigning a constant is an error, reported before the program runs. Even data structures are locked into immutability: elements of an Array or Dictionary can't be added, updated or removed through a `let` name.
+
+Writing to an element is really a rebinding — `xs[] = v` gives you a new collection and points the name at it — so it needs a `var`, the same as any other reassignment.
 
 ```swift
 let name = "Ben"
-name = "John" // runtime error
+name = "John" // error: name is bound with let
 ```
 
 ### Type Lock
@@ -124,7 +129,7 @@ This won't:
 
 ```swift
 var nr = 10
-nr = "ten" // runtime error
+nr = "ten" // error: nr holds Int
 ```
 
 ## Data Types
@@ -143,13 +148,19 @@ let price = "円500"
 String concatenation is handled with the `+` operator. Concats between a string and another data type will result in a runtime error.
 
 ```swift
-let name = "Tony" + " " + "Stark" 
+let name = "Tony" + " " + "Stark"
 ```
 
 Additionally, strings are treated as enumerables. They support subscripting and iteration in `for in` loops.
 
 ```swift
-"howdy"[2] // "w" 
+"howdy"[2] // "w"
+```
+
+Subscripting counts characters, not bytes, so a string with accents or emoji indexes the way it reads:
+
+```swift
+"héllo"[1] // "é"
 ```
 
 Escape sequences are there too if you need them: `\"`, `\n`, `\t`, `\r`, `\a`, `\b`, `\f` and `\v`. Nothing changes from other languages, so I'm sure you can figure out by yourself what every one of them does.
@@ -194,12 +205,27 @@ let arch = 2 ** 32
 ```
 
 A sugar feature both in Integer and Float is the underscore:
- 
+
 ```swift
 let big = 27_000_000
 ```
 
 It has no special meaning, as it will be ignored in the lexing phase. Writing `1_000` and `1000` is the same thing to the interpreter.
+
+Arithmetic between two Integers always produces an Integer, and that includes division, which truncates toward zero:
+
+```swift
+10 / 5  // 2
+10 / 4  // 2, not 2.5
+1 / 3   // 0
+2 ** -1 // 0, for the same reason
+```
+
+The operand *types* decide the result type, never the operand values. That's what makes a declared return type like `func (n: Int) -> Int` something you can check by reading the code rather than by running it with the wrong numbers. When you want real division, give it a Float:
+
+```swift
+10 / 4.0 // 2.5
+```
 
 ### Float
 
@@ -231,7 +257,7 @@ Expressions like the `if/else`, as you'll see later, will check for values that 
 ### Array
 
 Arrays are ordered collections of any data type. You can mix and match strings with integers, or floats with other arrays.
- 
+
 ```swift
 let multi = [5, "Hi", ["Hello", "World"]]
 let names = ["John", "Ben", 1337]
@@ -239,7 +265,7 @@ let names = ["John", "Ben", 1337]
 let john = names[0]
 let leet = names[-1]
 ```
- 
+
 Individual array elements can be accessed via subscripting with a 0-based index:
 
 ```swift
@@ -284,9 +310,9 @@ Oh and if you're that lazy, you can ommit commas too:
 ```swift
 let nocomma = [5 7 9 "Hi"]
 ```
- 
+
 ### Dictionary
- 
+
 Dictionaries are hashes with a key and a value of any data type. They're good to hold unordered, structured data:
 
 ```swift
@@ -300,7 +326,7 @@ let user = [:name => "Dr. Unusual", :proffesion => "Illusionist", :age => 150]
 ```
 
 Unlike arrays, internally their order is irrelevant, so you can't rely on index-based subscripting. They only support key-based subscripting:
- 
+
 ```swift
 user["name"] // "Dr. Unusual"
 ```
@@ -386,15 +412,33 @@ end
 
 You can't expect to run some calculations without a good batch of operators, right? Well, Aria has a range of arithmetic, boolean and bitwise operators to match your needs.
 
-By order of precedence:
+By order of precedence, loosest first:
+
+```
+||                    OR
+&&                    AND
+== != < <= > >=       equality and comparison
+|                     bitwise OR
+&                     bitwise AND
+..                    range
+<< >>                 bitshift left and right
++ -                   addition, subtraction
+* / %                 multiplication, division, modulo
+**                    power (right associative)
+! ~ -                 prefix NOT, bitwise NOT, negation
+```
+
+Two of these are worth a second look, because they read the other way round in some
+languages. `&&` binds tighter than `||`, so `a && b || c` is `(a && b) || c`. And bitwise
+binds tighter than comparison, so `6 & 3 == 3` is `(6 & 3) == 3` — the same way Python
+does it, the opposite of C.
+
+`**` is right associative and outranks a leading minus, but not a minus on its exponent:
 
 ```swift
-Boolean: && || (AND, OR)
-Bitwise: & | ~ (Bitwise AND, OR, NOT)
-Equality: == != (Equal, Not equal)
-Comparison: < <= > >=
-Bitshift: << >> (Bitshift left and right)
-Arithmetic: + - * / % ** (addition, substraction, multiplication, division, modulo, power)
+2 ** 3 ** 2 // 512, not 64
+-2 ** 2     // -4, the negation of 2 ** 2
+2 ** -1     // 0, see Int division below
 ```
 
 Arithmetic expressions can be safely used for Integers and Floats:
@@ -446,7 +490,7 @@ Bitwise and bitshift operator apply only to Integers. Float values can't be used
 ```swift
 10 >> 1
 12 & 5 | 3
-5 ~ 2
+~5
 ```
 
 ### Shorthand Assignment
@@ -510,7 +554,7 @@ let architecture = func bits = 6
 end
 
 architecture() // 64
-architecture(4) // 16 
+architecture(4) // 16
 ```
 
 They can be combined with type hinting and, obviously, need to be of the same declared type.
@@ -532,11 +576,11 @@ let even = func n
   end
   false
 end
-``` 
+```
 
 The last statement doesn't need a `return`, as it's the last line and will be automatically inferred. With the `if` on the other hand, the interpreter can't understand the intention, as it's just another expression. It needs the explicit `return` to stop the other statements from being interpreted.
 
-In the case of multiple return points, I'd advise to always use `return`, no matter if it's the first or last statement. It will make for clearer intentions. 
+In the case of multiple return points, I'd advise to always use `return`, no matter if it's the first or last statement. It will make for clearer intentions.
 
 ### Variadic
 
@@ -561,7 +605,7 @@ let structure = func ...args
   if Enum.size(args) == 2
     let key = args[0]
     let val = args[1]
-    return [key: val]
+    return [key => val]
   end
   if Enum.size(args) > 2
     return args
@@ -650,10 +694,10 @@ let fac = func n
   if n == 0
     return 1
   end
-  
+
   n * fac(n - 1)
 end
-``` 
+```
 
 Keep in mind that Aria doesn't provide tail call optimization, as Go still doesn't support it. That would allow for more memory efficient recursion, especially when creating large stacks.
 
@@ -672,7 +716,7 @@ Not sure how useful, but they can be passed as elements to data structures, like
 ```swift
 let add = func x, y do x + y end
 let list = [1, 2, add]
-list[2](5, 7) 
+list[2](5, 7)
 ```
 
 Finally, like you may have guessed from previous examples, they can be passed as parameters to other functions:
@@ -743,7 +787,7 @@ switch
 case a == "John"
   println("John")
 case a == "Ben"
-  println("Ben") 
+  println("Ben")
 default
   println("Nobody")
 end
@@ -800,7 +844,7 @@ Passing two arguments for arrays or strings will return the current index and va
 
 ```swift
 for i, v in "abcd"
-  println(i + "=>" + v)
+  println((i as String) + "=>" + v)
 end
 ```
 
@@ -851,7 +895,7 @@ end
 
 ## Range Operator
 
-The range operator is a special type of sugar to quickly generate an array of integers or strings. 
+The range operator is a special type of sugar to quickly generate an array of integers or strings.
 
 ```swift
 let numbers = 0..9
@@ -919,7 +963,7 @@ Iterators are typical examples where mutability is seeked for. The dreaded `i` v
 ```swift
 let numbers = [10, 5, 9]
 for k, v in numbers
-  println(v) 
+  println(v)
   println(numbers[k]) // same thing
 end
 ```
@@ -1033,7 +1077,7 @@ Nothing ground breaking in here. You can write either single line or multi line 
 
 ## Standard Library
 
-The Standard Library is fully written in Aria with the help of a few essential functions provided by the runtime. That is currently the best source to check out some "production" Aria code and see what it's capable of. [Read the documentation](https://github.com/fadion/aria/wiki/Standard-Library). 
+The Standard Library is fully written in Aria with the help of a few essential functions provided by the runtime. That is currently the best source to check out some "production" Aria code and see what it's capable of. [Read the documentation](https://github.com/fadion/aria/wiki/Standard-Library).
 
 ## Future Plans
 
