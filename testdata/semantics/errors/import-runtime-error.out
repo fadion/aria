@@ -1,0 +1,5 @@
+before
+_boom.ari:4:3: error: division by zero
+    1 / 0
+    ^^^^^
+--- exit: 1

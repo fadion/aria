@@ -34,7 +34,13 @@ import (
 )
 
 // Error is a runtime failure, located in the source.
+//
+// File is the file Span indexes into, which is not necessarily the file that
+// was run: a fault inside an imported file or a standard library module is
+// located in that file's text. Without it the span was rendered against the
+// wrong source and pointed at unrelated lines, or past the end of the file.
 type Error struct {
+	File *source.File
 	Span source.Span
 	Msg  string
 }
@@ -106,6 +112,26 @@ type Interp struct {
 
 	signal signal
 	retval value.Value
+
+	// frames is the call stack. Each frame names the file its function's body
+	// lives in, so a fault inside it is reported against that file, and its
+	// depth is what bounds recursion.
+	frames []frame
+}
+
+// maxCallDepth bounds recursion, for the reason the parser bounds nesting at
+// 250: exhausting the goroutine stack kills the process with a Go traceback,
+// which is not a diagnostic anybody can act on. It is far above any depth a
+// sensible program reaches and far below where the 1 GB stack ceiling is in
+// sight.
+const maxCallDepth = 3000
+
+// A frame is one active call.
+type frame struct {
+	// file is where the callee's body was written.
+	file *source.File
+	// span locates the call site, in the caller's file.
+	span source.Span
 }
 
 // New returns an interpreter writing to stdout and stderr.
@@ -159,7 +185,24 @@ func (i *Interp) Run(prog *ast.Program) (result value.Value, err error) {
 // sentinel is what keeps one failure from producing a cascade of follow-on
 // messages describing the confusion it caused.
 func (i *Interp) fail(span source.Span, format string, args ...any) {
-	panic(&Error{Span: span, Msg: fmt.Sprintf(format, args...)})
+	i.failIn(i.curFile(), span, format, args...)
+}
+
+// failIn is fail for a span that belongs to a file other than the one being
+// evaluated — a call site, when the callee was written elsewhere.
+func (i *Interp) failIn(file *source.File, span source.Span, format string, args ...any) {
+	panic(&Error{File: file, Span: span, Msg: fmt.Sprintf(format, args...)})
+}
+
+// curFile is the file whose text the node being evaluated came from: the body
+// of the innermost active call, or the file being run at top level.
+func (i *Interp) curFile() *source.File {
+	if n := len(i.frames); n > 0 {
+		if f := i.frames[n-1].file; f != nil {
+			return f
+		}
+	}
+	return i.file
 }
 
 // ---------------------------------------------------------------------------
@@ -255,7 +298,7 @@ func (i *Interp) eval(n ast.Node, e *env) value.Value {
 		return i.evalFor(n, e)
 
 	case *ast.Function:
-		return &Function{Decl: n, Env: e}
+		return &Function{Decl: n, Env: e, File: i.curFile()}
 	case *ast.FunctionCall:
 		return i.evalCall(n, e)
 
@@ -1000,7 +1043,11 @@ func (i *Interp) convert(v value.Value, to string, span source.Span) value.Value
 // Report writes a runtime error in the same shape as a compile-time diagnostic,
 // so both look the same to whoever is reading the terminal.
 func (i *Interp) Report(err *Error) {
-	bag := diag.New(i.file)
+	file := err.File
+	if file == nil {
+		file = i.file
+	}
+	bag := diag.New(file)
 	bag.Errorf(err.Span, "%s", err.Msg)
 	fmt.Fprint(i.Err, bag.Render())
 }

@@ -1,0 +1,6 @@
+// A runtime error raised inside an imported file is located in that file. The
+// span is a byte offset into the importee, so rendering it against the
+// importer drew an unrelated line of this file with a caret under nothing.
+import "_boom"
+println("before")
+boom()

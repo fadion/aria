@@ -261,7 +261,11 @@ func (s *Session) Eval(src string) (value.Value, error) {
 	if err != nil {
 		var re *Error
 		if errors.As(err, &re) {
-			b := diag.New(file)
+			at := re.File
+			if at == nil {
+				at = file
+			}
+			b := diag.New(at)
 			b.Errorf(re.Span, "%s", re.Msg)
 			return nil, fmt.Errorf("%s", strings.TrimRight(b.Render(), "\n"))
 		}

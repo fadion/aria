@@ -1,0 +1,4 @@
+// Unbounded recursion is a diagnostic, not a Go traceback. The parser bounds
+// nesting for the same reason; this is the evaluator's half of it.
+let f = func (n) do f(n + 1) end
+f(0)

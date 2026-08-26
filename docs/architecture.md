@@ -234,9 +234,33 @@ main.ari:3:11: error: unterminated string
 A failed run exits non-zero. The original exited `0` on every parse and runtime error
 alike, which made failure undetectable from a script.
 
+### A runtime error carries the file its span indexes into
+
+A `source.Span` is a pair of byte offsets and nothing else, so it only means something
+against the file it was taken from. One program routinely evaluates code from three: the
+file being run, whatever it imports, and the standard library. Rendering every span
+against the file being run drew the importer's text at the importee's offsets — an
+unrelated line with a caret under nothing — and for the standard library the offset
+usually landed past the end of the user's file, which produced a line number that did not
+exist and no source line at all.
+
+So `interp.Error` carries a `*source.File` alongside its span, and the interpreter keeps a
+stack of call frames. A `*Function` records the file its body was written in; calling it
+pushes a frame naming that file, and `fail` locates the error in the innermost frame's
+file. Errors reported *at* a call — arity, parameter types, return type — are faults in
+the caller, so they go through `failIn` with the caller's file explicitly.
+
+### Recursion is bounded
+
+The parser bounds nesting at 250 so that deep input fails with a diagnostic instead of
+exhausting the stack. The evaluator now does the same at `maxCallDepth`, 3000 frames: past
+that a call fails as an ordinary Aria error. Without it, runaway recursion grew the
+goroutine stack to Go's 1 GB ceiling and killed the process with a traceback, which is not
+something the author of an Aria program can act on.
+
 ## The characterization suite
 
-`testdata/semantics/` holds 128 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 131 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash

@@ -1,0 +1,5 @@
+// Imported by import-runtime-error.ari. The fault is on line 2 of this file,
+// and that is where the diagnostic has to point.
+let boom = func () do
+  1 / 0
+end

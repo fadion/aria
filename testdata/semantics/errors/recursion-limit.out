@@ -1,0 +1,4 @@
+recursion-limit.ari:3:21: error: call depth of 3000 exceeded, probably infinite recursion
+  let f = func (n) do f(n + 1) end
+                      ^^^^^^^^
+--- exit: 1
