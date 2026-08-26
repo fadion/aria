@@ -8,7 +8,13 @@ on:
     # pseudo-version until one exists.
     tags: ['[0-9]+.[0-9]+.[0-9]+', 'v[0-9]+.[0-9]+.[0-9]+']
   # Builds the archives without publishing, so the packaging can be exercised
-  # from a branch before a tag exists.
+  # before a tag exists. A pull request that touches this file exercises it
+  # too: until now the only way to find out whether releasing worked was to
+  # tag, and by then the tag is public. GitHub only dispatches workflows that
+  # exist on the default branch, so the pull_request trigger is also the only
+  # way to run this from a branch.
+  pull_request:
+    paths: ['.github/workflows/release.yml']
   workflow_dispatch:
 
 permissions:
@@ -19,6 +25,8 @@ jobs:
   # here too. Nothing gets published that has not been through them.
   verify:
     name: verify
+    # On a pull request the CI workflow has already run all of this.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -52,6 +60,9 @@ jobs:
   build:
     name: ${{ matrix.name }}
     needs: verify
+    # A skipped need skips the dependent job, and verify is skipped on pull
+    # requests. Build anyway; just not after verify actually failed.
+    if: ${{ !cancelled() && needs.verify.result != 'failure' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
