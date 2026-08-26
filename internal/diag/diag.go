@@ -59,8 +59,8 @@ type Bag struct {
 // New returns a Bag for file, keeping at most DefaultMax diagnostics.
 func New(file *source.File) *Bag { return &Bag{file: file, max: DefaultMax} }
 
-// SetMax changes the cap. A max of zero or less means unlimited.
-func (b *Bag) SetMax(max int) { b.max = max }
+// SetMax changes the cap. A cap of zero or less means unlimited.
+func (b *Bag) SetMax(n int) { b.max = n }
 
 // Errorf records an error covering span.
 func (b *Bag) Errorf(span source.Span, format string, args ...any) {
