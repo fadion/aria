@@ -86,7 +86,7 @@ func (i *Interp) installBuiltins() {
 		}
 		// The range is inclusive. The original called rand.Intn(max-min), which
 		// panicked the whole process when min equalled max.
-		return value.Int(lo + value.Int(rand.N(int64(hi-lo)+1)))
+		return lo + value.Int(rand.N(int64(hi-lo)+1))
 	})
 
 	def("runtime_tolower", func(ip *Interp, args []value.Value, span source.Span) value.Value {

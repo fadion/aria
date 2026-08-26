@@ -1,6 +1,7 @@
 package interp
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -71,8 +72,8 @@ func Run(file *source.File, opts Options) bool {
 	i.info = info
 
 	if _, err := i.Run(prog); err != nil {
-		re, ok := err.(*Error)
-		if !ok {
+		var re *Error
+		if !errors.As(err, &re) {
 			fmt.Fprintln(opts.Err, err)
 			return false
 		}
@@ -114,8 +115,8 @@ func (i *Interp) loadStdlib(errOut io.Writer) bool {
 			dir: ".", imported: i.imported,
 		}
 		if _, err := sub.Run(prog); err != nil {
-			re, ok := err.(*Error)
-			if ok {
+			var re *Error
+			if errors.As(err, &re) {
 				sub.Report(re)
 			} else {
 				fmt.Fprintln(errOut, err)
@@ -258,7 +259,8 @@ func (s *Session) Eval(src string) (value.Value, error) {
 
 	v, err := s.interp.Run(prog)
 	if err != nil {
-		if re, ok := err.(*Error); ok {
+		var re *Error
+		if errors.As(err, &re) {
 			b := diag.New(file)
 			b.Errorf(re.Span, "%s", re.Msg)
 			return nil, fmt.Errorf("%s", strings.TrimRight(b.Render(), "\n"))
