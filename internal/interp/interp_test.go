@@ -884,6 +884,13 @@ func TestStdlibMath(t *testing.T) {
 	tests := []struct{ src, want string }{
 		{`println(Math.floor(1.7))`, "1"},
 		{`println(Math.ceil(1.2))`, "2"},
+		// floor and ceil were `nr % 1` arithmetic, which follows Go's math.Mod
+		// in taking the sign of the dividend, so negative input got the other
+		// function's answer. They also declared Float and rejected an Int.
+		{`println(Math.floor(-2.5))`, "-3"},
+		{`println(Math.ceil(-2.5))`, "-2"},
+		{`println(Math.floor(3))`, "3"},
+		{`println(Math.ceil(-3))`, "-3"},
 		{`println(Math.max(3, 7))`, "7"},
 		{`println(Math.min(3, 7))`, "3"},
 		{`println(Math.abs(-5))`, "5"},
@@ -923,5 +930,13 @@ func TestRuntimeErrorCarriesItsOwnFile(t *testing.T) {
 	}
 	if !strings.HasPrefix(re.File.Name, "<stdlib>/") {
 		t.Errorf("error located in %q, want a <stdlib> module", re.File.Name)
+	}
+}
+
+// join built its result with `+`, which does not coerce, so it could join
+// nothing but strings.
+func TestStdlibStringJoinRendersNonStrings(t *testing.T) {
+	if got := withStdlib(t, `println(String.join([1, 2, 3], ","))`); got != "1,2,3" {
+		t.Errorf("got %q, want %q", got, "1,2,3")
 	}
 }

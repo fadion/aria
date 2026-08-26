@@ -3,16 +3,20 @@ module Math
   let pi = 3.14159265359
   let e = 2.718281828459
 
-  let floor = func (nr: Float) -> Int
-    Int(nr - nr % 1)
+  let floor = func (nr) -> Int
+    if !Type.isNumber?(nr)
+      panic("Math.floor() expects a Float or Int")
+    end
+
+    runtime_floor(nr)
   end
 
-  let ceil = func (nr: Float) -> Int
-    let rem = nr % 1
-    if rem == 0
-      return Int(nr)
+  let ceil = func (nr) -> Int
+    if !Type.isNumber?(nr)
+      panic("Math.ceil() expects a Float or Int")
     end
-    nr > 0 ? Int(nr + (1 - rem)) : Int(nr - (1 + rem))
+
+    runtime_ceil(nr)
   end
 
   let max = func (nr1, nr2)

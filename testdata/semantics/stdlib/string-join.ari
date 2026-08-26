@@ -1,2 +1,7 @@
 println(String.join(["a", "b", "c"], "-"))
 println(String.join([], "-"))
+// join built its result with `+`, which does not coerce, so anything but a
+// String was a runtime error. This case only ever joined strings, which is why
+// nobody noticed.
+println(String.join([1, 2, 3], ","))
+println(String.join(["a", 1, :b, true, nil], "-"))

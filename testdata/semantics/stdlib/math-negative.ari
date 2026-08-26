@@ -1,0 +1,12 @@
+// floor and ceil were written in terms of `nr % 1`, which follows Go's math.Mod
+// in taking the sign of the dividend, so for negative input the two returned
+// each other's answers. They also declared `nr: Float` and so rejected an Int.
+println(Math.floor(-2.5))
+println(Math.ceil(-2.5))
+println(Math.floor(2.5))
+println(Math.ceil(2.5))
+println(Math.floor(-3.0))
+println(Math.ceil(-3.0))
+println(Math.floor(3))
+println(Math.ceil(3))
+println(Math.floor(-7))
