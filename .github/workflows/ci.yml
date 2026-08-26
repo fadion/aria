@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A new push to the same branch supersedes the run already in flight.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The Go side, on every platform we ship a binary for.
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          # go.mod is the single source of truth for the toolchain version.
+          go-version-file: go.mod
+
+      - run: go build ./...
+      - run: go vet ./...
+      - run: go test ./...
+
+      # gofmt only on Linux: git on the Windows runner checks out CRLF, which
+      # gofmt reports as a diff in every file.
+      - name: gofmt
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "::error::gofmt would rewrite:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+  # The language side. Ubuntu only: both scripts need bash 4 (mapfile) and GNU
+  # coreutils (timeout), and the macOS runner ships bash 3.2 with neither.
+  language:
+    name: language
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      # Both scripts build their own interpreter, but building it once here
+      # keeps them from doing it twice and puts a compile error in its own step.
+      - name: Build the interpreter
+        run: go build -o aria .
+
+      - name: Characterization suite
+        run: bash scripts/characterize.sh verify
+
+      - name: README code blocks
+        run: bash scripts/check-readme.sh
+
+  # Cheap, and both targets have found real bugs. 30s each, as in CLAUDE.md.
+  fuzz:
+    name: fuzz
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Fuzz the scanner
+        run: go test ./internal/scanner/ -run=Fuzz -fuzz=FuzzScan -fuzztime=30s
+
+      - name: Fuzz the parser
+        run: go test ./internal/parser/ -run=Fuzz -fuzz=FuzzParse -fuzztime=30s
+
+      # A crasher is written to testdata/fuzz, which is gitignored and would
+      # otherwise be thrown away with the runner.
+      - name: Save the failing input
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-corpus
+          path: internal/*/testdata/fuzz/
+          if-no-files-found: ignore

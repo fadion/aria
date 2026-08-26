@@ -1,4 +1,5 @@
-[![GoDoc](https://godoc.org/github.com/fadion/aria?status.svg)](https://godoc.org/github.com/fadion/aria)
+[![CI](https://github.com/fadion/aria/actions/workflows/ci.yml/badge.svg)](https://github.com/fadion/aria/actions/workflows/ci.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/fadion/aria.svg)](https://pkg.go.dev/github.com/fadion/aria)
 [![Go Report Card](https://goreportcard.com/badge/github.com/fadion/aria)](https://goreportcard.com/report/github.com/fadion/aria)
 
 # Aria Language
@@ -71,7 +72,7 @@ together and why the design decisions went the way they did._
 
 If you want to play with the language, but have no interest in toying with its code, you can download a built binary for your operating system. Just head to the [latest release](https://github.com/fadion/aria/releases/latest) and download one of the archives.
 
-The other option, where you get to play with the code and run your changes, is to `go get github.com/fadion/aria` and install it as a local binary with `go install`. Obviously, you'll need `GOROOT` in your path, but I guess you already know what you're doing.
+The other option, where you get to play with the code and run your changes, is to install it from source with `go install github.com/fadion/aria@latest`. That drops an `aria` binary in `$GOBIN`, or `$HOME/go/bin` if you haven't set one, so make sure that directory is in your path. From a clone, a plain `go build .` in the checkout gives you the same binary in place.
 
 ### Run a source file
 
