@@ -1,0 +1,145 @@
+name: Release
+
+on:
+  push:
+    # The old tags have no "v" prefix: 0.5.0, not v0.5.0. Both shapes release,
+    # but prefer the prefixed one -- the module proxy only recognises a version
+    # tagged "vX.Y.Z", so "go install ...@latest" stays stuck on a 2017
+    # pseudo-version until one exists.
+    tags: ['[0-9]+.[0-9]+.[0-9]+', 'v[0-9]+.[0-9]+.[0-9]+']
+  # Builds the archives without publishing, so the packaging can be exercised
+  # from a branch before a tag exists.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # Tag pushes do not match the CI workflow's branch filter, so the checks run
+  # here too. Nothing gets published that has not been through them.
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      # aria.go holds the version the binary reports. If the tag disagrees, the
+      # release would ship a binary that lies about what it is.
+      - name: Tag matches the version in aria.go
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          version="$(sed -n 's/^const version = "\(.*\)"$/\1/p' aria.go)"
+          if [ -z "$version" ]; then
+            echo "::error::could not find 'const version' in aria.go"
+            exit 1
+          fi
+          if [ "${GITHUB_REF_NAME#v}" != "$version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match version $version in aria.go"
+            exit 1
+          fi
+          echo "version $version"
+
+      - run: go build -o aria .
+      - run: go vet ./...
+      - run: go test ./...
+      - run: bash scripts/characterize.sh verify
+      - run: bash scripts/check-readme.sh
+
+  build:
+    name: ${{ matrix.name }}
+    needs: verify
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 32-bit is gone: Go dropped darwin/386 years ago, and the machines
+          # that needed the other two are not running a 2026 toolchain either.
+          # arm64 replaces it, which is where Apple and most new Linux went.
+          - {name: linux-amd64,   goos: linux,   goarch: amd64, ext: tar.gz}
+          - {name: linux-arm64,   goos: linux,   goarch: arm64, ext: tar.gz}
+          - {name: macos-amd64,   goos: darwin,  goarch: amd64, ext: zip}
+          - {name: macos-arm64,   goos: darwin,  goarch: arm64, ext: zip}
+          - {name: windows-amd64, goos: windows, goarch: amd64, ext: zip}
+          - {name: windows-arm64, goos: windows, goarch: arm64, ext: zip}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      # Nothing in the tree needs cgo, so every target cross-compiles from this
+      # one runner. -trimpath keeps the runner's paths out of panic traces.
+      - name: Build
+        env:
+          CGO_ENABLED: '0'
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          bin=aria
+          if [ "$GOOS" = windows ]; then bin=aria.exe; fi
+          mkdir -p stage dist
+          go build -trimpath -ldflags='-s -w' -o "stage/$bin" .
+          cp README.md LICENSE stage/
+
+      # tar.gz where tar is native, zip where a double-click has to work.
+      - name: Package
+        run: |
+          bin=aria
+          if [ "${{ matrix.goos }}" = windows ]; then bin=aria.exe; fi
+          cd stage
+          if [ "${{ matrix.ext }}" = tar.gz ]; then
+            tar --sort=name --owner=0 --group=0 --numeric-owner \
+              -czf "../dist/aria-${{ matrix.name }}.tar.gz" "$bin" README.md LICENSE
+          else
+            zip -q "../dist/aria-${{ matrix.name }}.zip" "$bin" README.md LICENSE
+          fi
+          cd ..
+          ls -l dist
+
+      # The one target this runner can execute. A binary that cannot start is
+      # worth catching before it is attached to a release.
+      - name: Smoke test
+        if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
+        run: ./stage/aria --version
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: aria-${{ matrix.name }}
+          path: dist/*
+          if-no-files-found: error
+
+  publish:
+    name: publish
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          pattern: aria-*
+          merge-multiple: true
+
+      - name: Checksums
+        run: |
+          cd dist
+          sha256sum aria-* > checksums.txt
+          cat checksums.txt
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            --verify-tag
