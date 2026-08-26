@@ -260,7 +260,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 131 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 132 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash

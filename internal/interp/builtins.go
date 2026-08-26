@@ -2,6 +2,7 @@ package interp
 
 import (
 	"fmt"
+	"math"
 	"math/rand/v2"
 	"regexp"
 	"strconv"
@@ -89,6 +90,16 @@ func (i *Interp) installBuiltins() {
 		return lo + value.Int(rand.N(int64(hi-lo)+1))
 	})
 
+	// floor and ceil are primitives, not arithmetic. Written in Aria in terms
+	// of `nr % 1` they inherited Go's math.Mod, which takes the sign of the
+	// dividend, so for negative input the two returned each other's answers.
+	def("runtime_floor", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		return value.Int(int64(math.Floor(ip.wantNumber("runtime_floor", args, span))))
+	})
+	def("runtime_ceil", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		return value.Int(int64(math.Ceil(ip.wantNumber("runtime_ceil", args, span))))
+	})
+
 	def("runtime_tolower", func(ip *Interp, args []value.Value, span source.Span) value.Value {
 		return value.String(strings.ToLower(ip.wantString("runtime_tolower", args, span)))
 	})
@@ -115,6 +126,21 @@ func (i *Interp) wantArgs(name string, args []value.Value, n int, span source.Sp
 	if len(args) != n {
 		i.fail(span, "%s() expects %d argument(s), got %d", name, n, len(args))
 	}
+}
+
+// wantNumber takes one Int or Float argument as a float64. Int is accepted
+// because floor and ceil of an integer are meaningful, and rejecting it made
+// Math.floor(3) an error.
+func (i *Interp) wantNumber(name string, args []value.Value, span source.Span) float64 {
+	i.wantArgs(name, args, 1, span)
+	switch n := args[0].(type) {
+	case value.Int:
+		return float64(n)
+	case value.Float:
+		return float64(n)
+	}
+	i.fail(span, "%s() expects an Int or a Float, got %s", name, args[0].Type())
+	return 0
 }
 
 func (i *Interp) wantString(name string, args []value.Value, span source.Span) string {

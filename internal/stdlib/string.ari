@@ -109,7 +109,7 @@ module String
   let join = func (array: Array, glue: String) -> String
     var glued = ""
     for v in array
-      glued += v + glue
+      glued += String(v) + glue
     end
 
     if String.count(glued) > String.count(glue)
