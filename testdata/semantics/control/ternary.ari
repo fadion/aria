@@ -1,0 +1,4 @@
+println(1 > 0 ? "yes" : "no")
+println(1 < 0 ? "yes" : "no")
+let n = 5
+println(n > 3 ? n * 2 : n)

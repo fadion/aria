@@ -1,0 +1,5 @@
+// The empty dictionary literal, distinct from the empty array `[]`.
+// The standard library uses this form to seed an accumulator.
+var d = [=>]
+println(d)
+println(Dict.empty?(d))

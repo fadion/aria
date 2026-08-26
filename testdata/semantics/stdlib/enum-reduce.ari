@@ -1,0 +1,4 @@
+// Enum.reduce folds an array. Its first parameter used to be annotated
+// `Function` while being used as an array, so no call to it ever type-checked.
+println(Enum.reduce([1, 2, 3, 4], 0, (x, acc) -> x + acc))
+println(Enum.reduce(1..5, 1, (x, acc) -> x * acc))

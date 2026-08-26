@@ -1,0 +1,7 @@
+println(1 as String)
+println("42" as Int)
+println("3.5" as Float)
+println(1 as Float)
+println(2.9 as Int)
+println(true as Int)
+println(1 as Array)

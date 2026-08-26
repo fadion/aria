@@ -1,0 +1,7 @@
+// Float literals and scientific notation. Note how floats render.
+println(1.5)
+println(0.1)
+println(3.0)
+println(1e3)
+println(1e-5)
+println(2.5e2)

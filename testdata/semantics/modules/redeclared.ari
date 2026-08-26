@@ -1,0 +1,7 @@
+module M
+  let a = 1
+end
+module M
+  let a = 2
+end
+println(M.a)

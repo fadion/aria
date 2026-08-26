@@ -1,0 +1,4 @@
+let d = [:a => 1]
+println(d)
+println(d[:a])
+println(d[:missing])

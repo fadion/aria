@@ -1,0 +1,3 @@
+let f = func (x) do x * 2 end
+println(typeof(f))
+println(f is Function)

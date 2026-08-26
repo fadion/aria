@@ -1,0 +1,7 @@
+// Integer literal forms: decimal, hex, octal, binary, underscore separator.
+println(42)
+println(0xff)
+println(0o27)
+println(0b1010)
+println(1_000_000)
+println(-7)

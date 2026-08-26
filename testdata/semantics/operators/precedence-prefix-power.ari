@@ -1,0 +1,7 @@
+// Prefix operators interacting with ** on both sides (2.3).
+println(-2 ** 2)
+println(2 ** -1)
+println(-2 ** -2)
+println(~2 ** 2)
+println(-(2 ** 2))
+println((-2) ** 2)

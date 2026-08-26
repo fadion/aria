@@ -1,0 +1,4 @@
+for-scope-leak.ari:6:9: error: 'v' is not defined
+  println(v)
+          ^
+--- exit: 1

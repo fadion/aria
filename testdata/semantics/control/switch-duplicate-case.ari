@@ -1,0 +1,4 @@
+println(switch 1 do
+  case 1 then "first"
+  case 1 then "second"
+end)

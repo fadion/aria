@@ -1,0 +1,4 @@
+parse-unterminated-string.ari:1:9: error: unterminated string
+  let s = "never closed
+          ^^^^^^^^^^^^^
+--- exit: 1

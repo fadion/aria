@@ -1,0 +1,4 @@
+error-recovery-after-var.ari:2:9: error: unexpected ']'
+  let x = ]
+          ^
+--- exit: 1

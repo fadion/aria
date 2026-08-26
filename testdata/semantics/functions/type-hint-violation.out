@@ -1,0 +1,4 @@
+type-hint-violation.ari:4:9: error: parameter 'n' expects Int, got String
+  println(f("not an int"))
+          ^^^^^^^^^^^^^^^
+--- exit: 1

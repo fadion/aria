@@ -1,0 +1,4 @@
+import-missing.ari:1:1: error: cannot read imported file 'does_not_exist'
+  import "does_not_exist"
+  ^^^^^^^^^^^^^^^^^^^^^^^
+--- exit: 1

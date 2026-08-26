@@ -1,0 +1,5 @@
+// Int and Float mixed: the Int is promoted to Float.
+println(1 + 2.5)
+println(2.5 + 1)
+println(typeof(1 + 2.0))
+println(10 / 2.0)

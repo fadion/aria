@@ -1,0 +1,2 @@
+// runtime_rand with min == max.
+println(runtime_rand(5, 5))

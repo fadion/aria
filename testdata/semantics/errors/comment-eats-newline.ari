@@ -1,0 +1,9 @@
+// A line comment at the end of a line that needs its newline as a separator.
+// The switch below is the documented form, which works without the comment.
+let a = 5
+switch a // trailing comment
+case 5
+  println("five")
+default
+  println("other")
+end

@@ -1,0 +1,9 @@
+// The README documents a control-less switch as "basically a switch true".
+// This is the documented form, with no DO and no control expression.
+let a = "John"
+println(switch
+case a == "John"
+  "John"
+default
+  "Nobody"
+end)

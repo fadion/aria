@@ -1,0 +1,4 @@
+let f = func (n: Int) -> Int
+  n * 2
+end
+println(f("not an int"))

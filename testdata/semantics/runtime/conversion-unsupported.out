@@ -1,0 +1,4 @@
+conversion-unsupported.ari:1:9: error: cannot convert Array to String
+  println(String([1, 2]))
+          ^^^^^^^^^^^^^^
+--- exit: 1

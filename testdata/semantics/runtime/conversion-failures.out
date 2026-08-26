@@ -1,0 +1,4 @@
+conversion-failures.ari:1:9: error: cannot convert "not a number" to Int
+  println(Int("not a number"))
+          ^^^^^^^^^^^^^^^^^^^
+--- exit: 1

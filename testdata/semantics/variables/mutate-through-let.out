@@ -1,0 +1,19 @@
+mutate-through-let.ari:3:1: error: cannot modify 'a': it is bound with let, which cannot be rebound
+  a[] = 4
+  ^
+mutate-through-let.ari:2:5: note: 'a' is declared here
+  let a = [1, 2, 3]
+      ^
+mutate-through-let.ari:5:1: error: cannot modify 'a': it is bound with let, which cannot be rebound
+  a[0] = 99
+  ^
+mutate-through-let.ari:2:5: note: 'a' is declared here
+  let a = [1, 2, 3]
+      ^
+mutate-through-let.ari:9:1: error: cannot modify 'd': it is bound with let, which cannot be rebound
+  d[:k] = 2
+  ^
+mutate-through-let.ari:8:5: note: 'd' is declared here
+  let d = [:k => 1]
+      ^
+--- exit: 1

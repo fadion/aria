@@ -1,0 +1,10 @@
+// A switch WITH a control expression, in the README's form: no DO, newline.
+let a = 5
+switch a
+case 2, 3
+  println("2 or 3")
+case 5
+  println("It is 5")
+default
+  println("no idea")
+end

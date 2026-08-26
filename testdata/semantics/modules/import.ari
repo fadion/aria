@@ -1,0 +1,2 @@
+import "_helper"
+println(helperValue)

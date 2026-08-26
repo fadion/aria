@@ -1,0 +1,8 @@
+let fact = func (n) do
+  if n <= 1 then
+    return 1
+  end
+  n * fact(n - 1)
+end
+println(fact(5))
+println(fact(10))

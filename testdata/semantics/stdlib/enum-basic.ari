@@ -1,0 +1,6 @@
+let a = [3, 1, 2]
+println(Enum.size(a))
+println(Enum.empty?([]))
+println(Enum.first(a))
+println(Enum.last(a))
+println(Enum.reverse(a))

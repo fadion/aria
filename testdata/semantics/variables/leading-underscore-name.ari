@@ -1,0 +1,3 @@
+// An identifier beginning with an underscore.
+let _foo = 1
+println(_foo)

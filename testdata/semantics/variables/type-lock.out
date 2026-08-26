@@ -1,0 +1,5 @@
+2
+type-lock.ari:5:1: error: 'n' holds Int, so it cannot be assigned String
+  n = "string"
+  ^
+--- exit: 1

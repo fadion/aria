@@ -1,0 +1,7 @@
+println(1 is Int)
+println(1.5 is Float)
+println("s" is String)
+println(:a is Atom)
+println(true is Bool)
+println([1] is Array)
+println(1 is Float)

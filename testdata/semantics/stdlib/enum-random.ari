@@ -1,0 +1,5 @@
+// Enum.random picks an element at random. A single-element array keeps the case
+// deterministic while still proving the function is callable, which it was not:
+// it used to call a `rand` that does not exist (SEMANTICS 8.5).
+println(Enum.random([7]))
+println(Enum.random([7, 7, 7]))

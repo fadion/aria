@@ -1,0 +1,3 @@
+println(if true then "yes" else "no" end)
+println(if false then "yes" else "no" end)
+println(if false then "yes" end)

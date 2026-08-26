@@ -1,0 +1,4 @@
+arity-too-few.ari:2:9: error: function (a, b) expects at least 2 argument(s), got 1
+  println(f(1))
+          ^^^^
+--- exit: 1

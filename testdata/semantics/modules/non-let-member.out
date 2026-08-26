@@ -1,0 +1,4 @@
+non-let-member.ari:2:3: error: a module body accepts only 'let' declarations
+    var a = 1
+    ^^^^^^^^^
+--- exit: 1

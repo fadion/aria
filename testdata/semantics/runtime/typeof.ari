@@ -1,0 +1,8 @@
+println(typeof(1))
+println(typeof(1.0))
+println(typeof("s"))
+println(typeof(:a))
+println(typeof(true))
+println(typeof([1]))
+println(typeof([:a => 1]))
+println(typeof(nil))

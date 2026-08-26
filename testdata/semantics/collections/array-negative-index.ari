@@ -1,0 +1,3 @@
+let a = [1, 2, 3]
+println(a[-1])
+println(a[-3])

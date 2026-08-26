@@ -1,0 +1,7 @@
+// The last evaluated expression is the return value.
+let f = func () do
+  1
+  2
+  3
+end
+println(f())

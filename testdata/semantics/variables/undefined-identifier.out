@@ -1,0 +1,4 @@
+undefined-identifier.ari:1:9: error: 'nope' is not defined
+  println(nope)
+          ^^^^
+--- exit: 1

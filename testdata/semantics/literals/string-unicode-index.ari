@@ -1,0 +1,8 @@
+// Subscripting and counting a string with multi-byte characters (6.2).
+let s = "héllo"
+println(s[0])
+println(s[1])
+println(s[2])
+println(String.count(s))
+println(String.reverse(s))
+println(String.upper(s))

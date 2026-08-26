@@ -1,0 +1,9 @@
+var n = 10
+n += 5
+println(n)
+n -= 3
+println(n)
+n *= 2
+println(n)
+n /= 4
+println(n)
