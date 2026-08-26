@@ -131,6 +131,25 @@ scripts/check-readme.sh        # -v to see each block's output
 Keep them runnable. A block that is prose, not code, should not be fenced as `swift` — the
 checker will try to run it.
 
+## Releasing
+
+Tags are `vX.Y.Z`. The `v` is not decoration: the module proxy only recognises a
+version tagged that way, and because every tag through 0.5.0 was unprefixed,
+`go install github.com/fadion/aria@latest` resolves to a 2017 pseudo-version — the
+newest commit it can see with no version attached to it. The README tells people to
+run that command, so the next tag needs the prefix for it to be true.
+
+`const version` in `aria.go` is what the binary reports, and the release workflow
+refuses a tag that disagrees with it. Bump it in the same commit you tag.
+
+```bash
+git tag v0.6.0 && git push origin v0.6.0
+```
+
+That builds six archives, checksums them, and publishes a release. A pull request
+touching `.github/workflows/release.yml` runs the same build without publishing, so
+the packaging can be checked before a tag depends on it.
+
 ## Notes
 
 - Go 1.26. Module path `github.com/fadion/aria`, no dependencies beyond `fatih/color` and
