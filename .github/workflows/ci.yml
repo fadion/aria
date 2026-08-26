@@ -1,8 +1,10 @@
 name: CI
 
 on:
+  # Only master on push. A branch with a PR open is covered by pull_request,
+  # and listening for both ran every one of them twice.
   push:
-    branches: ['**']
+    branches: [master]
   pull_request:
   workflow_dispatch:
 
