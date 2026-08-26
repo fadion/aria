@@ -150,6 +150,13 @@ type Resolver struct {
 	// hasImport suppresses undefined-name errors, since an import can bring in
 	// names this pass cannot see.
 	hasImport bool
+
+	// loops and funcs count the enclosing loop and function bodies, so that
+	// break, continue and return can be checked where they mean something. A
+	// function body resets loops: a `break` inside a function nested in a loop
+	// belongs to neither, and used to unwind out of the call.
+	loops int
+	funcs int
 }
 
 // New returns a Resolver with a global scope containing the builtins.
@@ -369,7 +376,16 @@ func (r *Resolver) node(n ast.Node) {
 	case *ast.Switch:
 		r.node(n.Control)
 		for _, c := range n.Cases {
-			r.node(c.Values)
+			// A case value may be `_`, the wildcard. Walk the elements rather
+			// than the list so the placeholder is not reported as one out of
+			// position.
+			if c.Values != nil {
+				for _, el := range c.Values.Elements {
+					if _, wild := el.(*ast.Placeholder); !wild {
+						r.node(el)
+					}
+				}
+			}
 			r.node(c.Body)
 		}
 		if n.Default != nil {
@@ -390,12 +406,34 @@ func (r *Resolver) node(n ast.Node) {
 	case *ast.ModuleAccess:
 		r.moduleAccess(n)
 
+	// A control keyword outside the construct it controls is knowable here,
+	// and silent otherwise: Interp.Run stops its node loop on any signal, so a
+	// stray `break` at top level discarded the rest of the file with no
+	// diagnostic and exit code 0.
+	case *ast.Break:
+		if r.loops == 0 {
+			r.diags.Errorf(n.Span(), "'break' outside a loop")
+		}
+	case *ast.Continue:
+		if r.loops == 0 {
+			r.diags.Errorf(n.Span(), "'continue' outside a loop")
+		}
 	case *ast.Return:
+		if r.funcs == 0 {
+			r.diags.Errorf(n.Span(), "'return' outside a function")
+		}
 		r.node(n.Value)
 
-	case *ast.Import, *ast.Break, *ast.Continue,
+	// `_` is meaningful in exactly two positions, a switch case value and an
+	// append target, and neither reaches here: both are skipped by the code
+	// that walks them. Anywhere else it evaluated to nil, so `let x = _` was
+	// accepted and quietly meant nothing.
+	case *ast.Placeholder:
+		r.diags.Errorf(n.Span(), "'_' is a placeholder: it means something only as a switch case value or an append target")
+
+	case *ast.Import,
 		*ast.Integer, *ast.Float, *ast.String, *ast.Atom,
-		*ast.Boolean, *ast.Nil, *ast.Placeholder:
+		*ast.Boolean, *ast.Nil:
 		// Nothing to resolve.
 	}
 }
@@ -437,7 +475,11 @@ func (r *Resolver) assign(n *ast.Assign) {
 			break
 		}
 		subscript = true
-		r.node(sub.Index)
+		// `a[] = v` and `a[_] = v` both parse to a placeholder index. On the
+		// left of an assignment that is the append target, not a stray `_`.
+		if _, appendTarget := sub.Index.(*ast.Placeholder); !appendTarget {
+			r.node(sub.Index)
+		}
 		target = sub.Left
 	}
 
@@ -479,17 +521,26 @@ func (r *Resolver) forLoop(n *ast.For) {
 
 	r.push()
 	if n.Arguments != nil {
+		// The evaluator checked this per iteration, so an empty enumerable
+		// never reached it and `for a, b, c in []` was accepted. The count is
+		// right here, before anything runs.
+		if len(n.Arguments.Elements) > 2 {
+			r.diags.Errorf(n.Arguments.Span(), "a for loop takes at most 2 variables, got %d",
+				len(n.Arguments.Elements))
+		}
 		for _, id := range n.Arguments.Elements {
 			r.declare(id, KindLoop, false)
 		}
 	}
 	// The body's own Block would push a second scope; resolve its contents
 	// directly so loop variables and body names share one level.
+	r.loops++
 	if n.Body != nil {
 		for _, c := range n.Body.Nodes {
 			r.node(c)
 		}
 	}
+	r.loops--
 	r.pop(n)
 }
 
@@ -513,11 +564,18 @@ func (r *Resolver) function(n *ast.Function) {
 		// hole that immutable collections close.
 		r.declare(p.Name, KindParam, false)
 	}
+	// A `return` in here has something to return from, and a `break` does not
+	// reach a loop outside the call.
+	outerLoops := r.loops
+	r.loops = 0
+	r.funcs++
 	if n.Body != nil {
 		for _, c := range n.Body.Nodes {
 			r.node(c)
 		}
 	}
+	r.funcs--
+	r.loops = outerLoops
 	r.pop(n)
 }
 

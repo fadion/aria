@@ -151,6 +151,19 @@ exist, and `Enum.reduce` annotated its array parameter as `Function`.
 Parameters and loop variables bind like `let`. That matters for immutability below: a
 function that could rebind its parameter could mutate a collection its caller owns.
 
+**It also checks what only a tree walk can see.** Three mistakes are knowable before the
+program starts, and each was silent or late:
+
+- `break` and `continue` outside a loop, and `return` outside a function. `Interp.Run`
+  stops its node loop on any control signal, so a stray `break` at top level discarded the
+  rest of the file with no diagnostic and exit code `0`. A function body resets the loop
+  count, so a `break` inside a function that happens to be defined in a loop is an error
+  too — the call is not the loop's body.
+- `_` anywhere but a switch case value or an append target. It mapped to nil in `eval`, so
+  `let x = _` was accepted and quietly meant nothing.
+- More than two `for` loop variables. The evaluator checked this inside the per-iteration
+  closure, so `for a, b, c in []` never reached the check at all.
+
 The resolver records a slot index and scope depth for every binding. The evaluator does
 not use them yet — it walks a scope chain of name maps — but they are there for when
 lookup becomes worth optimising.
@@ -260,7 +273,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 132 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 137 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash

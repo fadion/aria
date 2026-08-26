@@ -1,0 +1,4 @@
+for-too-many-vars.ari:3:5: error: a for loop takes at most 2 variables, got 3
+  for a, b, c in []
+      ^^^^^^^
+--- exit: 1

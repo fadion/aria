@@ -665,6 +665,14 @@ func (i *Interp) loop(n *ast.For, e *env, items []item) value.Value {
 		}
 	}
 
+	// The resolver rejects more than two loop variables, so this is a backstop
+	// for the one path that never reaches the resolver: an imported file, which
+	// is parsed and evaluated but not resolved. It is checked once rather than
+	// per iteration, which is why `for a, b, c in []` used to be accepted.
+	if len(names) > 2 {
+		i.fail(n.Span(), "a for loop takes at most 2 variables, got %d", len(names))
+	}
+
 	run := func(it item) bool {
 		scope := newEnv(e)
 		switch len(names) {
@@ -674,8 +682,6 @@ func (i *Interp) loop(n *ast.For, e *env, items []item) value.Value {
 		case 2:
 			scope.define(names[0], it.key)
 			scope.define(names[1], it.val)
-		default:
-			i.fail(n.Span(), "a for loop takes at most 2 variables, got %d", len(names))
 		}
 
 		v := i.evalBlock(n.Body, scope)

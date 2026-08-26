@@ -1,0 +1,4 @@
+toplevel-break.ari:4:1: error: 'break' outside a loop
+  break
+  ^^^^^
+--- exit: 1

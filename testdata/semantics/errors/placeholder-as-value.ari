@@ -1,0 +1,4 @@
+// `_` is meaningful as a switch case value and as an append target. Anywhere
+// else it evaluated to nil, so this was accepted and quietly meant nothing.
+let x = _
+println(x)

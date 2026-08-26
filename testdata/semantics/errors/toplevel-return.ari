@@ -1,0 +1,4 @@
+// The same shape as toplevel-break: a `return` outside a function truncated
+// the program silently.
+return 1
+println("after")

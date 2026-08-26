@@ -997,6 +997,12 @@ func (p *Parser) parseFor() ast.Node {
 			})
 			p.advance()
 		}
+		// Widen the list to cover every name, not just the first: a diagnostic
+		// about the list as a whole — too many loop variables — should underline
+		// the whole list.
+		if len(args.Elements) > 0 {
+			args.Sp = span(args.Elements[0].Span(), args.Elements[len(args.Elements)-1].Span())
+		}
 		node.Arguments = args
 
 		if p.at(token.In) {
