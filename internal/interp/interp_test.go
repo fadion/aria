@@ -1,6 +1,7 @@
 package interp_test
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -892,5 +893,35 @@ func TestStdlibMath(t *testing.T) {
 		if got := withStdlib(t, test.src); got != test.want {
 			t.Errorf("%s: got %s, want %s", test.src, got, test.want)
 		}
+	}
+}
+
+// Recursion past maxCallDepth is an ordinary runtime error. Without the limit
+// it grew the goroutine stack to Go's 1 GB ceiling and killed the process.
+func TestRecursionIsBounded(t *testing.T) {
+	fails(t, `let f = func (n) do f(n + 1) end
+f(0)`, "call depth")
+}
+
+// A runtime error raised inside a standard library module is located in that
+// module's file, not in the file being run. The span is a byte offset into
+// <stdlib>, so rendering it against the user's file pointed at nothing.
+func TestRuntimeErrorCarriesItsOwnFile(t *testing.T) {
+	var out, errOut strings.Builder
+	_, err := interp.Eval("test.ari", `println(Dict.delete([:a => 1], :zz))`, interp.Options{
+		Out: &out, Err: &errOut, In: strings.NewReader(""),
+	})
+	if err == nil {
+		t.Fatal("expected a failure")
+	}
+	var re *interp.Error
+	if !errors.As(err, &re) {
+		t.Fatalf("expected an *interp.Error, got %T", err)
+	}
+	if re.File == nil {
+		t.Fatal("the error carries no file")
+	}
+	if !strings.HasPrefix(re.File.Name, "<stdlib>/") {
+		t.Errorf("error located in %q, want a <stdlib> module", re.File.Name)
 	}
 }

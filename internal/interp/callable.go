@@ -7,9 +7,15 @@ import (
 )
 
 // Function is a user-defined function closed over its defining scope.
+//
+// File is where the body was written, which the interpreter running the call
+// need not know otherwise: a standard library function is called by the
+// interpreter for the user's file, and a fault in its body belongs to the
+// library's text, not the user's.
 type Function struct {
 	Decl *ast.Function
 	Env  *env
+	File *source.File
 }
 
 func (*Function) Type() value.Type { return value.TFunc }
@@ -88,7 +94,19 @@ func (i *Interp) apply(callee value.Value, args []value.Value, span source.Span,
 }
 
 // callFunction binds arguments to parameters and runs the body.
+//
+// Everything reported against span — arity, parameter and return types — is a
+// fault at the *call site*, so it is located in the caller's file. Everything
+// reported from inside the body, defaults included, belongs to the file the
+// body was written in, which is what the pushed frame supplies.
 func (i *Interp) callFunction(fn *Function, args []value.Value, span source.Span) value.Value {
+	callerFile := i.curFile()
+	if len(i.frames) >= maxCallDepth {
+		i.failIn(callerFile, span, "call depth of %d exceeded, probably infinite recursion", maxCallDepth)
+	}
+	i.frames = append(i.frames, frame{file: fn.File, span: span})
+	defer func() { i.frames = i.frames[:len(i.frames)-1] }()
+
 	decl := fn.Decl
 	scope := newEnv(fn.Env)
 
@@ -110,15 +128,15 @@ func (i *Interp) callFunction(fn *Function, args []value.Value, span source.Span
 	}
 
 	if len(args) < required {
-		i.fail(span, "%s expects at least %d argument(s), got %d", fnName(decl), required, len(args))
+		i.failIn(callerFile, span, "%s expects at least %d argument(s), got %d", fnName(decl), required, len(args))
 	}
 	if !decl.Variadic && len(args) > fixed {
-		i.fail(span, "%s expects at most %d argument(s), got %d", fnName(decl), fixed, len(args))
+		i.failIn(callerFile, span, "%s expects at most %d argument(s), got %d", fnName(decl), fixed, len(args))
 	}
 
 	for idx := 0; idx < fixed && idx < len(args); idx++ {
 		p := decl.Parameters[idx]
-		i.checkParamType(p, args[idx], span)
+		i.checkParamType(p, args[idx], callerFile, span)
 		scope.define(p.Name.Value, args[idx])
 	}
 
@@ -140,18 +158,18 @@ func (i *Interp) callFunction(fn *Function, args []value.Value, span source.Span
 	}
 
 	if decl.ReturnType != nil && result.Type().String() != decl.ReturnType.Value {
-		i.fail(span, "%s declares it returns %s but returned %s",
+		i.failIn(callerFile, span, "%s declares it returns %s but returned %s",
 			fnName(decl), decl.ReturnType.Value, result.Type())
 	}
 	return result
 }
 
-func (i *Interp) checkParamType(p *ast.FunctionParameter, arg value.Value, span source.Span) {
+func (i *Interp) checkParamType(p *ast.FunctionParameter, arg value.Value, file *source.File, span source.Span) {
 	if p.Type == nil {
 		return
 	}
 	if arg.Type().String() != p.Type.Value {
-		i.fail(span, "parameter '%s' expects %s, got %s", p.Name.Value, p.Type.Value, arg.Type())
+		i.failIn(file, span, "parameter '%s' expects %s, got %s", p.Name.Value, p.Type.Value, arg.Type())
 	}
 }
 
