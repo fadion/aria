@@ -131,6 +131,17 @@ scripts/check-readme.sh        # -v to see each block's output
 Keep them runnable. A block that is prose, not code, should not be fenced as `swift` — the
 checker will try to run it.
 
+## Pull requests
+
+Keep the body to two parts: a sentence or two on why the change exists, then a
+`## What changed` list of what it does. That is the whole convention.
+
+The reasoning goes in the commit messages, where it stays attached to the lines it
+explains instead of to a branch that may get force-pushed out from under it. A PR body
+that restates the commits goes stale immediately and gets read twice by nobody.
+
+End at the content. No generated-with footer.
+
 ## Releasing
 
 Tags are `vX.Y.Z`. The `v` is not decoration: the module proxy only recognises a
