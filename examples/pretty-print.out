@@ -10,6 +10,6 @@
   name: "aria"
   notes: null
   toy: true
-  version: "0.6.0"
+  version: "1.0.0"
 }
 exit: 0
