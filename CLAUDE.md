@@ -56,8 +56,9 @@ go test ./internal/parser/  -run=Fuzz -fuzz=FuzzParse -fuzztime=30s
 
 ## The characterization suite is the arbiter
 
-`testdata/semantics/` holds 219 `.ari` files, each with a `.out` golden recording exactly
-what the interpreter prints and what it exits with.
+`testdata/semantics/` holds 222 cases, each a `.ari` file with a `.out` golden recording
+exactly what the interpreter prints and what it exits with. Files prefixed with `_` are
+fixtures another case imports, and have no golden of their own.
 
 **If a golden changes, you changed the language.** That is either the point of your change
 or a bug, and the two look identical in a diff. So:
