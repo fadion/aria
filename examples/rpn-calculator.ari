@@ -1,0 +1,55 @@
+// A reverse-polish calculator: fold the tokens over a stack.
+//
+// The whole evaluator is one reduce. The stack is an immutable array, so each
+// operation drops the operands and appends the result rather than mutating.
+
+let apply = func (op: String, a, b)
+  switch op
+  case "+" then [:ok, a + b]
+  case "-" then [:ok, a - b]
+  case "*" then [:ok, a * b]
+  case "/" then
+    if b == 0 then return [:error, "division by zero"] end
+    [:ok, a / b]
+  default then [:error, "unknown operator '#{op}'"]
+  end
+end
+
+let evaluate = func (source: String)
+  let final = Enum.reduce(String.words(source), [:ok, []], func (token, state)
+    switch state
+    case [:error, let why] then [:error, why]   // an earlier failure wins
+    case [:ok, let stack] then
+      if String.match?(token, `^-?\d+$`)
+        return [:ok, Enum.insert(stack, token as Int)]
+      end
+
+      if Enum.size(stack) < 2
+        return [:error, "'#{token}' needs two operands"]
+      end
+
+      let a = stack[-2]
+      let b = stack[-1]
+      let rest = Enum.take(stack, Enum.size(stack) - 2)
+
+      switch apply(token, a, b)
+      case [:ok, let value] then [:ok, Enum.insert(rest, value)]
+      case [:error, let why] then [:error, why]
+      end
+    end
+  end)
+
+  switch final
+  case [:error, let why] then [:error, why]
+  case [:ok, let stack] then
+    if Enum.size(stack) == 1 then return [:ok, stack[0]] end
+    [:error, "#{Enum.size(stack)} values left on the stack"]
+  end
+end
+
+for source in ["3 4 +", "5 1 2 + 4 * + 3 -", "2 0 /", "1 2 3 +", "7 %"]
+  println(switch evaluate(source)
+  case [:ok, let value] then "#{source}  =>  #{value}"
+  case [:error, let why] then "#{source}  =>  error: #{why}"
+  end)
+end

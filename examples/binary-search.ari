@@ -1,0 +1,32 @@
+// Binary search, answering a tagged result rather than a sentinel index.
+//
+// -1 is the usual answer for "not found", and String.indexOf in the standard
+// library uses it. For a function of your own, [:ok, i] / [:error, why] says
+// the same thing without asking the caller to remember which number is magic.
+
+let search = func (xs: Array, target)
+  var low = 0
+  var high = Enum.size(xs) - 1
+
+  while low <= high
+    let mid = (low + high) / 2   // Int division truncates, so this floors
+    let here = xs[mid]
+
+    switch
+    case here == target then return [:ok, mid]
+    case here < target then low = mid + 1
+    default then high = mid - 1
+    end
+  end
+
+  [:error, "#{target} is not in the array"]
+end
+
+let sorted = [2, 3, 5, 7, 11, 13, 17, 23]
+
+for wanted in [11, 2, 23, 4]
+  println(switch search(sorted, wanted)
+  case [:ok, let i] then "#{wanted} found at index #{i}"
+  case [:error, let why] then why
+  end)
+end

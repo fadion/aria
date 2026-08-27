@@ -1,0 +1,38 @@
+// The same sequence three ways, to show what the language offers for a problem
+// with an obvious recursive shape and an obvious iterative one.
+
+// Straight from the definition. Aria has no tail call optimization, so this
+// grows a stack proportional to n.
+let recursive = func (n: Int) -> Int
+  if n < 2 then return n end
+  recursive(n - 1) + recursive(n - 2)
+end
+
+// A while loop over two mutable names. Note that `while` evaluates to nil, so
+// the value has to be returned explicitly.
+let iterative = func (n: Int) -> Int
+  var a = 0
+  var b = 1
+  var seen = 0
+  while seen < n
+    let next = a + b
+    a = b
+    b = next
+    seen += 1
+  end
+  a
+end
+
+// A fold over a range, carrying the pair as an array. Immutability makes the
+// accumulator a new array each step rather than a mutation.
+let folded = func (n: Int) -> Int
+  // Ranges are inclusive and run both ways, so 1..0 is not empty, it descends.
+  // Without this guard folded(0) would fold twice and answer 1.
+  if n == 0 then return 0 end
+  let pair = Enum.reduce(1..n, [0, 1], (step, acc) -> [acc[1], acc[0] + acc[1]])
+  pair[0]
+end
+
+for f in [recursive, iterative, folded]
+  println(0..10 |> Enum.map(f) |> String.join(" "))
+end

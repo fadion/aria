@@ -1,0 +1,66 @@
+// Taking things apart by shape, in the three places the language allows it:
+// a binding, a switch arm, and a function's parameter list via a binding in
+// the body.
+
+// -- in a binding ------------------------------------------------------------
+
+let [first, second] = ["Ada", "Lovelace"]
+println("#{first} #{second}")
+
+let [head, ...tail] = [1, 2, 3, 4, 5]
+println("head #{head}, tail #{tail}")
+
+let [opening, ...middle, closing] = ["(", "a", "b", "c", ")"]
+println("#{opening} wraps #{middle} then #{closing}")
+
+let [x, [y, z]] = [1, [2, 3]]
+println("nested: #{x} #{y} #{z}")
+
+let [_, keep, _] = ["drop", "keep", "drop"]
+println("kept #{keep}")
+
+// -- in a switch arm ---------------------------------------------------------
+
+// A bare name in a case is a reference compared against the control. `let` is
+// what binds, exactly as it does at the front of a statement.
+let expected = 200
+
+let describe = func (response)
+  switch response
+  case [expected, let body] then "ok: #{body}"
+  case [404, let body] then "missing: #{body}"
+  case [let code, let body] when code >= 500 then "server error #{code}: #{body}"
+  case [let code, _] then "unhandled status #{code}"
+  default then "not a response"
+  end
+end
+
+println("")
+for response in [[200, "hello"], [404, "no such page"], [503, "try later"], [301, "moved"], "nonsense"]
+  println(describe(response))
+end
+
+// -- pulling records apart ---------------------------------------------------
+
+// Records destructure by field access rather than by shape. Binding a record
+// by field name is deliberately not in the language yet, so this is the way.
+record Point
+  x: Int
+  y: Int
+end
+
+let distance = func (a: Point, b: Point) -> Float
+  let dx = (a.x - b.x) as Float
+  let dy = (a.y - b.y) as Float
+  Math.sqrt(dx * dx + dy * dy)
+end
+
+println("")
+println(distance(Point(0, 0), Point(3, 4)))
+
+// An array of pairs destructures per iteration, which is the common case.
+let points = [[0, 0], [3, 4], [6, 8]]
+println(points |> Enum.map(func (pair)
+  let [px, py] = pair
+  Point(px, py)
+end))

@@ -1,0 +1,52 @@
+// A todo list as a fold over commands. Nothing is stored; each command produces
+// the next list, which makes undo a matter of keeping the previous one.
+
+record Task
+  id: Int
+  title: String
+  done: Bool
+end
+
+let add = func (tasks: Array, title: String) -> Array
+  let id = if Enum.empty?(tasks) then 1 else Enum.max(Enum.map(tasks, (t) -> t.id)) + 1 end
+  Enum.insert(tasks, Task(id, title, false))
+end
+
+let complete = func (tasks: Array, id: Int) -> Array
+  Enum.map(tasks, (t) -> if t.id == id then Task(t.id, t.title, true) else t end)
+end
+
+let drop = func (tasks: Array, id: Int) -> Array
+  Enum.filter(tasks, (t) -> t.id != id)
+end
+
+let render = func (tasks: Array) -> String
+  if Enum.empty?(tasks) then return "  (nothing to do)" end
+  tasks
+    |> Enum.map((t) -> "  [#{if t.done then "x" else " " end}] #{t.id}. #{t.title}")
+    |> String.join("\n")
+end
+
+let commands = [
+  [:add, "write the parser"],
+  [:add, "write the resolver"],
+  [:add, "write the evaluator"],
+  [:done, 2],
+  [:add, "write the README"],
+  [:drop, 1],
+  [:done, 99]
+]
+
+let final = Enum.reduce(commands, [], func (command, tasks)
+  switch command
+  case [:add, let title] then add(tasks, title)
+  case [:done, let id] then complete(tasks, id)
+  case [:drop, let id] then drop(tasks, id)
+  default then tasks
+  end
+end)
+
+println("todo")
+println(render(final))
+println("")
+println("done: #{Enum.count(final, (t) -> t.done)} of #{Enum.size(final)}")

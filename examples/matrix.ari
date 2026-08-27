@@ -1,0 +1,52 @@
+// Matrices as arrays of arrays, with the operations you need to multiply two.
+//
+// Transposing first turns the inner loop into a dot product of two rows, which
+// reads better than indexing a column out of the second matrix every step.
+
+let transpose = func (m: Array) -> Array
+  0..(Enum.size(m[0]) - 1) |> Enum.map((c) -> Enum.map(m, (row) -> row[c]))
+end
+
+let dot = func (a: Array, b: Array)
+  Enum.zip(a, b) |> Enum.map((pair) -> pair[0] * pair[1]) |> Enum.sum()
+end
+
+let multiply = func (a: Array, b: Array)
+  if Enum.size(a[0]) != Enum.size(b)
+    return [:error, "cannot multiply #{Enum.size(a)}x#{Enum.size(a[0])} by #{Enum.size(b)}x#{Enum.size(b[0])}"]
+  end
+  let columns = transpose(b)
+  [:ok, Enum.map(a, (row) -> Enum.map(columns, (col) -> dot(row, col)))]
+end
+
+let show = func (m: Array)
+  Enum.each(m, func (row)
+    row |> Enum.map((v) -> String.padLeft(v as String, 5)) |> String.join("") |> println()
+  end)
+end
+
+let a = [[1, 2, 3], [4, 5, 6]]
+let b = [[7, 8], [9, 10], [11, 12]]
+
+println("A =")
+show(a)
+println("B =")
+show(b)
+
+switch multiply(a, b)
+case [:ok, let product] then
+  println("A x B =")
+  show(product)
+case [:error, let why] then println("error: #{why}")
+end
+
+println("")
+println("transpose of A =")
+show(transpose(a))
+
+// Shapes that do not line up are a result, not a crash.
+println("")
+switch multiply(a, a)
+case [:ok, let product] then show(product)
+case [:error, let why] then println("error: #{why}")
+end

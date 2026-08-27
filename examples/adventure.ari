@@ -1,0 +1,48 @@
+// A text adventure's map, walked by a fixed script rather than by prompting,
+// so the program is reproducible.
+//
+// Rooms are records holding a dictionary of exits. That mix is deliberate: the
+// room has a fixed shape and deserves a type, while the exits are open-ended
+// data and belong in a dictionary.
+
+record Room
+  name: String
+  description: String
+  exits: Dictionary
+end
+
+let world = [
+  :hall => Room("Hall", "A cold stone hall.", [:north => :library, :east => :kitchen]),
+  :library => Room("Library", "Shelves to the ceiling.", [:south => :hall, :east => :study]),
+  :kitchen => Room("Kitchen", "Something is still warm.", [:west => :hall]),
+  :study => Room("Study", "A desk, a locked drawer.", [:west => :library])
+]
+
+// Interpolation renders a value the way println does, so an atom comes out as
+// :north. `as String` gives the bare text, which is what reads well in prose.
+let describe = func (room: Room) -> String
+  let ways = room.exits |> Dict.keys() |> Enum.sort() |> String.join(", ")
+  "#{room.name}: #{room.description} Exits: #{ways}."
+end
+
+// Walking returns where you end up and what happened, so a blocked move is an
+// outcome rather than a halt.
+let walk = func (at, direction)
+  let room = world[at]
+  switch Dict.get(room.exits, direction, nil)
+  case nil then [at, "You cannot go #{direction as String} from the #{String.lower(room.name)}."]
+  default then
+    let next = room.exits[direction]
+    [next, describe(world[next])]
+  end
+end
+
+var here = :hall
+println(describe(world[here]))
+
+for step in [:north, :east, :north, :west, :south]
+  let [next, message] = walk(here, step)
+  println("> go #{step as String}")
+  println(message)
+  here = next
+end

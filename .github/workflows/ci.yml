@@ -112,6 +112,9 @@ jobs:
       - name: README code blocks
         run: bash scripts/check-readme.sh
 
+      - name: Examples
+        run: bash scripts/check-examples.sh
+
   # Cheap, and both targets have found real bugs. 30s each, as in CLAUDE.md.
   fuzz:
     name: fuzz

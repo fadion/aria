@@ -1,0 +1,25 @@
+// A library meant to be imported, not run. It has no top-level output, and the
+// checker skips it because there is no .out golden beside it.
+//
+// No module wrapper: `import ... as` makes the alias the namespace, so wrapping
+// these in one as well would only add a second name to type.
+
+let pi = 3.14159265358979
+
+let circleArea = func (r: Float) -> Float
+  pi * r * r
+end
+
+let rectangleArea = func (w: Float, h: Float) -> Float
+  w * h
+end
+
+// Heron's formula, answering a tagged result, because "these three lengths are
+// not a triangle" is an ordinary thing for a caller to ask about.
+let triangleArea = func (a: Float, b: Float, c: Float)
+  if a + b <= c || b + c <= a || a + c <= b
+    return [:error, "#{a}, #{b} and #{c} do not close a triangle"]
+  end
+  let s = (a + b + c) / 2.0
+  [:ok, Math.sqrt(s * (s - a) * (s - b) * (s - c))]
+end

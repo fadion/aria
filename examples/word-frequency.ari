@@ -1,0 +1,34 @@
+// Count words in a passage and report the most common.
+//
+// Dictionaries have no order, so Dict.keys comes back in whatever order the
+// runtime feels like. Anything that prints a dictionary has to impose an order
+// first, which is what the sortBy below is doing.
+
+let text = `the quick brown fox jumps over the lazy dog
+the dog barks and the fox runs
+the quick fox wins`
+
+let counts = text
+  |> String.lower()
+  |> String.words()
+  |> Enum.reduce([=>], func (word, tally)
+    // `+` on two dictionaries merges them, with the right side winning, which
+    // is what a tally wants. Dict.insert and Dict.update check whether the key
+    // is already there and answer a tagged result, so they are for the cases
+    // where that answer matters -- here it does not.
+    tally + [word => Dict.get(tally, word, 0) + 1]
+  end)
+
+println("distinct words: #{Dict.size(counts)}")
+
+// Sort by count descending, then by word so ties are stable rather than
+// whatever the map iteration happened to produce.
+counts
+  |> Dict.toPairs()
+  |> Enum.sortBy((pair) -> pair[0])
+  |> Enum.sortBy((pair) -> 0 - pair[1])
+  |> Enum.take(5)
+  |> Enum.each(func (pair)
+    let [word, n] = pair
+    println("#{String.padRight(word, 8)} #{n}")
+  end)

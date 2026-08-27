@@ -1,0 +1,13 @@
+Ada    deposit 50 -> 150
+Grace  withdraw 100 -> 150
+Ada    withdraw 500 -> rejected, Ada is 350 short
+Ada    withdraw 120 -> 30
+Grace  deposit 0 -> rejected, deposit must be positive
+Grace  transfer 10 -> rejected, unknown action transfer
+
+Ada    30
+Grace  150
+
+opening total: 350
+closing total: 180
+exit: 0

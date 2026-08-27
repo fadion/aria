@@ -1,0 +1,43 @@
+// The Mandelbrot set as ASCII art, which is the cheapest way to make a language
+// do a lot of floating point arithmetic and show the result.
+
+let width = 70
+let height = 24
+let maxIterations = 40
+let shades = " .:-=+*#%@"
+
+// How many iterations before the orbit escapes. maxIterations means it never
+// did, as far as we bothered to check.
+let escapes = func (cr: Float, ci: Float) -> Int
+  var zr = 0.0
+  var zi = 0.0
+  var i = 0
+
+  while i < maxIterations && zr * zr + zi * zi <= 4.0
+    let next = zr * zr - zi * zi + cr
+    zi = 2.0 * zr * zi + ci
+    zr = next
+    i += 1
+  end
+
+  i
+end
+
+let row = func (y: Int) -> String
+  let ci = (y as Float) / (height as Float) * 2.4 - 1.2
+
+  0..(width - 1)
+    |> Enum.map(func (x)
+      let cr = (x as Float) / (width as Float) * 3.2 - 2.1
+      let n = escapes(cr, ci)
+      // Inside the set gets the densest shade; outside is banded by how fast
+      // it escaped.
+      if n == maxIterations then return shades[-1] end
+      shades[n % (String.count(shades) - 1)]
+    end)
+    |> String.join("")
+end
+
+0..(height - 1)
+  |> Enum.map(row)
+  |> Enum.each(println)

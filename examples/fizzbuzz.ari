@@ -1,0 +1,16 @@
+// FizzBuzz, written with a switch that has no control condition. That form
+// behaves as an if/else chain, which is what this problem actually wants.
+
+let fizzbuzz = func (n: Int) -> String
+  switch
+  case n % 15 == 0 then "FizzBuzz"
+  case n % 3 == 0 then "Fizz"
+  case n % 5 == 0 then "Buzz"
+  default then n as String
+  end
+end
+
+1..20
+  |> Enum.map(fizzbuzz)
+  |> String.join(", ")
+  |> println()

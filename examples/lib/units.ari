@@ -1,0 +1,11 @@
+// A second library, to show that two imports can both define `round` without
+// colliding, once each is behind its own alias.
+
+let round = func (v: Float, places: Int) -> Float
+  let scale = Math.pow(10.0, places as Float)
+  Math.round(v * scale) as Float / scale
+end
+
+let toInches = func (cm: Float) -> Float
+  cm / 2.54
+end

@@ -1,0 +1,42 @@
+// Render nested data as indented text, the way a JSON pretty printer does.
+//
+// The interesting part is dispatch on type. `case is Dictionary` matches on
+// what the value is rather than what it equals, which is what makes one
+// recursive function enough for a structure of unknown shape.
+
+let render = func (value, depth: Int) -> String
+  let pad = String.repeat("  ", depth)
+  let inner = String.repeat("  ", depth + 1)
+
+  switch value
+  case is Dictionary then
+    if Dict.empty?(value) then return "{}" end
+    let body = value
+      |> Dict.keys()
+      |> Enum.sort()
+      |> Enum.map((k) -> "#{inner}#{k}: #{render(value[k], depth + 1)}")
+      |> String.join("\n")
+    "{\n#{body}\n#{pad}}"
+  case is Array then
+    if Enum.empty?(value) then return "[]" end
+    let body = value
+      |> Enum.map((v) -> "#{inner}#{render(v, depth + 1)}")
+      |> String.join("\n")
+    "[\n#{body}\n#{pad}]"
+  case is String then "\"#{value}\""
+  case is Nil then "null"
+  default then value as String
+  end
+end
+
+let config = [
+  "name" => "aria",
+  "version" => "0.6.0",
+  "toy" => true,
+  "authors" => ["fadion"],
+  "limits" => ["depth" => 100, "timeout" => 3.5],
+  "extras" => [=>],
+  "notes" => nil
+]
+
+println(render(config, 0))

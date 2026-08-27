@@ -1,0 +1,15 @@
+EAST
+  sales   1
+  total   210
+  best    edsger (210)
+NORTH
+  sales   3
+  total   280
+  best    ada (120)
+SOUTH
+  sales   2
+  total   520
+  best    grace (340)
+
+grand total: 1010
+exit: 0

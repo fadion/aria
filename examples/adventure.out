@@ -1,0 +1,12 @@
+Hall: A cold stone hall. Exits: east, north.
+> go north
+Library: Shelves to the ceiling. Exits: east, south.
+> go east
+Study: A desk, a locked drawer. Exits: west.
+> go north
+You cannot go north from the study.
+> go west
+Library: Shelves to the ceiling. Exits: east, south.
+> go south
+Hall: A cold stone hall. Exits: east, north.
+exit: 0

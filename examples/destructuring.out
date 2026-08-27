@@ -1,0 +1,15 @@
+Ada Lovelace
+head 1, tail [2, 3, 4, 5]
+( wraps ["a", "b", "c"] then )
+nested: 1 2 3
+kept keep
+
+ok: hello
+missing: no such page
+server error 503: try later
+unhandled status 301
+not a response
+
+5.0
+[Point(x: 0, y: 0), Point(x: 3, y: 4), Point(x: 6, y: 8)]
+exit: 0

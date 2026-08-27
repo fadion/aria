@@ -1,0 +1,69 @@
+// A bank ledger, where every operation answers a tagged result and nothing
+// mutates. Applying a transaction returns a new set of accounts, so the history
+// is a fold and every intermediate state is still intact.
+
+record Account
+  owner: String
+  balance: Int
+end
+
+let deposit = func (a: Account, amount: Int)
+  if amount <= 0 then return [:error, "deposit must be positive"] end
+  [:ok, Account(a.owner, a.balance + amount)]
+end
+
+let withdraw = func (a: Account, amount: Int)
+  if amount <= 0 then return [:error, "withdrawal must be positive"] end
+  if a.balance < amount
+    return [:error, "#{a.owner} is #{amount - a.balance} short"]
+  end
+  [:ok, Account(a.owner, a.balance - amount)]
+end
+
+// Enum.reduce calls fn(value, accumulator), so the entry comes first.
+let apply = func (entry: Array, accounts: Dictionary)
+  let [who, action, amount] = entry
+  let account = accounts[who]
+
+  let result = switch action
+  case :deposit then deposit(account, amount)
+  case :withdraw then withdraw(account, amount)
+  default then [:error, "unknown action #{action as String}"]
+  end
+
+  switch result
+  case [:ok, let updated] then
+    println("#{String.padRight(account.owner, 6)} #{action as String} #{amount} -> #{updated.balance}")
+    accounts + [who => updated]
+  case [:error, let why] then
+    println("#{String.padRight(account.owner, 6)} #{action as String} #{amount} -> rejected, #{why}")
+    accounts   // a rejected entry leaves the books untouched
+  end
+end
+
+let opening = [:ada => Account("Ada", 100), :grace => Account("Grace", 250)]
+
+let entries = [
+  [:ada, :deposit, 50],
+  [:grace, :withdraw, 100],
+  [:ada, :withdraw, 500],
+  [:ada, :withdraw, 120],
+  [:grace, :deposit, 0],
+  [:grace, :transfer, 10]
+]
+
+let closing = Enum.reduce(entries, opening, apply)
+
+println("")
+closing
+  |> Dict.keys()
+  |> Enum.sort()
+  |> Enum.each(func (who)
+    let a = closing[who]
+    println("#{String.padRight(a.owner, 6)} #{a.balance}")
+  end)
+
+// The opening books are still the opening books.
+println("")
+println("opening total: #{opening |> Dict.values() |> Enum.map((a) -> a.balance) |> Enum.sum()}")
+println("closing total: #{closing |> Dict.values() |> Enum.map((a) -> a.balance) |> Enum.sum()}")
