@@ -5,25 +5,41 @@
 
 Aria is an expressive, interpreted, toy language built as an exercise on designing and interpreting a programming language. It has a noiseless syntax, free of useless semi colons, braces or parantheses, and treats everything as an expression. Technically, it's built with a hand written lexer and parser, a recursive decent one (Pratt), and a tree-walk interpreter. I have never set any goals for it to be either fast, nor bulletproof, so don't expect neither of them.
 
-It features mutable and immutable values, if and switch conditionals, functions, type hinting, for loops, modules, the pipe operator, imports and many more. More importantly, it's getting expanded frequently with new features, more functions for the standard library and bug fixes. All of that while retaining it's expressiveness, clean syntax and easy of use.
+It features mutable and immutable values, if and switch conditionals with pattern matching, functions, type hinting, for and while loops, records, modules, the pipe operator, recoverable errors, imports and many more. More importantly, it's getting expanded frequently with new features, more functions for the standard library and bug fixes. All of that while retaining it's expressiveness, clean syntax and easy of use.
 
 ```swift
-var name = "aria language"
-let expressive? = func (x: String) -> String
-  if x != ""
-    return "expressive " + x
-  end
-  "sorry, what?"
+record Book
+  title: String
+  year: Int
 end
 
-let pipe = name |> expressive?() |> String.capitalize()
-println(pipe) // "Expressive Aria Language"
+let shelf = [
+  Book("Neuromancer", 1984),
+  Book("Dune", 1965),
+  Book("Snow Crash", 1992),
+  Book("Cryptonomicon", 1999)
+]
+
+let era = func (b: Book) -> String
+  switch b.year
+  case 1900..1979 then "a classic"
+  case 1980..1989 then "early cyberpunk"
+  default then "late cyberpunk"
+  end
+end
+
+shelf
+  |> Enum.sortBy((b) -> b.year)
+  |> Enum.map((b) -> "#{b.title} (#{b.year}), #{era(b)}")
+  |> Enum.each((line) -> println(line))
 ```
 
 ## Table of Contents
 
 * [Usage](#usage)
     * [Run a Source File](#run-a-source-file)
+    * [Run a One-liner](#run-a-one-liner)
+    * [Check Without Running](#check-without-running)
     * [REPL](#repl)
 * [Variables](#variables)
     * [Constants](#constants)
@@ -50,12 +66,17 @@ println(pipe) // "Expressive Aria Language"
     * [Closures](#closures)
     * [Recursion](#recursion)
     * [Tricks](#tricks)
+* [Line Breaks](#line-breaks)
+* [Destructuring](#destructuring)
+* [Blocks](#blocks)
 * [Conditionals](#conditionals)
     * [If](#if)
     * [Ternary Operator](#ternary-operator)
     * [Switch](#switch)
+    * [Guards, Types and Ranges](#guards-types-and-ranges)
     * [Pattern Matching](#pattern-matching)
 * [For Loop](#for-loop)
+* [While and Until](#while-and-until)
 * [Range Operator](#range-operator)
 * [Pipe Operator](#pipe-operator)
 * [Immutability](#immutability)
@@ -63,10 +84,13 @@ println(pipe) // "Expressive Aria Language"
 * [Records](#records)
 * [Imports](#imports)
 * [Comments](#comments)
+* [Errors](#errors)
+    * [Tagged Results](#tagged-results)
+    * [Try and Rescue](#try-and-rescue)
+* [Files, Arguments, Environment and Time](#files-arguments-environment-and-time)
 * [Standard Library](#standard-library)
 
-_Working on the interpreter itself? [docs/architecture.md](docs/architecture.md) covers how it is put
-together and why the design decisions went the way they did._
+_Working on the interpreter itself? [docs/architecture.md](docs/architecture.md) covers how it's put together and why the design decisions went the way they did._
 
 ## Usage
 
@@ -96,7 +120,7 @@ aria -e 'println(1 + 2)'
 
 ### Check without running
 
-`check` takes a file through the whole pipeline except evaluation — parse, then resolve — and exits non-zero if anything is wrong. That is what CI or an editor wants, and it catches everything the resolver knows: undefined names, immutable rebinding, unknown type hints, mistyped module members.
+`check` runs a file through the whole pipeline except the evaluation, so it parses and resolves and then exits non-zero if anything is off. That's what you'd want in CI or in an editor, and it catches everything the resolver knows about: undefined names, immutable rebinding, unknown type hints and mistyped module members.
 
 ```
 aria check path/to/file.ari
@@ -110,13 +134,13 @@ As any serious language, Aria provides a REPL too:
 aria repl
 ```
 
-It reads whole constructs, not lines, so a multi-line `func`, `module`, `if` or `for` can be typed straight in — the prompt changes to `..` while one is still open, and an empty line abandons it. A statement that produced nothing prints nothing.
+It reads whole constructs instead of lines, so you can type a multi-line `func`, `module`, `if` or `for` straight into it. The prompt changes to `..` while one is still open and an empty line abandons it. A statement that produced nothing will print nothing.
 
-`:help` lists the commands: `:load` evaluates a file into the session, `:vars` and `:modules` show what is in scope, and `:quit` leaves.
+`:help` lists the commands: `:load` evaluates a file into the session, `:vars` and `:modules` show what's in scope, and `:quit` gets you out.
 
 ## Variables
 
-Variables in Aria start with the keyword `var`. Accessing an undeclared variable, in contrast with some languages, will not create it. Names are checked before the program runs, so a typo is reported without the program having had any effect.
+Variables in Aria start with the keyword `var`. Accessing an undeclared variable, in contrast with some languages, will not create it. Names are checked before the program runs, so a typo gets reported before anything has had the chance to happen.
 
 ```swift
 var name = "John"
@@ -130,9 +154,9 @@ Names have to start with an alphabetic character and continue either with alphan
 
 ### Constants
 
-Constants have the same traits as variables, except that they start with `let` and are immutable. Once declared, reassigning a constant is an error, reported before the program runs. Even data structures are locked into immutability: elements of an Array or Dictionary can't be added, updated or removed through a `let` name.
+Constants have the same traits as variables, except that they start with `let` and are immutable. Once declared, reassigning a constant is an error and it's reported before the program runs. Even data structures are locked into immutability, so elements of an Array or Dictionary can't be added, updated or removed through a `let` name.
 
-Writing to an element is really a rebinding — `xs[] = v` gives you a new collection and points the name at it — so it needs a `var`, the same as any other reassignment.
+Writing to an element is really a rebinding, as `xs[] = v` gives you a new collection and points the name at it, so it needs a `var` just like any other reassignment.
 
 ```swift
 let name = "Ben"
@@ -194,14 +218,14 @@ Escape sequences are there too if you need them: `\"`, `\n`, `\t`, `\r`, `\a`, `
 let code = "if(name == \"ben\"){\n\tprint(10)\n}"
 ```
 
-A rune can be written by codepoint with `\xNN`, `\uNNNN` or `\u{N...}`. All three are codepoints, not bytes, since strings index by rune:
+You can write a rune by its codepoint with `\xNN`, `\uNNNN` or `\u{N...}`. All three take codepoints and not bytes, seeing as strings index by rune anyway:
 
 ```swift
 println("\x41")      // "A"
 println("\u{1F600}") // an emoji, one character long
 ```
 
-Strings interpolate with `#{}`. A hole holds a whole expression, and the value is rendered the way `println` renders it:
+Strings interpolate with `#{}`. Every hole takes a whole expression and the value comes out rendered exactly like `println` would render it:
 
 ```swift
 let name = "Ada"
@@ -209,7 +233,7 @@ let items = 3
 println("user #{name} has #{items} items")
 ```
 
-A `#` is only special before a `{`, and `\#` opts out.
+A `#` is only special right before a `{`, and `\#` opts out of even that.
 
 `println` and `print` also take any number of arguments, joined with a space:
 
@@ -217,7 +241,7 @@ A `#` is only special before a `{`, and `\#` opts out.
 println("count:", 3)
 ```
 
-Backticks make a raw string. It spans lines and processes no escapes — interpolation included — which is what you want for a block of text or a regex:
+Backticks make a raw string. It spans lines and processes no escapes at all, interpolation included, which is exactly what you want for a block of text or a regex:
 
 ```swift
 let block = `line one
@@ -231,7 +255,7 @@ println(String.match?("abc123", `\d+`))
 
 Atoms, or symbols as some languages refer to them, are constants where the name is their value. Although they behave a lot like strings and can generally be interchanged, internally they are treated as their own type. As the language progresses, Atoms will be put to better use.
 
-Interchangeable means interchangeable: `:a == "a"` is true, and the two are the same dictionary key, so a dictionary written with atoms can be read with strings and the other way round. It keeps the spelling it was given.
+Interchangeable really does mean interchangeable. `:a == "a"` is true and the two are the same dictionary key, so a dictionary written with atoms can be read with strings and the other way around. Whatever spelling you gave it, it keeps.
 
 ```swift
 let eq = :dog == :cat
@@ -281,19 +305,19 @@ Arithmetic between two Integers always produces an Integer, and that includes di
 2 ** -1 // 0, for the same reason
 ```
 
-The operand *types* decide the result type, never the operand values. That's what makes a declared return type like `func (n: Int) -> Int` something you can check by reading the code rather than by running it with the wrong numbers. When you want real division, give it a Float:
+The operand *types* decide the result type, never the operand values. That's what makes a declared return type like `func (n: Int) -> Int` something you can check by reading the code, instead of by running it with the wrong numbers and finding out the hard way. When you want real division, give it a Float:
 
 ```swift
 10 / 4.0 // 2.5
 ```
 
-Integer arithmetic never wraps. An `Int` is a 64-bit signed integer, and an operation whose result doesn't fit in one is an error rather than a plausible-looking negative number:
+Integer arithmetic never wraps. An `Int` is a 64-bit signed integer and an operation whose result doesn't fit in one is an error, not a plausible looking negative number:
 
 ```swift
 2 ** 62 // 4611686018427387904
 ```
 
-Floats are IEEE 754 and are left as they are, so overflow there reaches `Inf`. Division and modulo by zero are errors on both.
+Floats are IEEE 754 and left exactly as they are, so overflow there reaches `Inf` instead. Division and modulo by zero are errors on both.
 
 ### Float
 
@@ -436,7 +460,7 @@ nr as Bool
 nr as Array
 ```
 
-`as Bool` follows the same truthiness rule as a condition, and `as Dictionary` is the inverse of `as Array` on a dictionary — it takes `[key, value]` pairs:
+`as Bool` follows the same truthiness rule as a condition, while `as Dictionary` is the inverse of `as Array` on a dictionary, taking `[key, value]` pairs:
 
 ```swift
 println([[:a, 1], [:b, 2]] as Dictionary)
@@ -505,7 +529,7 @@ By order of precedence, loosest first:
 ! ~ -                 prefix NOT, bitwise NOT, negation
 ```
 
-`??` yields its left side unless it is `nil`, and short-circuits. It tests for `nil` and not for truthiness, which is the whole point of having it alongside `||`:
+`??` gives you its left side unless it's `nil`, and it short-circuits. It tests for `nil` and not for truthiness, which is the whole reason it exists next to `||`:
 
 ```swift
 let config = [:retries => 0]
@@ -514,7 +538,7 @@ println(config[:retries] ?? 3)  // 0, because 0 is not nil
 println(0 || 5)                 // true, which is why || can't do this job
 ```
 
-A dot can be written `?.`, which yields `nil` as soon as a link is `nil` rather than failing on the next access:
+A dot can be written as `?.`, which gives you `nil` as soon as a link in the chain is `nil`, instead of failing on the next access:
 
 ```swift
 let cfg = [:db => [:host => "localhost"]]
@@ -522,10 +546,7 @@ println(cfg?.db?.host)
 println(cfg?.missing?.host ?? "none")
 ```
 
-Two of these are worth a second look, because they read the other way round in some
-languages. `&&` binds tighter than `||`, so `a && b || c` is `(a && b) || c`. And bitwise
-binds tighter than comparison, so `6 & 3 == 3` is `(6 & 3) == 3` — the same way Python
-does it, the opposite of C.
+Two of these are worth a second look, because they read the other way round in some languages. `&&` binds tighter than `||`, so `a && b || c` is `(a && b) || c`. And bitwise binds tighter than comparison, so `6 & 3 == 3` is `(6 & 3) == 3`, the same way Python does it and the opposite of C.
 
 `**` is right associative and outranks a leading minus, but not a minus on its exponent:
 
@@ -559,7 +580,7 @@ Comparison operators compare Integers and Floats by value, and Strings lexicogra
 "one" < "three"
 ```
 
-Arrays and Dictionaries have no order, so `<`, `<=`, `>` and `>=` are not defined on them. To compare sizes, say so:
+Arrays and Dictionaries have no order, so `<`, `<=`, `>` and `>=` aren't defined on them. If it's sizes you want to compare, say so:
 
 ```swift
 Enum.size([1, 2]) > Enum.size([5])
@@ -643,7 +664,7 @@ println(add(5, "two"))
 
 Aria is not a strong typed language, so type hinting is completely optional. Generally, it's a good idea to use it as a validation measure. Once you enforce a certain type, you'll be sure of how the function executes.
 
-A hint names one of `Nil`, `Bool`, `Int`, `Float`, `String`, `Atom`, `Array`, `Dictionary`, `Function`, `Module` or `Any`, and anything else is an error before the program runs — the same for `is` and `as`. `Any` accepts everything, which is how you say "anything" out loud rather than by leaving the hint off:
+A hint names one of `Nil`, `Bool`, `Int`, `Float`, `String`, `Atom`, `Array`, `Dictionary`, `Function`, `Module` or `Any`. Anything else is an error before the program runs, and the same goes for `is` and `as`. `Any` accepts everything, which is how you say "anything" out loud instead of by leaving the hint off:
 
 ```swift
 let identity = func (v: Any) -> Any
@@ -652,7 +673,7 @@ end
 println(identity([1, 2]))
 ```
 
-A default is checked against its own parameter's hint, so `func (n: Int = "oops")` is an error rather than a hint that lies to every caller who omits the argument.
+A default is checked against its own parameter's hint, so `func (n: Int = "oops")` is an error instead of a hint that lies to every caller who omits the argument.
 
 ### Default Parameters
 
@@ -840,7 +861,7 @@ add(5, (x) -> x * 2)
 
 ## Line Breaks
 
-A newline ends a statement, which is what lets Aria do without semicolons. An expression can still span lines, in either of the two shapes that read well — a line ending with an operator, or a line beginning with one:
+A newline ends a statement and that's how Aria gets away without semicolons. An expression can still span lines though, in either of the two shapes that read well: a line ending with an operator, or a line beginning with one:
 
 ```swift
 let total = 1 +
@@ -853,9 +874,9 @@ println(data
   |> Enum.map((x) -> x * 2))
 ```
 
-The exception is a line beginning with `-`, `(` or `[`, since each of those could start an expression of its own — negation, a call, a subscript — so those are new statements as they always were.
+The exception is a line beginning with `-`, `(` or `[`, as each of those could start an expression of its own, be it a negation, a call or a subscript. Those are new statements, like they always were.
 
-A parenthesised parameter list can span lines too:
+A parameter list in parentheses can span lines too:
 
 ```swift
 let add = func (
@@ -868,7 +889,7 @@ end
 
 ## Destructuring
 
-An array can be taken apart by shape in a `let` or a `var`. `_` is a hole, `...name` takes the rest, and patterns nest:
+An array can be taken apart by its shape in a `let` or a `var`. The `_` is a hole, `...name` takes whatever is left, and patterns can nest:
 
 ```swift
 let [a, b] = [1, 2]
@@ -879,7 +900,7 @@ let [x, [y, z]] = [1, [2, 3]]
 println(middle) // [2, 3, 4]
 ```
 
-Without a `...`, the shape has to match exactly — a pattern that doesn't fit is an error rather than a partial bind.
+Without a `...`, the shape has to match exactly. A pattern that doesn't fit is an error and not a partial bind.
 
 In a `switch` arm, `let name` captures what matched:
 
@@ -894,11 +915,11 @@ end
 println(describe([:ok, 42]))
 ```
 
-A bare identifier in a case is still a reference compared against the control, as it always was. `let` is what says "bind this", the same way it does at the front of a statement.
+A bare identifier in a case is still a reference compared against the control, like it always was. The `let` is what says "bind this", the same way it does at the front of a statement.
 
 ## Blocks
 
-`do ... end` is an expression. It yields its last value and has a scope of its own, which is how you give a name to something built in a few steps without leaking the steps:
+`do ... end` is an expression. It returns its last value and has a scope of its own, which is handy to name something that takes a few steps to build, without leaking those steps around:
 
 ```swift
 let area = do
@@ -976,7 +997,7 @@ end
 
 ### Guards, Types and Ranges
 
-A `when` clause guards an arm. It's tested only once one of the arm's values has already matched, which is what lets the control-less form replace an else-if chain without repeating the subject:
+A `when` clause guards an arm. It's only tested once one of the arm's values has matched, which is what lets a `switch` without a control condition replace an else-if chain without repeating the subject:
 
 ```swift
 let describe = func (n)
@@ -989,7 +1010,7 @@ end
 println(describe(4))
 ```
 
-`is` works in case position, matching on the control's type. A range matches membership:
+`is` works in case position too, matching on the control's type, while a range matches membership:
 
 ```swift
 let classify = func (v)
@@ -1002,11 +1023,11 @@ end
 println(classify("hi"))
 ```
 
-A guard that fails falls through to the next arm rather than to `default`.
+A guard that fails falls through to the next arm, not straight to `default`.
 
 ### Pattern Matching
 
-An array literal in case position pattern matches its elements. For a match, the pattern and the array have to be the same size:
+An array literal in case position pattern matches its elements. Of course, for a match the pattern and the array have to be the same size:
 
 ```swift
 switch ["game", "of", "thrones"]
@@ -1030,7 +1051,7 @@ default
 end
 ```
 
-A comma-separated case list is a list of *alternatives*, not a pattern — `case 1, 2` means "1 or 2" whatever the control is. That distinction is why a pattern gets the array-literal spelling: the same syntax used to mean both, chosen by the runtime type of the subject.
+A comma separated case list is a list of *alternatives* and not a pattern, so `case 1, 2` means "1 or 2" no matter what the control is. That's why a pattern gets the array literal spelling instead. The same syntax used to mean both and the runtime type of the subject decided which one you got.
 
 ## For Loop
 
@@ -1102,7 +1123,7 @@ for i in 1..10
 end
 ```
 
-`break` also takes a count, which is how a nested loop breaks outward without a flag variable:
+`break` also takes a count, so a nested loop can break outward without a flag variable to carry the intention:
 
 ```swift
 let rows = [[1, 2], [3, 4]]
@@ -1118,7 +1139,7 @@ end
 
 ## While and Until
 
-`while` repeats a body for as long as its condition holds, and `until` for as long as it doesn't. Both take the same optional `do` and `end`-terminated shape as `for`:
+`while` repeats a body for as long as its condition holds and `until` for as long as it doesn't. Both take the same optional `do` and the same `end` terminated shape as the `for`:
 
 ```swift
 var i = 0
@@ -1132,7 +1153,7 @@ until j <= 0 do
 end
 ```
 
-Unlike `for`, they evaluate to `nil`. A `for` collects every iteration's value into an array, which is worth having when you want it and worth avoiding when you don't — these are for when you don't.
+Unlike the `for`, they evaluate to `nil`. A `for` collects every iteration's value into an array, which is great when you want it and wasteful when you don't. These two are for when you don't.
 
 *The `for` loop is currently naively parsed. It works for most cases, but still, it's not robust enough. I'm working to find a better solution.*
 
@@ -1163,9 +1184,9 @@ for i in 0..Enum.size(numbers) - 1
 end
 ```
 
-A range written directly as a loop's enumerable counts rather than building the array first, so `for i in 1..10000000` costs nothing up front.
+A range written directly as a loop's enumerable just counts, instead of building the whole array first, so `for i in 1..10000000` costs nothing up front.
 
-A range used as a subscript slices, on arrays and on strings alike. The bounds are inclusive here too, negative ones count from the end, and anything outside the collection is clamped rather than being an error:
+A range used as a subscript slices, on arrays and strings alike. The bounds are inclusive here too, negative ones count from the end, and anything outside the collection gets clamped instead of raising an error:
 
 ```swift
 let a = [1, 2, 3, 4, 5]
@@ -1192,14 +1213,14 @@ add(2, 1) |> pow() |> substract()
 
 The pipe starts from left to right, evaluating each left expression and passing it automatically as the first parameter to the function on the right side. Basically, the result of `add` is passed to `pow`, and finally the result of `pow` to `substract`.
 
-A bare name works too, since an empty argument list on a function that takes an argument reads as a mistake:
+A bare name works too, seeing as an empty argument list on a function that takes an argument looks like a mistake anyway:
 
 ```swift
 let double = func (x) do x * 2 end
 println(4 |> double)
 ```
 
-And when the piped value doesn't belong first, a `_` among the arguments marks where it goes. At most one may appear:
+And when the piped value doesn't belong first, a `_` among the arguments marks where it goes. Only one of them is allowed:
 
 ```swift
 let subtract = func (a, b) do a - b end
@@ -1256,7 +1277,7 @@ Think first of how you would write the problem with immutable values and only mo
 
 ## Modules
 
-Modules are very simple containers of data and nothing more. They're not an imitation of classes, as they can't be initialized, don't have any type of access control, inheritance or whatever. If you need to think in Object Oriented terms, they're like a class with only static properties and methods. They're good to give some structure to a program, but not to represent cars, trees and cats — that's what [records](#records) are for.
+Modules are very simple containers of data and nothing more. They're not an imitation of classes, as they can't be initialized, don't have any type of access control, inheritance or whatever. If you need to think in Object Oriented terms, they're like a class with only static properties and methods. They're good to give some structure to a program, but not to represent cars, trees and cats. That's what [records](#records) are for.
 
 ```swift
 module Color
@@ -1271,7 +1292,7 @@ let background = Color.white
 let font_color = Color.hexToRGB(Color.grey)
 ```
 
-Because modules are interpreted and cached before-hand, properties and functions have access to each other. Top-level functions hoist for the same reason, so two of them can call each other without one having to be wrapped in a module:
+Because modules are interpreted and cached before-hand, properties and functions have access to each other. Top level functions hoist for the same reason, so two of them can call each other without having to wrap one in a module:
 
 ```swift
 let isEven = func (n) do
@@ -1287,9 +1308,9 @@ end
 println(isEven(10)) // true
 ```
 
-Everything else is single pass: only a `let` at the top level whose value is a function literal hoists, and a name has to be declared before it is read.
+Everything else is still single pass. Only a top level `let` whose value is a function literal hoists, while any other name has to be declared before it's read.
 
-A module is an ordinary value, so its name can be bound, passed to a function and returned from one:
+A module is an ordinary value, so its name can be assigned, passed to a function and returned from one:
 
 ```swift
 let C = Color
@@ -1297,7 +1318,7 @@ println(C.white)
 println(typeof(Color)) // "Module"
 ```
 
-And `.` is an operator over expressions rather than a form over two names, so it chains over anything — a member, a call, a subscript:
+And the `.` is an operator over expressions and not a form over two names, so it chains over anything you throw at it, be it a member, a call or a subscript:
 
 ```swift
 let config = [:db => [:host => "localhost"]]
@@ -1306,7 +1327,7 @@ println(config.db.host)
 
 ## Records
 
-Modules give a program structure but can't be instantiated, and a dictionary carries data without any identity — `typeof` says `Dictionary` for every one of them. A record is the shape for a car, a tree or a cat.
+Modules give a program structure but can't be instantiated, while a dictionary carries data with no identity at all, seeing as `typeof` says `Dictionary` for every single one of them. A record is the shape for a car, a tree or a cat.
 
 ```swift
 record Point
@@ -1320,7 +1341,7 @@ println(typeof(p))  // "Point"
 println(p is Point) // true
 ```
 
-A record's fields are a parameter list, so constructing one is an ordinary call — same arity check, same type hints, same defaults:
+A record's fields are a parameter list, so constructing one is an ordinary call with the same arity check, the same type hints and the same defaults:
 
 ```swift
 record Config
@@ -1330,7 +1351,7 @@ end
 println(Config("localhost"))
 ```
 
-Two records with the same fields are still different types, which is the whole point of having one:
+Two records with the same fields are still different types, which is pretty much the whole point of having them:
 
 ```swift
 record Point
@@ -1342,7 +1363,7 @@ end
 println(Point(1) == Size(1)) // false
 ```
 
-Records are immutable like everything else, so writing a field rebinds the name — the same reading `a[0] = v` already has:
+Records are immutable like everything else, so writing a field rebinds the name, exactly the way `a[0] = v` already does:
 
 ```swift
 record Point
@@ -1356,7 +1377,7 @@ println(p)      // Point(x: 5, y: 2)
 println(before) // Point(x: 1, y: 2)
 ```
 
-That works through dictionaries too, and to any depth.
+That works through dictionaries too, and to any depth you need.
 
 ## Imports
 
@@ -1380,7 +1401,7 @@ println(phrase) // "Bella moew John"
 
 The file is relatively referenced from the caller and in this case, both `main.ari` and `dog.ari` reside in the same folder. As the long as the extension is `.ari`, there's no need to write it in the import statement. Even the quotes can be omited and the file written as an identifier, as long as it doesn't include a dot (as in `cat.ari`) and isn't a reserved keyword.
 
-An imported file is part of the same compilation as the file that imports it, so a mistake in one is reported before anything runs — in the file it was made in. An import belongs at the top level of a file, because a conditional import is one no pass can see through.
+An imported file is part of the same compilation as the file that imports it, so a mistake in one gets reported before anything runs, in the file where it was actually made. An import belongs at the top level of a file, because no pass can see through a conditional one.
 
 Two files can both define `size`, because `as` namespaces what an import brings in:
 
@@ -1399,7 +1420,7 @@ println(Geo.size)
 println(Geo.area(3, 4))
 ```
 
-An alias is a module, so it's checked like any other one — a member that isn't there is a diagnostic, not a surprise at runtime. Import cycles are fine: a file already pulled in is not pulled in twice.
+An alias is a module, so it's checked like any other one and a member that isn't there gets you a diagnostic instead of a surprise at runtime. Import cycles are fine, as a file that's already been pulled in won't be pulled in twice.
 
 A more useful pattern would be to wrap imported files into a module. That would make for a more intuitive system and prevent scope leakage. The cat case above could be written simply into:
 
@@ -1453,11 +1474,11 @@ Nothing ground breaking in here. You can write either single line or multi line 
 
 ## Errors
 
-A failure halts the program and exits non-zero. That's the right rule for a genuine fault, and the wrong one for "this key isn't in this dictionary" — so Aria has two shapes for recovering, which answer different questions.
+A failure halts the program and exits non-zero. That's the right rule for a genuine fault and the wrong one for "this key isn't in this dictionary", so Aria gives you two shapes for recovering, each of them answering a different question.
 
 ### Tagged results
 
-A fallible operation answers `[:ok, value]` or `[:error, reason]`. That needs no special syntax, since `switch` with array patterns and `let` capture takes one apart:
+An operation that can fail answers with `[:ok, value]` or `[:error, reason]`. No special syntax needed, as a `switch` with array patterns and `let` capture takes one apart just fine:
 
 ```swift
 let user = [:name => "Ada"]
@@ -1467,7 +1488,7 @@ case [:error, let why] then "could not: #{why}"
 end)
 ```
 
-The `Result` module gives the shape a name and the usual ways to consume it — `Result.ok?`, `Result.unwrap` with a fallback, `Result.expect`, `Result.reason`:
+The `Result` module gives that shape a name and the usual ways to consume it: `Result.ok?`, `Result.unwrap` with a fallback, `Result.expect` and `Result.reason`:
 
 ```swift
 let user = [:name => "Ada"]
@@ -1476,7 +1497,7 @@ println(Result.unwrap(Dict.delete(user, :missing), user))
 
 ### try and rescue
 
-`try` catches a failure and is an expression, like everything else — it evaluates to whichever block ran. The rescued value is a dictionary with `:message`, `:file`, `:line` and `:column`:
+`try` catches a failure and, like everything else around here, it's an expression that evaluates to whichever block ran. The rescued value is a dictionary with `:message`, `:file`, `:line` and `:column`:
 
 ```swift
 println(try
@@ -1486,7 +1507,7 @@ rescue e
 end)
 ```
 
-Every runtime error is catchable, including one the runtime raised itself: whether a division by zero is a bug or a validation outcome is the caller's call, not the language's. The name after `rescue` is optional. A `return` inside a `try` is not a failure and unwinds to its function as usual.
+Every runtime error is catchable, including the ones the runtime raised itself. Whether a division by zero is a bug or a validation outcome is the caller's call and not the language's. The name after `rescue` is optional. A `return` inside a `try` isn't a failure, so it unwinds to its function as usual.
 
 `Result.attempt` bridges the two shapes:
 
@@ -1494,13 +1515,13 @@ Every runtime error is catchable, including one the runtime raised itself: wheth
 println(Result.attempt(() -> 1 / 0))
 ```
 
-The library draws the line at data versus misuse. `Dict.insert`, `Dict.update` and `Dict.delete` answer tagged results, because a key that is or isn't there is an ordinary outcome. Passing the wrong kind of thing — `Math.max("a", 1)` — still raises, because that's a mistake in the caller.
+The library draws the line at data versus misuse. `Dict.insert`, `Dict.update` and `Dict.delete` answer with tagged results, because a key that is or isn't there is an ordinary outcome. Passing the wrong kind of thing, like `Math.max("a", 1)`, still raises, because that one is a mistake in the caller.
 
 ## Files, Arguments, Environment and Time
 
 `prompt` used to be the only way an Aria program could reach the outside world. `File`, `OS` and `Time` are the rest of it.
 
-Everything that can fail answers a tagged result, so a file that isn't there is something you handle rather than something that ends the program:
+Everything that can fail answers with a tagged result, so a file that isn't there is something you handle instead of something that ends the program:
 
 ```swift
 let path = "config.txt"
@@ -1521,7 +1542,7 @@ println(OS.args())
 println(OS.env("HOME", "unknown"))
 ```
 
-`Time` has two clocks, because they answer different questions. `Time.now()` is milliseconds since the Unix epoch, which is what you write down. `Time.monotonic()` is nanoseconds from an arbitrary origin, which is what you subtract — a wall clock can move backwards:
+`Time` has two clocks, because they answer different questions. `Time.now()` is milliseconds since the Unix epoch and that's the one you write down. `Time.monotonic()` is nanoseconds from an arbitrary origin and that's the one you subtract, seeing as a wall clock can move backwards on you:
 
 ```swift
 let start = Time.monotonic()
@@ -1532,28 +1553,28 @@ end
 println(Time.since(start) > 0)
 ```
 
-There is no sandbox. A program reads and writes any path the process can, and running untrusted Aria source is running untrusted code.
+There's no sandbox here. A program reads and writes any path the process can, so running untrusted Aria source is exactly the same as running untrusted code.
 
 ## Standard Library
 
 The Standard Library is fully written in Aria with the help of a few essential functions provided by the runtime. That is currently the best source to check out some "production" Aria code and see what it's capable of. [Read the documentation](https://github.com/fadion/aria/wiki/Standard-Library).
 
-Five modules:
+Nine modules come with it:
 
-**`String`** — `count`, `isEmpty?`, `first`, `last`, `lower`, `upper`, `capitalize`, `reverse`, `slice`, `repeat`, `padLeft`, `padRight`, `trim`, `trimLeft`, `trimRight`, `join`, `split`, `lines`, `words`, `indexOf`, `lastIndexOf`, `starts?`, `ends?`, `contains?`, `replace`, `match?`.
+**`String`**: `count`, `isEmpty?`, `first`, `last`, `lower`, `upper`, `capitalize`, `reverse`, `slice`, `repeat`, `padLeft`, `padRight`, `trim`, `trimLeft`, `trimRight`, `join`, `split`, `lines`, `words`, `indexOf`, `lastIndexOf`, `starts?`, `ends?`, `contains?`, `replace`, `match?`.
 
-`trim` and its two halves strip whitespace unless given a set of characters to strip, and strip every leading or trailing occurrence:
+`trim` and its two halves strip whitespace, unless you hand them a set of characters to strip instead, and they strip every leading or trailing occurrence of it:
 
 ```swift
 String.trim("  hi  ")        // "hi"
 String.trimLeft("xxhi", "x") // "hi"
 ```
 
-`indexOf` and `lastIndexOf` answer `-1` when the search is absent, so "not found" is distinguishable from "found at 0".
+`indexOf` and `lastIndexOf` answer with `-1` when there's nothing to find, so "not found" doesn't get confused with "found at 0".
 
-**`Math`** — `pi`, `e`, `infinity`, `nan`, `floor`, `ceil`, `round`, `trunc`, `max`, `min`, `clamp`, `random`, `abs`, `sign`, `pow`, `sqrt`, `cbrt`, `exp`, `log`, `log2`, `log10`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `isNaN?`, `isInfinite?`.
+**`Math`**: `pi`, `e`, `infinity`, `nan`, `floor`, `ceil`, `round`, `trunc`, `max`, `min`, `clamp`, `random`, `abs`, `sign`, `pow`, `sqrt`, `cbrt`, `exp`, `log`, `log2`, `log10`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `isNaN?`, `isInfinite?`.
 
-`floor`, `ceil`, `round` and `trunc` answer with an Integer, and raise rather than convert out of range. `max` and `min` are variadic:
+`floor`, `ceil`, `round` and `trunc` answer with an Integer and raise instead of converting when out of range. `max` and `min` are variadic:
 
 ```swift
 Math.round(-2.5)     // -3, halves round away from zero
@@ -1561,49 +1582,26 @@ Math.max(3, 7, 1)    // 7
 Math.clamp(15, 0, 10) // 10
 ```
 
-**`Enum`** — `size`, `empty?`, `first`, `last`, `reverse`, `insert`, `delete`, `map`, `filter`, `reduce`, `find`, `contains?`, `indexOf`, `unique`, `random`, `sort`, `sortBy`, `each`, `sum`, `min`, `max`, `count`, `any?`, `all?`, `take`, `drop`, `takeWhile`, `dropWhile`, `zip`, `concat`, `flatten`, `groupBy`, `chunk`.
+**`Enum`**: `size`, `empty?`, `first`, `last`, `reverse`, `insert`, `delete`, `map`, `filter`, `reduce`, `find`, `contains?`, `indexOf`, `unique`, `random`, `sort`, `sortBy`, `each`, `sum`, `min`, `max`, `count`, `any?`, `all?`, `take`, `drop`, `takeWhile`, `dropWhile`, `zip`, `concat`, `flatten`, `groupBy`, `chunk`.
 
-Sorting orders with the language's own `<`, so numbers order among numbers and text among text, and a pair `<` cannot compare is an error rather than an invented ordering across types. `sortBy` takes a key function:
+Sorting orders with the language's own `<`, so numbers order among numbers and text among text, and a pair that `<` can't compare is an error instead of some invented ordering across types. `sortBy` takes a key function:
 
 ```swift
 Enum.sort([3, 1, 2])                                  // [1, 2, 3]
 Enum.sortBy(["bbb", "a", "cc"], (s) -> String.count(s)) // ["a", "cc", "bbb"]
 ```
 
-**`Dict`** — `size`, `empty?`, `keys`, `values`, `get`, `has?`, `contains?`, `insert`, `update`, `delete`, `merge`, `map`, `filter`, `toPairs`, `fromPairs`.
+**`Dict`**: `size`, `empty?`, `keys`, `values`, `get`, `has?`, `contains?`, `insert`, `update`, `delete`, `merge`, `map`, `filter`, `toPairs`, `fromPairs`.
 
-`get` takes a fallback, which `dict[key]` cannot express — it can't tell a missing key from one whose value is `nil`:
+`get` takes a fallback, which `dict[key]` can't express, seeing as it has no way to tell a missing key from one whose value is `nil`:
 
 ```swift
 let user = [:name => "Ada"]
 println(Dict.get(user, :city, "unknown"))
 ```
 
-**`Result`** — `ok`, `error`, `ok?`, `error?`, `unwrap`, `expect`, `reason`, `attempt`. See [Errors](#errors).
+**`Result`**: `ok`, `error`, `ok?`, `error?`, `unwrap`, `expect`, `reason`, `attempt`. See [Errors](#errors).
 
-**`File`** — `read`, `lines`, `write`, `append`, `remove`, `exists?`. **`OS`** — `args`, `env`, `env?`. **`Time`** — `now`, `monotonic`, `since`, `milliseconds`, `seconds`.
+**`File`**: `read`, `lines`, `write`, `append`, `remove`, `exists?`. **`OS`**: `args`, `env`, `env?`. **`Time`**: `now`, `monotonic`, `since`, `milliseconds`, `seconds`.
 
-**`Type`** covers type inspection and conversion.
-
-## Future Plans
-
-Although this is a language made purely for fun and experimentation, it doesn't mean I will abandon it in it's first release. Adding other features means I'll learn even more!
-
-In the near future, hopefully, I plan to:
-
-- Improve the Standard Library with more functions.
-- ~~Support closures and recursion~~.
-- ~~Add a short syntax for functions in the form of: (x) -> x~~.
-- ~~Add importing of other files~~.
-- ~~Add the pipe operator!~~
-- Support optional values for null returns.
-- Write more tests!
-- Write some useful benchmarks with non-trivial programs.
-
-## Credits
-
-Aria was developed by Fadion Dashi, a freelance web and mobile developer from Tirana.
-
-The implementation is based on the fantastic [Writing an Interpreter in Go](https://interpreterbook.com/). If you're even vaguely interested in interpreters, with Golang or not, I highly suggest that book.
-
-The `reader.Buffer` package is a "fork" of Golang's `bytes.Buffer`, in which I had to add a method that reads a rune without moving the internal cursor. I hate doing that, but unfortunately couldn't find a way out of it. That package has its own BSD-style [license](https://github.com/golang/go/blob/master/LICENSE).
+And **`Type`**, which covers type inspection and conversion, as you've seen earlier.
