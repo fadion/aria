@@ -998,3 +998,12 @@ itself a compatibility break.
 - **Slot-based scopes.** The resolver computes slot indices and scope sizes that the
   evaluator ignores, walking a chain of name maps instead. Switching would make lookup an
   array index.
+
+  There is now a number attached to this. `BenchmarkMicro/name-lookup-deep` and
+  `name-lookup-shallow` run the same loop and the same arithmetic, differing only in
+  whether the names come from three scopes up or from beside the loop, so the gap between
+  them is chain-walking and nothing else. On one machine the deep case costs around a fifth
+  more time and **ten more allocations out of eleven thousand** — the chain costs pointer
+  chasing, not garbage. That is the ceiling on what slots could win, in a case built to
+  make the chain as expensive as possible; a real program keeps its names closer. Measure
+  with benchstat before believing any of it, and before spending a rewrite on it.

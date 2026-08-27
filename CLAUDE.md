@@ -46,6 +46,20 @@ The characterization suite is the important one. `go test` covers the Go code; t
 covers *the language*, and it is the thing that catches a change you did not intend to
 make.
 
+There are benchmarks too, in `internal/interp/bench_test.go`. CI runs them at
+`-benchtime=1x`, which measures nothing and only proves they still work. To actually
+compare two revisions:
+
+```bash
+go test ./internal/interp/ -run=XXX -bench=. -benchmem -count=10 > old.txt
+go test ./internal/interp/ -run=XXX -bench=. -benchmem -count=10 > new.txt
+benchstat old.txt new.txt
+```
+
+Read `allocs/op`, not `ns/op`. Every collection operation returns a new value, so
+allocation is the dominant cost and the count is deterministic; wall-clock on a shared
+runner is not, which is why nothing gates on it.
+
 After touching the scanner or parser, also run the fuzzers for 30 seconds each. They are
 cheap and they have both found real bugs:
 
