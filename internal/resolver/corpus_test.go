@@ -108,6 +108,12 @@ var expectedResolveErrors = map[string]string{
 	"hoisting-not-for-values.ari":    "reads a non-function `let` before it is declared",
 	"hoisting-limits.ari":            "calls a later function from inside a function body",
 	"break-too-many-levels.ari":      "breaks out of more loops than it is inside",
+	"missing-member.ari":             "reads a module member that does not exist",
+	"non-let-member.ari":             "puts something other than a let in a module body",
+	"is-unknown-type.ari":            "tests against a name that is not a type",
+	"as-unknown-type.ari":            "converts to a name that is not a type",
+	"unknown-parameter-type.ari":     "annotates with names that are not types",
+	"default-type-violation.ari":     "gives a parameter a default its annotation forbids",
 }
 
 // Three cases that USED to fail now resolve cleanly, which is the point:

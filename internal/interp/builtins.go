@@ -597,6 +597,10 @@ func (i *Interp) wantString(name string, args []value.Value, span source.Span) s
 // a message rather than reporting, so both call sites can attach their own span.
 func Convert(v value.Value, to string) (value.Value, string) {
 	switch to {
+	case value.Any:
+		// Everything is already an Any.
+		return v, ""
+
 	case "String":
 		switch v := v.(type) {
 		case value.String:

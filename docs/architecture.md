@@ -171,6 +171,37 @@ The evaluator hoists to match, in `Interp.Run` and again for an imported file. H
 only one of the two would let a name resolve and then not be there at runtime — `eval`'s
 Identifier case, the one whose comment says the two passes cannot disagree.
 
+**Type annotations are checked here, not at runtime.** Aria has hints, and almost nothing
+used to look at them before the program ran.
+
+`is` was a string comparison against `Type().String()` with the right-hand side never
+resolved, so `5 is Banana` was a permanently-false test rather than a typo. The set of type
+names is fixed and known, so `is`, `as`, parameter hints and return hints are all checked
+against it.
+
+A parameter's default is checked against its own annotation. `checkParamType` ran only on
+arguments actually passed, so `func (n: Int = "oops")` bound the default unchecked and the
+hint was a lie for every caller that omitted the argument. A literal default is checked
+here; anything else is checked when it is evaluated.
+
+Module members are checked for the modules this pass can see — the standard library, whose
+members are known before the user's program is parsed, and anything declared in the same
+file. `resolver.moduleAccess` used to skip this on the grounds that matching members across
+files is the evaluator's job, which is true only for a module in an imported file. Moving
+"not found" from runtime to a diagnostic is the resolver's stated reason for existing, and
+a mistyped `Enum.sizze` is the same class of mistake as a mistyped variable.
+
+**`Any` is a name a hint may use.** Without it, the way to say "accepts anything" was to say
+nothing, so an unannotated parameter was ambiguous between that and "not yet annotated".
+`x is Any` is true, `x as Any` is `x`, and `: Any` accepts everything.
+
+**Nullable and union annotations are deliberately not here yet.** A parameter that
+legitimately takes `Int` or `nil` still cannot be annotated, which is why most of the
+standard library leaves its optional parameters bare. Both need real grammar in the
+annotation position — `Int?`, `Int | String` — and that is a type-syntax decision worth
+making once, alongside user-defined types, rather than improvised into a bug fix. `Any` is
+the honest way to say it in the meantime.
+
 **It also checks what only a tree walk can see.** Three mistakes are knowable before the
 program starts, and each was silent or late:
 
@@ -516,7 +547,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 179 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 184 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash

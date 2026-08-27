@@ -20,9 +20,12 @@
 package resolver
 
 import (
+	"strings"
+
 	"github.com/fadion/aria/internal/ast"
 	"github.com/fadion/aria/internal/diag"
 	"github.com/fadion/aria/internal/source"
+	"github.com/fadion/aria/internal/value"
 )
 
 // Builtins are the runtime functions available without declaration.
@@ -165,6 +168,11 @@ type Resolver struct {
 	// redeclaration.
 	hoisted map[*Binding]bool
 
+	// moduleMembers maps a module's binding to the names it declares, for the
+	// modules this pass can see: the standard library and anything declared in
+	// this file.
+	moduleMembers map[*Binding][]string
+
 	// loops and funcs count the enclosing loop and function bodies, so that
 	// break, continue and return can be checked where they mean something. A
 	// function body resets loops: a `break` inside a function nested in a loop
@@ -183,8 +191,9 @@ func New(file *source.File, diags *diag.Bag) *Resolver {
 			decls: map[*ast.Identifier]*Binding{},
 			sizes: map[ast.Node]int{},
 		},
-		modules: map[string]bool{},
-		hoisted: map[*Binding]bool{},
+		modules:       map[string]bool{},
+		hoisted:       map[*Binding]bool{},
+		moduleMembers: map[*Binding][]string{},
 	}
 	r.current = newScope(nil)
 	for _, name := range Builtins {
@@ -204,9 +213,12 @@ func (r *Resolver) Predeclare(name string) { r.predeclare(name, KindLet) }
 // entry in the module set. It used to be only the latter, which is why
 // resolveName had to let bare module names through unresolved and `let E = Enum`
 // then failed in the evaluator with "'Enum' is not defined".
-func (r *Resolver) PredeclareModule(name string) {
+func (r *Resolver) PredeclareModule(name string, members ...string) {
 	r.modules[name] = true
 	r.predeclare(name, KindLet)
+	if len(members) > 0 {
+		r.moduleMembers[r.current.names[name]] = members
+	}
 }
 
 func (r *Resolver) predeclare(name string, kind Kind) {
@@ -240,7 +252,28 @@ func (r *Resolver) collectModules(nodes []ast.Node) {
 			// reports the redeclaration, with the module's own message.
 			if n.Name != nil && !r.modules[n.Name.Value] {
 				r.modules[n.Name.Value] = true
-				r.declare(n.Name, KindLet, false)
+				b := r.declare(n.Name, KindLet, false)
+				// The members are right here, so an access can be checked
+				// against them rather than left to the evaluator.
+				if b != nil && n.Body != nil {
+					members, wellFormed := []string{}, true
+					for _, c := range n.Body.Nodes {
+						let, isLet := c.(*ast.Let)
+						if !isLet {
+							wellFormed = false
+							continue
+						}
+						if let.Name != nil {
+							members = append(members, let.Name.Value)
+						}
+					}
+					// A malformed body is reported on its own; checking members
+					// against it too would pile a second message onto one
+					// mistake.
+					if wellFormed {
+						r.moduleMembers[b] = members
+					}
+				}
 			}
 		case *ast.Import:
 			r.hasImport = true
@@ -402,10 +435,13 @@ func (r *Resolver) node(n ast.Node) {
 		r.pipeTarget(n.Right)
 
 	case *ast.Is:
-		// Only the left side is a value; the right is a type name.
+		// Only the left side is a value; the right names a type, which is a
+		// fixed set this pass can check.
 		r.node(n.Left)
+		r.typeName(n.Right)
 	case *ast.As:
 		r.node(n.Left)
+		r.typeName(n.Right)
 
 	case *ast.ExpressionList:
 		for _, c := range n.Elements {
@@ -471,6 +507,7 @@ func (r *Resolver) node(n ast.Node) {
 		// to know anything about modules — and `cfg.db.host`, `f().a` and
 		// `a[0].k` resolve for the same reason.
 		r.node(n.Left)
+		r.moduleMember(n)
 
 	// A control keyword outside the construct it controls is knowable here,
 	// and silent otherwise: Interp.Run stops its node loop on any signal, so a
@@ -656,10 +693,25 @@ func (r *Resolver) function(n *ast.Function) {
 	// Default values are evaluated in the ENCLOSING scope, so resolve them
 	// before opening the function's own.
 	for _, p := range n.Parameters {
-		if p != nil && p.Default != nil {
-			r.node(p.Default)
+		if p == nil {
+			continue
+		}
+		r.typeName(p.Type)
+		if p.Default == nil {
+			continue
+		}
+		r.node(p.Default)
+		// checkParamType runs only on arguments actually passed, so a default
+		// was bound unchecked and the annotation was a lie for every caller
+		// that omitted it. A literal default is knowable here.
+		if p.Type != nil && p.Type.Value != value.Any {
+			if got := literalType(p.Default); got != "" && got != p.Type.Value {
+				r.diags.Errorf(p.Default.Span(), "parameter '%s' is declared %s but defaults to %s",
+					p.Name.Value, p.Type.Value, got)
+			}
 		}
 	}
+	r.typeName(n.ReturnType)
 
 	r.push()
 	for _, p := range n.Parameters {
@@ -695,10 +747,17 @@ func (r *Resolver) module(n *ast.Module) {
 
 	r.push()
 
-	// First pass: declare every member.
+	// First pass: declare every member. A module body accepts only `let`, which
+	// the evaluator reported at runtime for a mistake plainly visible here.
 	for _, c := range n.Body.Nodes {
-		if let, ok := c.(*ast.Let); ok && let.Name != nil {
-			r.declare(let.Name, KindLet, false)
+		if let, ok := c.(*ast.Let); ok {
+			if let.Name != nil {
+				r.declare(let.Name, KindLet, false)
+			}
+			continue
+		}
+		if _, bad := c.(*ast.Bad); !bad && c != nil {
+			r.diags.Errorf(c.Span(), "a module body accepts only 'let' declarations")
 		}
 	}
 
@@ -712,4 +771,74 @@ func (r *Resolver) module(n *ast.Module) {
 	}
 
 	r.pop(n)
+}
+
+// typeName checks that id names a type an annotation may use.
+//
+// `is` was a string comparison against Type().String() and the resolver skipped
+// the right-hand side entirely, so `5 is Banana` was a permanently-false test
+// rather than a typo. The set is fixed and known here.
+func (r *Resolver) typeName(id *ast.Identifier) {
+	if id == nil || value.IsTypeName(id.Value) {
+		return
+	}
+	// One diagnostic rather than an error and a note: a note with the same span
+	// would draw the same line and caret underneath itself.
+	r.diags.Errorf(id.Span(), "'%s' is not a type: expected one of %s",
+		id.Value, strings.Join(value.TypeNames(), ", "))
+}
+
+// moduleMember checks an access against a module whose members are known.
+//
+// resolver.moduleAccess used to skip this on the grounds that matching members
+// across files is the evaluator's job. True for a module declared in an imported
+// file, which this pass never sees — but not for the standard library, whose
+// members are known before the user's program is parsed, and not for a module
+// declared in the same file. Moving "not found" from runtime to a diagnostic is
+// the resolver's stated reason for existing.
+func (r *Resolver) moduleMember(n *ast.Access) {
+	id, ok := n.Left.(*ast.Identifier)
+	if !ok || n.Name == nil {
+		return
+	}
+	ref, found := r.info.refs[id]
+	if !found {
+		return // undefined, or hidden behind an import; already handled
+	}
+	members, known := r.moduleMembers[ref.Binding]
+	if !known {
+		return // not a module, or one whose members this pass cannot see
+	}
+	for _, m := range members {
+		if m == n.Name.Value {
+			return
+		}
+	}
+	r.diags.Errorf(n.Name.Span(), "module '%s' has no member '%s'", id.Value, n.Name.Value)
+}
+
+// literalType is the type name of a node whose type is knowable without running
+// it, or "" for anything else.
+func literalType(n ast.Node) string {
+	switch n.(type) {
+	case *ast.Integer:
+		return "Int"
+	case *ast.Float:
+		return "Float"
+	case *ast.String, *ast.Interpolation:
+		return "String"
+	case *ast.Atom:
+		return "Atom"
+	case *ast.Boolean:
+		return "Bool"
+	case *ast.Nil:
+		return "Nil"
+	case *ast.Array:
+		return "Array"
+	case *ast.Dictionary:
+		return "Dictionary"
+	case *ast.Function:
+		return "Function"
+	}
+	return ""
 }

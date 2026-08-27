@@ -288,6 +288,11 @@ func (i *Interp) eval(n ast.Node, e *env) value.Value {
 	case *ast.Pipe:
 		return i.evalPipe(n, e)
 	case *ast.Is:
+		// `Any` is a name a hint may use, and everything is one.
+		if n.Right.Value == value.Any {
+			i.eval(n.Left, e)
+			return value.True
+		}
 		return value.Of(i.eval(n.Left, e).Type().String() == n.Right.Value)
 	case *ast.As:
 		return i.convert(i.eval(n.Left, e), n.Right.Value, n.Span())

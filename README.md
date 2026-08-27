@@ -600,6 +600,17 @@ println(add(5, "two"))
 
 Aria is not a strong typed language, so type hinting is completely optional. Generally, it's a good idea to use it as a validation measure. Once you enforce a certain type, you'll be sure of how the function executes.
 
+A hint names one of `Nil`, `Bool`, `Int`, `Float`, `String`, `Atom`, `Array`, `Dictionary`, `Function`, `Module` or `Any`, and anything else is an error before the program runs — the same for `is` and `as`. `Any` accepts everything, which is how you say "anything" out loud rather than by leaving the hint off:
+
+```swift
+let identity = func (v: Any) -> Any
+  v
+end
+println(identity([1, 2]))
+```
+
+A default is checked against its own parameter's hint, so `func (n: Int = "oops")` is an error rather than a hint that lies to every caller who omits the argument.
+
 ### Default Parameters
 
 Function parameters can have default values, used when the parameters are omitted from function calls.

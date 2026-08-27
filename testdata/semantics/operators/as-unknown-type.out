@@ -1,0 +1,4 @@
+as-unknown-type.ari:2:14: error: 'Banana' is not a type: expected one of Nil, Bool, Int, Float, String, Atom, Array, Dictionary, Function, Module, Any
+  println(5 as Banana)
+               ^^^^^^
+--- exit: 1

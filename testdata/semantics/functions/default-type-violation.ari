@@ -1,0 +1,4 @@
+// checkParamType ran only on arguments actually passed, so a default was bound
+// unchecked and the annotation was a lie for every caller that omitted it.
+let f = func (n: Int = "oops") do n end
+println(f())

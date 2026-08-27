@@ -138,7 +138,12 @@ func (i *Interp) callFunction(fn *Function, args []value.Value, span source.Span
 			}
 			continue
 		}
-		scope.define(p.Name.Value, i.eval(p.Default, fn.Env))
+		// The default is checked against the annotation too. checkParamType ran
+		// only on arguments actually passed, so a default was bound unchecked
+		// and the hint was a lie for every caller that omitted the argument.
+		def := i.eval(p.Default, fn.Env)
+		i.checkParamType(p, def, i.curFile(), p.Default.Span())
+		scope.define(p.Name.Value, def)
 	}
 
 	if len(args) < required {
@@ -171,7 +176,8 @@ func (i *Interp) callFunction(fn *Function, args []value.Value, span source.Span
 		i.signal, i.retval = sigNone, nil
 	}
 
-	if decl.ReturnType != nil && result.Type().String() != decl.ReturnType.Value {
+	if decl.ReturnType != nil && decl.ReturnType.Value != value.Any &&
+		result.Type().String() != decl.ReturnType.Value {
 		i.failIn(callerFile, span, "%s declares it returns %s but returned %s",
 			fnName(decl), decl.ReturnType.Value, result.Type())
 	}
@@ -179,7 +185,7 @@ func (i *Interp) callFunction(fn *Function, args []value.Value, span source.Span
 }
 
 func (i *Interp) checkParamType(p *ast.FunctionParameter, arg value.Value, file *source.File, span source.Span) {
-	if p.Type == nil {
+	if p.Type == nil || p.Type.Value == value.Any {
 		return
 	}
 	if arg.Type().String() != p.Type.Value {

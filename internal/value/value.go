@@ -67,6 +67,33 @@ func (t Type) String() string {
 	return "Nil"
 }
 
+// Any is the annotation for "any type". It is not a Type — no value has it —
+// but it is a name a hint may use, so that an unannotated parameter means "not
+// yet annotated" and `: Any` means "anything, deliberately".
+const Any = "Any"
+
+// TypeNames are the names a type annotation, `is` or `as` may use.
+func TypeNames() []string {
+	names := make([]string, 0, int(TModule)+2)
+	for t := TNil; t <= TModule; t++ {
+		names = append(names, t.String())
+	}
+	return append(names, Any)
+}
+
+// IsTypeName reports whether s names a type an annotation may use.
+func IsTypeName(s string) bool {
+	if s == Any {
+		return true
+	}
+	for t := TNil; t <= TModule; t++ {
+		if t.String() == s {
+			return true
+		}
+	}
+	return false
+}
+
 // A Value is any Aria runtime value.
 type Value interface {
 	Type() Type

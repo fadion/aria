@@ -1,0 +1,5 @@
+// `is` was a string comparison against Type().String(), and the resolver skipped
+// the right-hand side entirely, so a typo became a permanently-false test rather
+// than a mistake. The set of type names is fixed and known before the program
+// runs.
+println(5 is Banana)
