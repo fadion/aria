@@ -49,7 +49,7 @@ shelf
     * [Atom](#atom)
     * [Int](#int)
     * [Float](#float)
-    * [Boolean](#boolean)
+    * [Bool](#bool)
     * [Array](#array)
     * [Dictionary](#dictionary)
     * [Nil](#nil)
@@ -150,7 +150,7 @@ var age = 40
 age = 41
 ```
 
-Names have to start with an alphabetic character and continue either with alphanumeric, underscores, questions marks or exclamation marks. When you see a question mark, don't confuse them with optionals like in some other languages. In here they have no special lexical meaning except that they allow for some nice variable names like `is_empty?` or `do_it!`.
+Names start with a letter or an underscore and continue with letters, digits, underscores, question marks or exclamation marks. Letter means any Unicode letter, so `café` and `λ` are names as much as `count` is. When you see a question mark, don't confuse them with optionals like in some other languages. In here they have no special lexical meaning except that they allow for some nice variable names like `is_empty?` or `do_it!`.
 
 ### Constants
 
@@ -183,7 +183,7 @@ nr = "ten" // error: nr holds Int
 
 ## Data Types
 
-Aria supports 7 data types: `String`, `Atom`, `Int`, `Float`, `Bool`, `Array`, `Dictionary` and `Nil`.
+Aria has 8 data types: `String`, `Atom`, `Int`, `Float`, `Bool`, `Array`, `Dictionary` and `Nil`. Functions, modules and records are values too, and `typeof` answers `Function`, `Module` and the record's own name for them, but they get their own sections rather than one here.
 
 ### String
 
@@ -194,7 +194,7 @@ let weather = "Hot"
 let price = "円500"
 ```
 
-String concatenation is handled with the `+` operator. Concats between a string and another data type will result in a runtime error.
+String concatenation is handled with the `+` operator. Adding anything other than a string is a runtime error, with one exception: an Atom concatenates, since atoms and strings are interchangeable to begin with, and you get its text without the colon.
 
 ```swift
 let name = "Tony" + " " + "Stark"
@@ -600,12 +600,16 @@ true == true
 ["a" => 1, "b" => 2] != ["a" => 5, "b" => 6]
 ```
 
-Boolean operators can only be used with Boolean values, namely `true` or `false`. Other data types will not be converted to truthy values.
+Boolean operators take anything and answer a Bool. Their operands are read for truthiness the same way an `if` reads its condition, so `0 || 5` is `true` rather than `5`, and they short-circuit:
 
 ```swift
 true == true
 false != true
+println(0 || 5)    // true, not 5
+println(nil || 5)  // true
 ```
+
+That is why `??` exists alongside `||`: it tests for `nil` rather than truthiness, and yields the value rather than a Bool.
 
 Bitwise and bitshift operator apply only to Integers. Float values can't be used, even those that "look" as Integers, like `1.0` or `5.0`. A shift count has to be between 0 and 63, and a left shift that would push bits past the sign bit is an error like any other overflow.
 
@@ -1167,8 +1171,6 @@ end
 ```
 
 Unlike the `for`, they evaluate to `nil`. A `for` collects every iteration's value into an array, which is great when you want it and wasteful when you don't. These two are for when you don't.
-
-*The `for` loop is currently naively parsed. It works for most cases, but still, it's not robust enough. I'm working to find a better solution.*
 
 ## Range Operator
 
