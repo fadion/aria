@@ -122,6 +122,27 @@ type String struct {
 
 func (n *String) Inspect() string { return n.Text }
 
+// Interpolation is a string literal with #{...} holes, as an alternating list
+// of literal pieces and expressions.
+//
+// It is a node rather than a desugaring into `+` and String(...) calls for two
+// reasons. `+` does not coerce, and the String conversion refuses a collection,
+// so both would make `"#{[1, 2]}"` an error where println prints it; and a
+// desugaring that names String would mean anything shadowing that name silently
+// changes what every interpolated string in scope does.
+type Interpolation struct {
+	Base
+	Parts []Node
+}
+
+func (n *Interpolation) Inspect() string {
+	out := "\""
+	for _, p := range n.Parts {
+		out += p.Inspect()
+	}
+	return out + "\""
+}
+
 // Atom is a `:name` symbol.
 type Atom struct {
 	Base

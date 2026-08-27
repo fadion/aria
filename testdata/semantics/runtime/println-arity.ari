@@ -1,1 +1,4 @@
+// This case pinned println's arity of one, which is no longer the rule: the
+// arguments are joined with a space. The name is kept so the change is visible
+// in this file's history rather than in a file that appeared from nowhere.
 println("a", "b")

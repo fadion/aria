@@ -1335,3 +1335,49 @@ func TestSmallSyntaxGaps(t *testing.T) {
 	fails(t, `println(1 as Dictionary)`, "cannot convert Int to Dictionary")
 	fails(t, `println([1] as Dictionary)`, "[key, value] pairs")
 }
+
+// Printing a message with a value in it used to be a chain of conversions.
+func TestStringInterpolation(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`let n = 3
+println("has #{n} items")`, "has 3 items"},
+		{`println("#{1 + 2}")`, "3"},
+		// A hole renders the way println renders it: String, not Inspect.
+		{`println("#{[1, 2]}")`, "[1, 2]"},
+		{`let s = "x"
+println("#{s}")`, "x"},
+		{`println("no holes")`, "no holes"},
+		// A string inside a hole may interpolate in turn.
+		{`let n = 3
+println("outer #{ "inner #{n}" } done")`, "outer inner 3 done"},
+		// `#` is only special before a `{`, and `\#` opts out.
+		{`println("hash # alone")`, "hash # alone"},
+		{`println("escaped \#{x}")`, "escaped #{x}"},
+		// A raw literal processes nothing, interpolation included.
+		{"println(`raw #{x}`)", "raw #{x}"},
+	}
+	for _, test := range tests {
+		if got := output(t, test.src); got != test.want+"\n" {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+
+	// A name in a hole resolves like any other, and is reported where it is
+	// written rather than against a synthetic file.
+	fails(t, `println("#{nope}")`, "'nope' is not defined")
+}
+
+// println and print take any number of arguments, joined with a space.
+func TestPrintIsVariadic(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`println("count:", 3)`, "count: 3\n"},
+		{`println("a", "b", "c")`, "a b c\n"},
+		{`println()`, "\n"},
+		{`print("x", "y")`, "x y"},
+	}
+	for _, test := range tests {
+		if got := output(t, test.src); got != test.want {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+}

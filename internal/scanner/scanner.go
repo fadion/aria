@@ -39,6 +39,12 @@ type Scanner struct {
 	ch   rune       // rune at off, or eof
 	off  source.Pos // offset of ch
 	next source.Pos // offset just past ch
+
+	// interp counts the string interpolations currently open. Aria has no other
+	// use for braces, so a `}` while one is open always closes it and resumes
+	// the string — no depth counting inside the hole is needed. It nests: an
+	// interpolation may hold a string that interpolates in turn.
+	interp int
 }
 
 // New returns a Scanner over file, reporting problems into diags.
@@ -139,6 +145,13 @@ func (s *Scanner) scanOne(start source.Pos) (token.Token, bool) {
 
 	case ch == '`':
 		return s.scanRawString(start), true
+
+	case ch == '}' && s.interp > 0:
+		// The end of an interpolation hole. Scanning resumes inside the string
+		// that opened it.
+		s.interp--
+		s.advance()
+		return s.scanStringFrom(start, true), true
 	}
 
 	return s.scanOperator(start)
@@ -386,6 +399,21 @@ func (s *Scanner) scanDigits(valid func(rune) bool) int {
 // knows whether it needs the text.
 func (s *Scanner) scanString(start source.Pos) token.Token {
 	s.advance() // opening quote
+	return s.scanStringFrom(start, false)
+}
+
+// scanStringFrom reads a string literal, or one piece of an interpolated one.
+//
+// It stops at the closing quote or at the next `#{`, whichever comes first, so
+// a literal with holes arrives as StringStart, the hole's own tokens, then
+// StringPart... and StringEnd. `resuming` says the cursor started just past a
+// `}` rather than just past the opening quote, which is the only thing that
+// distinguishes the two pairs of kinds.
+func (s *Scanner) scanStringFrom(start source.Pos, resuming bool) token.Token {
+	closing, opening := token.String, token.StringStart
+	if resuming {
+		closing, opening = token.StringEnd, token.StringPart
+	}
 
 	for {
 		switch s.ch {
@@ -397,13 +425,23 @@ func (s *Scanner) scanString(start source.Pos) token.Token {
 
 		case '"':
 			s.advance()
-			return s.token(token.String, start)
+			return s.token(closing, start)
+
+		case '#':
+			if s.peek() != '{' {
+				s.advance()
+				continue
+			}
+			s.advance() // #
+			s.advance() // {
+			s.interp++
+			return s.token(opening, start)
 
 		case '\\':
 			escStart := s.off
 			s.advance()
 			switch s.ch {
-			case 'n', 't', 'r', 'a', 'b', 'f', 'v', '\\', '"', '0':
+			case 'n', 't', 'r', 'a', 'b', 'f', 'v', '\\', '"', '0', '#':
 				s.advance()
 			case 'x':
 				s.advance()

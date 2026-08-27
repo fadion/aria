@@ -1,0 +1,23 @@
+// Printing a message with a value in it used to be a chain of conversions,
+// because `+` does not coerce and println took one argument.
+let name = "Ada"
+let n = 3
+println("user #{name} has #{n} items")
+
+// A hole renders the way println renders it — String, not Inspect — so a
+// collection prints and a string in a hole does not come out quoted.
+println("#{1 + 2}")
+println("#{[1, 2]}")
+println("#{[:a => 1]}")
+println("#{name}")
+
+// Holes hold whole expressions, and a string inside one may interpolate too.
+println("call #{String.upper(name)}")
+println("nested #{ "inner #{n}" } done")
+
+// A `#` is only special before a `{`, and `\#` opts out.
+println("hash # alone")
+println("escaped \#{name}")
+
+// A raw string processes nothing, interpolation included.
+println(`raw #{name}`)

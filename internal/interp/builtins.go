@@ -20,19 +20,20 @@ func (i *Interp) installBuiltins() {
 		i.globals.define(name, &Builtin{Name: name, Fn: fn})
 	}
 
-	// println and print take exactly one argument, as they always have. The
-	// "expects exactly 1 argument" message that used to show up all over the
-	// goldens was the cascade from a failed expression yielding nil, not this
-	// check, so the arity is left alone.
+	// println and print take any number of arguments, joined with a space.
+	//
+	// The arity of one was left alone during the rewrite because the "expects
+	// exactly 1 argument" messages all over the goldens turned out to be a
+	// cascade from a failed expression yielding nil rather than from this
+	// check. That was a reason not to change it while chasing a different bug,
+	// not a reason for it to stay.
 	def("println", func(ip *Interp, args []value.Value, span source.Span) value.Value {
-		ip.wantArgs("println", args, 1, span)
-		fmt.Fprintln(ip.Out, args[0].String())
+		fmt.Fprintln(ip.Out, joinArgs(args))
 		return value.NilValue
 	})
 
 	def("print", func(ip *Interp, args []value.Value, span source.Span) value.Value {
-		ip.wantArgs("print", args, 1, span)
-		fmt.Fprint(ip.Out, args[0].String())
+		fmt.Fprint(ip.Out, joinArgs(args))
 		return value.NilValue
 	})
 
@@ -540,6 +541,15 @@ func clampRange(size, start, length int) (int, int) {
 		end = size
 	}
 	return start, end
+}
+
+// joinArgs renders arguments the way println shows them, separated by a space.
+func joinArgs(args []value.Value) string {
+	parts := make([]string, 0, len(args))
+	for _, a := range args {
+		parts = append(parts, a.String())
+	}
+	return strings.Join(parts, " ")
 }
 
 func (i *Interp) wantArgs(name string, args []value.Value, n int, span source.Span) {

@@ -290,6 +290,16 @@ func (i *Interp) eval(n ast.Node, e *env) value.Value {
 	case *ast.As:
 		return i.convert(i.eval(n.Left, e), n.Right.Value, n.Span())
 
+	case *ast.Interpolation:
+		// Each piece renders the way println renders it, which is String and
+		// not Inspect: "#{[1, 2]}" is [1, 2], and a string in a hole does not
+		// come out quoted.
+		var b strings.Builder
+		for _, part := range n.Parts {
+			b.WriteString(i.eval(part, e).String())
+		}
+		return value.String(b.String())
+
 	case *ast.Array:
 		elems := make([]value.Value, 0, len(n.List.Elements))
 		for _, el := range n.List.Elements {

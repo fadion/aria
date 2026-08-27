@@ -1,4 +1,2 @@
-println-arity.ari:1:1: error: println() expects 1 argument(s), got 2
-  println("a", "b")
-  ^^^^^^^^^^^^^^^^^
---- exit: 1
+a b
+--- exit: 0

@@ -1,0 +1,11 @@
+user Ada has 3 items
+3
+[1, 2]
+[:a => 1]
+Ada
+call ADA
+nested inner 3 done
+hash # alone
+escaped #{name}
+raw #{name}
+--- exit: 0

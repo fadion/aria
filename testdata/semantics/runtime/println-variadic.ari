@@ -1,0 +1,11 @@
+// println and print take any number of arguments, joined with a space. The
+// arity of one was left alone during the rewrite because the "expects exactly
+// 1 argument" messages in the goldens were a cascade from something else — a
+// reason not to change it while chasing a different bug, not a reason to keep
+// it.
+println("count:", 3)
+println("a", "b", "c")
+println()
+print("x", "y")
+println()
+println("mixed", 1, 2.5, true, nil, [1, 2], :atom)
