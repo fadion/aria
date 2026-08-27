@@ -1,0 +1,44 @@
+// A newline was a hard statement terminator everywhere except inside [...] and
+// call parentheses, so a long expression had to fit on one line.
+//
+// A line that ENDS with an operator continues: the operator has no right side
+// yet, so the newline cannot be terminating anything.
+let sum = 1 +
+  2 +
+  3
+println(sum)
+
+let and = true &&
+  false
+println(and)
+
+// A line that BEGINS with an infix operator continues too, which is the shape a
+// pipeline wants.
+let data = [1, -2, 3, -4]
+println(data
+  |> Enum.filter((v) -> v > 0)
+  |> Enum.map((v) -> v * 2))
+
+let cfg = [:db => [:host => "localhost"]]
+println(cfg
+  .db
+  .host)
+
+println(1
+  + 2
+  * 3)
+
+// Unless the operator could also begin an expression. `-`, `(` and `[` are
+// negation, a call and a subscript, so a line starting with one of those is a
+// new statement, exactly as it was.
+let a = 1
+-2
+println(a)
+
+let b = 5
+[1, 2]
+println(b)
+
+let c = 7
+(8)
+println(c)

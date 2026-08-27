@@ -813,6 +813,34 @@ end
 add(5, (x) -> x * 2)
 ```
 
+## Line Breaks
+
+A newline ends a statement, which is what lets Aria do without semicolons. An expression can still span lines, in either of the two shapes that read well — a line ending with an operator, or a line beginning with one:
+
+```swift
+let total = 1 +
+  2 +
+  3
+
+let data = [1, -2, 3, -4]
+println(data
+  |> Enum.filter((x) -> x > 0)
+  |> Enum.map((x) -> x * 2))
+```
+
+The exception is a line beginning with `-`, `(` or `[`, since each of those could start an expression of its own — negation, a call, a subscript — so those are new statements as they always were.
+
+A parenthesised parameter list can span lines too:
+
+```swift
+let add = func (
+  a: Int,
+  b: Int = 10
+) -> Int
+  a + b
+end
+```
+
 ## Blocks
 
 `do ... end` is an expression. It yields its last value and has a scope of its own, which is how you give a name to something built in a few steps without leaking the steps:

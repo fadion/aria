@@ -54,7 +54,7 @@ go test ./internal/parser/  -run=Fuzz -fuzz=FuzzParse -fuzztime=30s
 
 ## The characterization suite is the arbiter
 
-`testdata/semantics/` holds 187 `.ari` files, each with a `.out` golden recording exactly
+`testdata/semantics/` holds 189 `.ari` files, each with a `.out` golden recording exactly
 what the interpreter prints and what it exits with.
 
 **If a golden changes, you changed the language.** That is either the point of your change
