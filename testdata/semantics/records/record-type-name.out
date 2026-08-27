@@ -1,0 +1,15 @@
+true
+true
+false
+Point
+false
+false
+false
+false
+Point(x: 1)
+Size(x: 1)
+Boxed(inner: Point(x: 1))
+a Point
+some other record
+not a record
+--- exit: 0

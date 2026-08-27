@@ -180,8 +180,7 @@ func (i *Interp) callFunction(fn *Function, args []value.Value, span source.Span
 		i.signal, i.retval = sigNone, nil
 	}
 
-	if decl.ReturnType != nil && decl.ReturnType.Value != value.Any &&
-		value.TypeName(result) != decl.ReturnType.Value {
+	if decl.ReturnType != nil && !value.Satisfies(result, decl.ReturnType.Value) {
 		i.failIn(callerFile, span, "%s declares it returns %s but returned %s",
 			fnName(decl), decl.ReturnType.Value, value.TypeName(result))
 	}
@@ -189,10 +188,10 @@ func (i *Interp) callFunction(fn *Function, args []value.Value, span source.Span
 }
 
 func (i *Interp) checkParamType(p *ast.FunctionParameter, arg value.Value, file *source.File, span source.Span) {
-	if p.Type == nil || p.Type.Value == value.Any {
+	if p.Type == nil {
 		return
 	}
-	if value.TypeName(arg) != p.Type.Value {
+	if !value.Satisfies(arg, p.Type.Value) {
 		i.failIn(file, span, "parameter '%s' expects %s, got %s",
 			p.Name.Value, p.Type.Value, value.TypeName(arg))
 	}

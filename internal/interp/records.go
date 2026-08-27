@@ -101,10 +101,10 @@ func (i *Interp) construct(def *RecordDef, args []value.Value, span source.Span)
 }
 
 func (i *Interp) checkFieldType(def *RecordDef, f *ast.FunctionParameter, v value.Value, file *source.File, span source.Span) {
-	if f.Type == nil || f.Type.Value == value.Any {
+	if f.Type == nil {
 		return
 	}
-	if value.TypeName(v) != f.Type.Value {
+	if !value.Satisfies(v, f.Type.Value) {
 		i.failIn(file, span, "%s field '%s' expects %s, got %s",
 			def.Def.Name, f.Name.Value, f.Type.Value, value.TypeName(v))
 	}
