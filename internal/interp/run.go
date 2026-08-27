@@ -62,22 +62,13 @@ func Run(file *source.File, opts Options) bool {
 		}
 	}
 
-	// Globals first, then modules: predeclaring a name replaces its binding, and
-	// a module's binding is the one its member list is attached to. A module IS
-	// a global, so the other order silently dropped the member checking.
-	r := resolver.New(file, bag)
-	for name := range i.globals.vars {
-		r.Predeclare(name)
-	}
-	i.predeclareModules(r)
-	info := r.Resolve(prog)
-	if bag.HasErrors() {
-		fmt.Fprint(opts.Err, bag.Render())
+	units, info, ok := i.compile(file, prog, bag, opts.Err)
+	if !ok {
 		return false
 	}
 	i.info = info
 
-	if _, err := i.Run(prog); err != nil {
+	report := func(err error) bool {
 		var re *Error
 		if !errors.As(err, &re) {
 			fmt.Fprintln(opts.Err, err)
@@ -85,6 +76,15 @@ func Run(file *source.File, opts Options) bool {
 		}
 		i.Report(re)
 		return false
+	}
+
+	// Imported units run before the file that imported them, which is the order
+	// their names became visible in.
+	if err := i.evalUnits(units); err != nil {
+		return report(err)
+	}
+	if _, err := i.Run(prog); err != nil {
+		return report(err)
 	}
 	return true
 }
@@ -114,17 +114,8 @@ func Check(file *source.File, opts Options) bool {
 		return false
 	}
 
-	r := resolver.New(file, bag)
-	for name := range i.globals.vars {
-		r.Predeclare(name)
-	}
-	i.predeclareModules(r)
-	r.Resolve(prog)
-	if bag.HasErrors() {
-		fmt.Fprint(opts.Err, bag.Render())
-		return false
-	}
-	return true
+	_, _, ok := i.compile(file, prog, bag, opts.Err)
+	return ok
 }
 
 // predeclareModules tells a resolver about every module that exists, with the
@@ -218,18 +209,32 @@ func Eval(name, src string, opts Options) (value.Value, error) {
 		}
 	}
 
-	r := resolver.New(file, bag)
-	for n := range i.globals.vars {
-		r.Predeclare(n)
-	}
-	i.predeclareModules(r)
-	info := r.Resolve(prog)
-	if bag.HasErrors() {
-		return nil, fmt.Errorf("%s", bag.Render())
+	var sink discard
+	units, info, ok := i.compile(file, prog, bag, &sink)
+	if !ok {
+		return nil, fmt.Errorf("%s", sink.String())
 	}
 	i.info = info
 
+	if err := i.evalUnits(units); err != nil {
+		return nil, err
+	}
 	return i.Run(prog)
+}
+
+// unitErrors renders whatever went wrong across a compilation's units. Each unit
+// carries its own bag, so its diagnostics render against its own text.
+func unitErrors(units []unit, bag *diag.Bag) string {
+	var out strings.Builder
+	for _, u := range units {
+		if u.bag.HasErrors() {
+			out.WriteString(u.bag.Render())
+		}
+	}
+	if bag.HasErrors() {
+		out.WriteString(bag.Render())
+	}
+	return out.String()
 }
 
 // Nodes exposes a parsed program's nodes, for tests that need the tree.
@@ -330,6 +335,11 @@ func (s *Session) Eval(src string) (value.Value, error) {
 		return nil, fmt.Errorf("%s", strings.TrimRight(bag.Render(), "\n"))
 	}
 
+	units, loaded := loadUnits(file, prog, bag)
+	if !loaded {
+		return nil, fmt.Errorf("%s", strings.TrimRight(unitErrors(units, bag), "\n"))
+	}
+
 	r := resolver.New(file, bag)
 	for name := range s.interp.globals.vars {
 		r.Predeclare(name)
@@ -341,13 +351,24 @@ func (s *Session) Eval(src string) (value.Value, error) {
 	// are known, so an access to one is checked like any other.
 	s.interp.predeclareModules(r)
 
+	for _, u := range units {
+		if u.alias != "" {
+			r.IncludeNamespaced(u.file, u.prog, u.bag, u.alias)
+			continue
+		}
+		r.Include(u.file, u.prog, u.bag)
+	}
 	info := r.Resolve(prog)
-	if bag.HasErrors() {
-		return nil, fmt.Errorf("%s", strings.TrimRight(bag.Render(), "\n"))
+	if msg := unitErrors(units, bag); msg != "" {
+		return nil, fmt.Errorf("%s", strings.TrimRight(msg, "\n"))
 	}
 
 	s.interp.file = file
 	s.interp.info = info
+
+	if err := s.interp.evalUnits(units); err != nil {
+		return nil, err
+	}
 
 	v, err := s.interp.Run(prog)
 	if err != nil {
@@ -378,4 +399,43 @@ func (s *Session) Eval(src string) (value.Value, error) {
 		}
 	}
 	return v, nil
+}
+
+// compile parses the import graph and resolves the whole of it as one unit of
+// compilation, returning the imported units in the order they have to run.
+//
+// It writes any diagnostic out itself, since a unit carries its own bag and that
+// is what renders a message against its own text.
+func (i *Interp) compile(file *source.File, prog *ast.Program, bag *diag.Bag, errOut io.Writer) ([]unit, *resolver.Info, bool) {
+	units, loaded := loadUnits(file, prog, bag)
+	if !loaded {
+		fmt.Fprint(errOut, unitErrors(units, bag))
+		return nil, nil, false
+	}
+
+	// Globals first, then modules: predeclaring a name replaces its binding, and
+	// a module's binding is the one its member list is attached to. A module IS
+	// a global, so the other order silently dropped the member checking.
+	r := resolver.New(file, bag)
+	for name := range i.globals.vars {
+		r.Predeclare(name)
+	}
+	i.predeclareModules(r)
+
+	// Units come in the order their names have to become visible, so resolving
+	// them in order into the same scope is all it takes.
+	for _, u := range units {
+		if u.alias != "" {
+			r.IncludeNamespaced(u.file, u.prog, u.bag, u.alias)
+			continue
+		}
+		r.Include(u.file, u.prog, u.bag)
+	}
+	info := r.Resolve(prog)
+
+	if msg := unitErrors(units, bag); msg != "" {
+		fmt.Fprint(errOut, msg)
+		return nil, nil, false
+	}
+	return units, info, true
 }

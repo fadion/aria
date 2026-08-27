@@ -704,7 +704,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 206 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 212 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash
@@ -731,6 +731,37 @@ instead.
 compared case by case. With it unset the runner uses a binary in the repo root if there is
 one, and otherwise builds a throwaway — so the suite runs from a clean checkout with no
 setup, and leaves nothing behind.
+
+## A program is one compilation, imports included
+
+`import` used to be four problems at once. An imported file was parsed and evaluated and
+never resolved, so inside one an undefined name was a runtime error, `let` immutability was
+unenforced and every guarantee the resolver provides was absent. A single `import` anywhere
+also turned undefined-name checking off for the whole of the *importing* file, because
+there was no way to know what the import had brought in — so the resolver's headline benefit
+was off for exactly the programs large enough to need it. Names had no namespace and no way
+to be renamed, so two files could not both define `size`. And a stray top-level `return` in
+an imported file set the signal on a sub-interpreter nobody read, so it neither propagated
+nor errored.
+
+All four come from the same thing: an imported file was a separate compilation. It is a unit
+of the same one now. A loader parses the whole graph depth first, the resolver walks every
+unit into one scope in the order their names have to become visible, and the same
+interpreter runs them in that order. Each unit keeps its own `diag.Bag`, so a diagnostic
+still renders against its own text.
+
+**An import is a declaration, not an expression.** `if x then import "y" end` used to parse
+and import conditionally at runtime, which no pass can see through — and seeing through it
+is the whole point. It belongs at the top level of a file.
+
+**`import "geometry" as Geo` namespaces what it brings in.** The unit is resolved and
+evaluated in a scope of its own, which then becomes a module. A module IS a namespace, so
+this needs no machinery the language does not already have — and an alias is checked like
+any other module, members included.
+
+**A cycle terminates and is not an error.** The loader records every file it has pulled in,
+and a second import of one is a no-op: its names are already in scope. Two files that import
+each other are one compilation either way, so there is nothing to report.
 
 ## Reaching the outside world
 
@@ -814,9 +845,6 @@ go test ./internal/parser/  -run=Fuzz -fuzz=FuzzParse -fuzztime=30s
 
 ## Known gaps
 
-- **Import resolution.** The resolver cannot see into an imported file, so a program that
-  imports anything has undefined-name checking disabled for the whole file. Resolving
-  imports would remove that exception.
 - **Slot-based scopes.** The resolver computes slot indices and scope sizes that the
   evaluator ignores, walking a chain of name maps instead. Switching would make lookup an
   array index.

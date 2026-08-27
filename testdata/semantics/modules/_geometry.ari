@@ -1,0 +1,4 @@
+// Imported by import-alias.ari. Its `size` would collide with Enum.size were it
+// spliced into the importing scope, which is the point.
+let size = 10
+let area = func (w, h) do w * h end

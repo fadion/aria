@@ -1,0 +1,7 @@
+import-in-a-block.ari:4:1: error: missing 'end' to close 'if'
+  if true
+  ^^^^^^^
+import-in-a-block.ari:5:3: error: an import belongs at the top level of a file
+    import "_helper"
+    ^^^^^^^^^^^^^^^^
+--- exit: 1

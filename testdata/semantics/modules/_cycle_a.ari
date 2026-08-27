@@ -1,0 +1,2 @@
+import "_cycle_b"
+let fromA = "a"

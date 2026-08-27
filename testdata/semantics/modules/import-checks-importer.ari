@@ -1,0 +1,6 @@
+// A single import used to turn undefined-name checking off for the whole of the
+// importing file, because the resolver had no way to know what the import might
+// have brought in. It knows now.
+import "_helper"
+println(helperValue)
+println(nope)

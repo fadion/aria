@@ -27,7 +27,6 @@ import (
 
 	"github.com/fadion/aria/internal/ast"
 	"github.com/fadion/aria/internal/diag"
-	"github.com/fadion/aria/internal/parser"
 	"github.com/fadion/aria/internal/resolver"
 	"github.com/fadion/aria/internal/source"
 	"github.com/fadion/aria/internal/value"
@@ -175,11 +174,26 @@ func (i *Interp) Run(prog *ast.Program) (result value.Value, err error) {
 		}
 	}()
 
-	i.hoistFunctions(prog.Nodes, i.globals)
+	return i.runNodes(prog, i.globals)
+}
+
+// runNodes evaluates a program's nodes in a scope, catching the unwind.
+func (i *Interp) runNodes(prog *ast.Program, e *env) (result value.Value, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			re, ok := r.(*Error)
+			if !ok {
+				panic(r)
+			}
+			result, err = nil, re
+		}
+	}()
+
+	i.hoistFunctions(prog.Nodes, e)
 
 	result = value.Value(value.NilValue)
 	for _, n := range prog.Nodes {
-		result = i.eval(n, i.globals)
+		result = i.eval(n, e)
 		if i.signal != sigNone {
 			break
 		}
@@ -1077,46 +1091,11 @@ func (i *Interp) absorbBreak() {
 // Imports
 // ---------------------------------------------------------------------------
 
-func (i *Interp) evalImport(n *ast.Import, e *env) value.Value {
-	name := n.File
-	if filepath.Ext(name) == "" {
-		name += ".ari"
-	}
-	path := name
-	if !filepath.IsAbs(path) {
-		path = filepath.Join(i.dir, name)
-	}
-
-	if i.imported[path] {
-		return value.NilValue
-	}
-	i.imported[path] = true
-
-	src, err := os.ReadFile(path)
-	if err != nil {
-		i.fail(n.Span(), "cannot read imported file '%s'", n.File)
-	}
-
-	file := source.NewFile(path, src)
-	bag := diag.New(file)
-	prog := parser.New(file, bag).Parse()
-	if bag.HasErrors() {
-		i.fail(n.Span(), "imported file '%s' has errors:\n%s", n.File, strings.TrimRight(bag.Render(), "\n"))
-	}
-
-	// The imported file's names join the importing scope, as the language says.
-	sub := &Interp{
-		file: file, info: i.info,
-		Out: i.Out, Err: i.Err, In: i.In,
-		globals: e, modules: i.modules,
-		dir: filepath.Dir(path), imported: i.imported,
-	}
-	sub.hoistFunctions(prog.Nodes, e)
-	for _, node := range prog.Nodes {
-		sub.eval(node, e)
-	}
-	return value.NilValue
-}
+// evalImport does nothing at runtime. Every imported file is a unit of the same
+// compilation: it was parsed with the entry file, resolved with it, and
+// evaluated before it. The node stays in the tree because it is what the loader
+// reads.
+func (i *Interp) evalImport(*ast.Import, *env) value.Value { return value.NilValue }
 
 // ---------------------------------------------------------------------------
 // Numbers and operators

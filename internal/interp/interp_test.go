@@ -2,11 +2,13 @@ package interp_test
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/fadion/aria/internal/interp"
+	"github.com/fadion/aria/internal/source"
 	"github.com/fadion/aria/internal/value"
 )
 
@@ -2111,5 +2113,113 @@ println(Time.since(start) > 0)`); got != "true" {
 	}
 	if got := withStdlib(t, `println(Time.seconds(1500000000))`); got != "1.5" {
 		t.Errorf("got %q", got)
+	}
+}
+
+// An imported file used to be parsed and evaluated and never resolved, and a
+// single import turned undefined-name checking off for the importing file too.
+// Every file is a unit of the same compilation now.
+func TestImportsAreOneCompilation(t *testing.T) {
+	dir := t.TempDir()
+	write := func(name, body string) string {
+		t.Helper()
+		path := filepath.Join(dir, name)
+		if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+
+	write("lib.ari", "let helperValue = 42\nlet greet = func (name) do \"hello \" + name end\n")
+	write("geometry.ari", "let size = 10\nlet area = func (w, h) do w * h end\n")
+	write("broken.ari", "let x = missingName\n")
+
+	run := func(body string) (string, string) {
+		t.Helper()
+		path := write("main.ari", body)
+		src, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var out, errOut strings.Builder
+		interp.Run(source.NewFile(path, src), interp.Options{
+			Out: &out, Err: &errOut, In: strings.NewReader(""),
+		})
+		return out.String(), errOut.String()
+	}
+
+	// A plain import splices its names into the importing scope, as it always
+	// did.
+	out, errOut := run("import \"lib\"\nprintln(helperValue)\nprintln(greet(\"world\"))")
+	if errOut != "" {
+		t.Fatalf("unexpected diagnostics:\n%s", errOut)
+	}
+	if out != "42\nhello world\n" {
+		t.Errorf("got %q", out)
+	}
+
+	// An undefined name in the IMPORTING file is reported now.
+	if _, errOut = run("import \"lib\"\nprintln(nope)"); !strings.Contains(errOut, "'nope' is not defined") {
+		t.Errorf("an undefined name went unreported:\n%s", errOut)
+	}
+
+	// And one in the imported file, against that file's own text.
+	_, errOut = run("import \"broken\"\nprintln(1)")
+	if !strings.Contains(errOut, "'missingName' is not defined") {
+		t.Errorf("an undefined name in an imported file went unreported:\n%s", errOut)
+	}
+	if !strings.Contains(errOut, "broken.ari") {
+		t.Errorf("reported against the wrong file:\n%s", errOut)
+	}
+
+	// A stray top-level control signal in an imported file used to set the
+	// signal on a sub-interpreter nobody read.
+	write("stray.ari", "return 1\n")
+	if _, errOut = run("import \"stray\"\nprintln(1)"); !strings.Contains(errOut, "'return' outside a function") {
+		t.Errorf("a stray return went unreported:\n%s", errOut)
+	}
+
+	// `as` namespaces what an import brings in, and the alias is checked like
+	// any other module.
+	out, errOut = run("import \"geometry\" as Geo\nprintln(Geo.size)\nprintln(Geo.area(3, 4))\nprintln(Enum.size([1, 2]))")
+	if errOut != "" {
+		t.Fatalf("unexpected diagnostics:\n%s", errOut)
+	}
+	if out != "10\n12\n2\n" {
+		t.Errorf("got %q", out)
+	}
+	if _, errOut = run("import \"geometry\" as Geo\nprintln(size)"); !strings.Contains(errOut, "'size' is not defined") {
+		t.Errorf("an aliased name leaked into the importing scope:\n%s", errOut)
+	}
+	if _, errOut = run("import \"geometry\" as Geo\nprintln(Geo.nope)"); !strings.Contains(errOut, "has no member 'nope'") {
+		t.Errorf("an alias member went unchecked:\n%s", errOut)
+	}
+
+	// A cycle terminates: a file already pulled in is not pulled in twice.
+	write("a.ari", "import \"b\"\nlet fromA = \"a\"\n")
+	write("b.ari", "import \"a\"\nlet fromB = \"b\"\n")
+	out, errOut = run("import \"a\"\nprintln(fromA)\nprintln(fromB)")
+	if errOut != "" {
+		t.Fatalf("a cycle reported:\n%s", errOut)
+	}
+	if out != "a\nb\n" {
+		t.Errorf("got %q", out)
+	}
+
+	// An import that cannot be read is reported where it is written.
+	if _, errOut = run("import \"no_such_file\""); !strings.Contains(errOut, "cannot read imported file") {
+		t.Errorf("got:\n%s", errOut)
+	}
+}
+
+// An import is a declaration, not an expression: a conditional import is one no
+// pass can see through.
+func TestImportIsTopLevelOnly(t *testing.T) {
+	var out, errOut strings.Builder
+	_, err := interp.Eval("test.ari", "if true\n  import \"x\"\nend", interp.Options{
+		Out: &out, Err: &errOut, In: strings.NewReader(""),
+	})
+	if err == nil || !strings.Contains(err.Error(), "an import belongs at the top level") {
+		t.Errorf("got %v", err)
 	}
 }

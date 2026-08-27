@@ -1,0 +1,6 @@
+// An imported file used to be parsed and evaluated and never resolved, so an
+// undefined name inside one was a runtime error at best. Every imported file is
+// a unit of the same compilation now, so it is a diagnostic — against its own
+// text, since each unit carries its own bag.
+import "_undefined"
+println(broken)

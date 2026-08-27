@@ -1325,6 +1325,27 @@ println(phrase) // "Bella moew John"
 
 The file is relatively referenced from the caller and in this case, both `main.ari` and `dog.ari` reside in the same folder. As the long as the extension is `.ari`, there's no need to write it in the import statement. Even the quotes can be omited and the file written as an identifier, as long as it doesn't include a dot (as in `cat.ari`) and isn't a reserved keyword.
 
+An imported file is part of the same compilation as the file that imports it, so a mistake in one is reported before anything runs — in the file it was made in. An import belongs at the top level of a file, because a conditional import is one no pass can see through.
+
+Two files can both define `size`, because `as` namespaces what an import brings in:
+
+```javascript
+// geometry.ari
+let size = 10
+let area = func (w, h)
+  w * h
+end
+```
+
+```swift
+import "geometry" as Geo
+
+println(Geo.size)
+println(Geo.area(3, 4))
+```
+
+An alias is a module, so it's checked like any other one — a member that isn't there is a diagnostic, not a surprise at runtime. Import cycles are fine: a file already pulled in is not pulled in twice.
+
 A more useful pattern would be to wrap imported files into a module. That would make for a more intuitive system and prevent scope leakage. The cat case above could be written simply into:
 
 ```swift

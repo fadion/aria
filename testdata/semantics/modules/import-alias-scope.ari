@@ -1,0 +1,3 @@
+// What an alias namespaces is not also spliced in.
+import "_geometry" as Geo
+println(size)

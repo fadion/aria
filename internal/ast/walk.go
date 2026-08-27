@@ -127,6 +127,8 @@ func Children(n Node) []Node {
 		ident(n.Name)
 	case *Binder:
 		ident(n.Name)
+	case *Import:
+		ident(n.Alias)
 	case *For:
 		if n.Arguments != nil {
 			for _, e := range n.Arguments.Elements {
@@ -174,7 +176,7 @@ func Children(n Node) []Node {
 		}
 
 		// Leaves: Identifier, Integer, Float, String, Atom, Boolean, Nil,
-		// Placeholder, Break, Continue, Import, Bad, IdentifierList.
+		// Placeholder, Break, Continue, Bad, IdentifierList.
 	}
 
 	return out

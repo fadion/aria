@@ -1,0 +1,6 @@
+// An import is a declaration, not an expression. `if x then import "y" end`
+// used to parse and import conditionally at runtime, which no pass can see
+// through — and seeing through it is the whole point of resolving imports.
+if true
+  import "_helper"
+end

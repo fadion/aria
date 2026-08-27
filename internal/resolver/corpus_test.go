@@ -117,6 +117,7 @@ var expectedResolveErrors = map[string]string{
 	"switch-unknown-type-case.ari":   "matches against a name that is not a type",
 	"switch-capture-scope.ari":       "reads a capture outside its own arm",
 	"try-rescue-scope.ari":           "reads a rescued name outside its rescue",
+	"_undefined.ari":                 "is a fixture whose whole point is an undefined name",
 }
 
 // Three cases that USED to fail now resolve cleanly, which is the point:
@@ -162,6 +163,13 @@ func TestResolvesCorpus(t *testing.T) {
 		bag, parsed := resolveSource(base, string(src))
 		if !parsed {
 			skipped++ // the case is about a syntax error, not a name
+			continue
+		}
+		if strings.Contains(string(src), "import ") {
+			// A file that imports is one unit of a compilation, and resolving
+			// it alone would report every name the import brings in. The
+			// language suite runs those end to end, through the loader.
+			skipped++
 			continue
 		}
 
