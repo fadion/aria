@@ -1,13 +1,17 @@
 package interp
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"math"
 	"math/rand/v2"
+	"os"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/fadion/aria/internal/source"
@@ -399,6 +403,106 @@ func (i *Interp) installBuiltins() {
 		return value.String(strings.ToUpper(ip.wantString("runtime_toupper", args, span)))
 	})
 
+	// ---------------------------------------------------------------------
+	// The outside world
+	// ---------------------------------------------------------------------
+	//
+	// prompt was the only way an Aria program could reach it: no files, no
+	// arguments, no environment, no clock. A program could not read the file it
+	// was meant to process, could not be told which file that was, and could not
+	// report how long it took.
+	//
+	// These raise on failure and the library wraps them into tagged results,
+	// which keeps the convention in Aria where it is written down rather than
+	// duplicated in Go.
+	def("runtime_read_file", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		path := ip.wantString("runtime_read_file", args, span)
+		src, err := os.ReadFile(path)
+		if err != nil {
+			ip.fail(span, "%s", ioMessage(err))
+		}
+		return value.String(string(src))
+	})
+
+	def("runtime_write_file", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		path, contents := ip.wantTwoStrings("runtime_write_file", args, span)
+		if err := os.WriteFile(path, []byte(contents), 0o644); err != nil {
+			ip.fail(span, "%s", ioMessage(err))
+		}
+		return value.String(path)
+	})
+
+	def("runtime_append_file", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		path, contents := ip.wantTwoStrings("runtime_append_file", args, span)
+		f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+		if err != nil {
+			ip.fail(span, "%s", ioMessage(err))
+		}
+		_, writeErr := f.WriteString(contents)
+		closeErr := f.Close()
+		// A close error on a write is a real failure — the bytes may not have
+		// reached the file — so it is reported when the write itself did not.
+		if writeErr != nil {
+			ip.fail(span, "%s", ioMessage(writeErr))
+		}
+		if closeErr != nil {
+			ip.fail(span, "%s", ioMessage(closeErr))
+		}
+		return value.String(path)
+	})
+
+	def("runtime_remove_file", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		path := ip.wantString("runtime_remove_file", args, span)
+		if err := os.Remove(path); err != nil {
+			ip.fail(span, "%s", ioMessage(err))
+		}
+		return value.String(path)
+	})
+
+	def("runtime_file_exists", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		_, err := os.Stat(ip.wantString("runtime_file_exists", args, span))
+		return value.Of(err == nil)
+	})
+
+	// The arguments after the source file. The CLI keeps its own flags.
+	def("runtime_args", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		ip.wantArgs("runtime_args", args, 0, span)
+		out := make([]value.Value, 0, len(ip.args))
+		for _, a := range ip.args {
+			out = append(out, value.String(a))
+		}
+		return value.NewArray(out)
+	})
+
+	// nil for an unset variable, so `OS.env("PORT") ?? "8080"` reads the way it
+	// should. An empty variable is set, and answers "".
+	def("runtime_env", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		v, ok := os.LookupEnv(ip.wantString("runtime_env", args, span))
+		if !ok {
+			return value.NilValue
+		}
+		return value.String(v)
+	})
+
+	def("runtime_env_set", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		_, ok := os.LookupEnv(ip.wantString("runtime_env_set", args, span))
+		return value.Of(ok)
+	})
+
+	// Two clocks, because they answer different questions. Milliseconds since
+	// the Unix epoch is a stamp; nanoseconds from an arbitrary origin is a
+	// duration, and only the second one is safe to subtract. Both are Ints: a
+	// Float would lose nanoseconds somewhere around 1970 plus a decade.
+	def("runtime_now_ms", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		ip.wantArgs("runtime_now_ms", args, 0, span)
+		return value.Int(time.Now().UnixMilli())
+	})
+
+	def("runtime_monotonic_ns", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		ip.wantArgs("runtime_monotonic_ns", args, 0, span)
+		return value.Int(int64(time.Since(processStart)))
+	})
+
 	def("runtime_regex_match", func(ip *Interp, args []value.Value, span source.Span) value.Value {
 		ip.wantArgs("runtime_regex_match", args, 2, span)
 		subject, ok1 := args[0].(value.String)
@@ -412,6 +516,47 @@ func (i *Interp) installBuiltins() {
 		}
 		return value.Of(re.MatchString(string(subject)))
 	})
+}
+
+// processStart is the origin of the monotonic clock. Go's own monotonic reading
+// is only exposed as a difference, so the origin has to be captured once.
+var processStart = time.Now()
+
+// ioMessage renders a file error.
+//
+// The recognised conditions get fixed text rather than the operating system's,
+// which differs per platform — "no such file or directory" against "The system
+// cannot find the file specified." — and would otherwise leak into anything that
+// compares output, this repository's own goldens included.
+func ioMessage(err error) string {
+	path := ""
+	var pathErr *fs.PathError
+	if errors.As(err, &pathErr) {
+		path = pathErr.Path + ": "
+	}
+
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		return path + "no such file"
+	case errors.Is(err, fs.ErrPermission):
+		return path + "permission denied"
+	case errors.Is(err, fs.ErrExist):
+		return path + "already exists"
+	}
+	if pathErr != nil {
+		return path + pathErr.Err.Error()
+	}
+	return err.Error()
+}
+
+func (i *Interp) wantTwoStrings(name string, args []value.Value, span source.Span) (string, string) {
+	i.wantArgs(name, args, 2, span)
+	first, ok1 := args[0].(value.String)
+	second, ok2 := args[1].(value.String)
+	if !ok1 || !ok2 {
+		i.fail(span, "%s() expects two Strings", name)
+	}
+	return string(first), string(second)
 }
 
 // orderOf compares two values the way `<` does — numbers among numbers, text

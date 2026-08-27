@@ -1,0 +1,55 @@
+// File reads and writes whole files by path.
+//
+// Every operation that can fail answers a tagged result rather than raising: a
+// file that is not there is the canonical thing a caller should be able to
+// handle, and it is the whole reason the error model exists. See
+// docs/architecture.md.
+//
+// Streaming is not here. Whole-file access is what a script needs, and a stream
+// wants a handle type the language does not have yet.
+module File
+
+  let read = func (path: String) -> Array
+    try
+      Result.ok(runtime_read_file(path))
+    rescue e
+      Result.error(e.message)
+    end
+  end
+
+  let lines = func (path: String) -> Array
+    switch File.read(path)
+    case [:ok, let contents] then Result.ok(String.lines(contents))
+    case [:error, let why] then Result.error(why)
+    end
+  end
+
+  let write = func (path: String, contents: String) -> Array
+    try
+      Result.ok(runtime_write_file(path, contents))
+    rescue e
+      Result.error(e.message)
+    end
+  end
+
+  let append = func (path: String, contents: String) -> Array
+    try
+      Result.ok(runtime_append_file(path, contents))
+    rescue e
+      Result.error(e.message)
+    end
+  end
+
+  let remove = func (path: String) -> Array
+    try
+      Result.ok(runtime_remove_file(path))
+    rescue e
+      Result.error(e.message)
+    end
+  end
+
+  let exists? = func (path: String) -> Bool
+    runtime_file_exists(path)
+  end
+
+end

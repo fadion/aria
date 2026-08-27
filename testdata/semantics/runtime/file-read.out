@@ -1,0 +1,4 @@
+[:ok, "first line\nsecond line\n"]
+[:ok, ["first line", "second line"]]
+true
+--- exit: 0

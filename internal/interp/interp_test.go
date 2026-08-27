@@ -2,6 +2,7 @@ package interp_test
 
 import (
 	"errors"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -2007,6 +2008,108 @@ func TestResultConvention(t *testing.T) {
 
 	// Passing the wrong kind of thing still raises.
 	if got := withStdlib(t, `println(try Math.max("a", 1) rescue e e.message end)`); got != "Math.max() expects a Float or Int" {
+		t.Errorf("got %q", got)
+	}
+}
+
+// prompt was the only way an Aria program could reach the outside world: no
+// files, no arguments, no environment, no clock.
+func TestFileIO(t *testing.T) {
+	dir := t.TempDir()
+	path := strings.ReplaceAll(filepath.Join(dir, "note.txt"), `\`, `\\`)
+
+	src := `let path = "` + path + `"
+println(File.exists?(path))
+println(File.write(path, "one\ntwo\n"))
+println(File.exists?(path))
+println(File.read(path))
+println(File.lines(path))
+println(File.append(path, "three\n"))
+println(File.lines(path))
+println(File.remove(path))
+println(File.exists?(path))`
+
+	want := strings.Join([]string{
+		"false",
+		`[:ok, "` + path + `"]`,
+		"true",
+		`[:ok, "one\ntwo\n"]`,
+		`[:ok, ["one", "two"]]`,
+		`[:ok, "` + path + `"]`,
+		`[:ok, ["one", "two", "three"]]`,
+		`[:ok, "` + path + `"]`,
+		"false",
+	}, "\n")
+
+	if got := withStdlib(t, src); got != want {
+		t.Errorf("got:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+// A file that is not there is the canonical thing a caller should be able to
+// handle, and the recognised conditions get platform-independent text.
+func TestFileMissing(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`println(File.read("_no_such_file_xyz.txt"))`, `[:error, "_no_such_file_xyz.txt: no such file"]`},
+		{`println(File.exists?("_no_such_file_xyz.txt"))`, "false"},
+		{`println(Result.unwrap(File.read("_no_such_file_xyz.txt"), "fallback"))`, "fallback"},
+		{`println(Result.ok?(File.remove("_no_such_file_xyz.txt")))`, "false"},
+	}
+	for _, test := range tests {
+		if got := withStdlib(t, test.src); got != test.want {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+}
+
+// Everything after the source file reaches the program; the CLI keeps its flags.
+func TestArgsAndEnv(t *testing.T) {
+	var out, errOut strings.Builder
+	_, err := interp.Eval("test.ari", `println(OS.args())
+println(Enum.size(OS.args()))`, interp.Options{
+		Out: &out, Err: &errOut, In: strings.NewReader(""),
+		Args: []string{"one", "two"},
+	})
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	if out.String() != "[\"one\", \"two\"]\n2\n" {
+		t.Errorf("got %q", out.String())
+	}
+
+	t.Setenv("ARIA_TEST_VAR", "set-value")
+	tests := []struct{ src, want string }{
+		{`println(OS.env("ARIA_TEST_VAR"))`, "set-value"},
+		{`println(OS.env?("ARIA_TEST_VAR"))`, "true"},
+		{`println(OS.env("ARIA_NOT_SET_XYZ", "fallback"))`, "fallback"},
+		{`println(OS.env("ARIA_NOT_SET_XYZ"))`, "nil"},
+		{`println(OS.env?("ARIA_NOT_SET_XYZ"))`, "false"},
+	}
+	for _, test := range tests {
+		if got := withStdlib(t, test.src); got != test.want {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+}
+
+// Two clocks, because they answer different questions. Only the monotonic one is
+// safe to subtract, and neither belongs in the characterization suite.
+func TestClocks(t *testing.T) {
+	if got := withStdlib(t, `println(Time.now() > 1600000000000)`); got != "true" {
+		t.Errorf("wall clock reads %q", got)
+	}
+	if got := withStdlib(t, `let start = Time.monotonic()
+var total = 0
+for i in 1..50000
+  total += i
+end
+println(Time.since(start) > 0)`); got != "true" {
+		t.Errorf("monotonic clock reads %q", got)
+	}
+	if got := withStdlib(t, `println(Time.milliseconds(5000000))`); got != "5" {
+		t.Errorf("got %q", got)
+	}
+	if got := withStdlib(t, `println(Time.seconds(1500000000))`); got != "1.5" {
 		t.Errorf("got %q", got)
 	}
 }

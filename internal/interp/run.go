@@ -21,6 +21,9 @@ type Options struct {
 	Out io.Writer
 	Err io.Writer
 	In  io.Reader
+	// Args is what the program was told: everything after the source file. The
+	// CLI keeps its own flags.
+	Args []string
 	// NoStdlib skips loading the standard library, for tests that want a bare
 	// interpreter.
 	NoStdlib bool
@@ -47,6 +50,7 @@ func Run(file *source.File, opts Options) bool {
 
 	i := New(file, nil)
 	i.Out, i.Err, i.In = opts.Out, opts.Err, opts.In
+	i.args = opts.Args
 
 	// The standard library is compiled and evaluated first, into the same
 	// globals the program will use. Doing it once here rather than on every
@@ -205,6 +209,7 @@ func Eval(name, src string, opts Options) (value.Value, error) {
 	if opts.In != nil {
 		i.In = opts.In
 	}
+	i.args = opts.Args
 
 	if !opts.NoStdlib {
 		var sink discard

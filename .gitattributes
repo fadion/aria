@@ -1,0 +1,7 @@
+# The characterization suite compares exact bytes, and the language job runs on
+# Linux while development happens on whatever. A CRLF checkout would change what
+# a case reads and what its golden says, so the corpus is LF everywhere.
+testdata/** text eol=lf
+internal/stdlib/*.ari text eol=lf
+*.ari text eol=lf
+*.out text eol=lf

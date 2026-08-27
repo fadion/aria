@@ -1,0 +1,9 @@
+// prompt was the only way an Aria program could reach the outside world: no
+// files, no arguments, no environment, no clock. A program could not read the
+// file it was meant to process.
+//
+// Everything that can fail answers a tagged result rather than raising: a file
+// that is not there is the canonical thing a caller should be able to handle.
+println(File.read("_fixture.txt"))
+println(File.lines("_fixture.txt"))
+println(File.exists?("_fixture.txt"))

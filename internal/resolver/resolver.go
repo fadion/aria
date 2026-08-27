@@ -43,6 +43,10 @@ var Builtins = []string{
 	"runtime_split", "runtime_replace",
 	"runtime_join", "runtime_repeat", "runtime_reverse",
 	"runtime_sort", "runtime_has_key",
+	"runtime_read_file", "runtime_write_file", "runtime_append_file",
+	"runtime_remove_file", "runtime_file_exists",
+	"runtime_args", "runtime_env", "runtime_env_set",
+	"runtime_now_ms", "runtime_monotonic_ns",
 }
 
 // Kind is what introduced a binding.

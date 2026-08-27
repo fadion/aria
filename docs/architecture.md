@@ -704,7 +704,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 203 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 206 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash
@@ -731,6 +731,38 @@ instead.
 compared case by case. With it unset the runner uses a binary in the repo root if there is
 one, and otherwise builds a throwaway — so the suite runs from a clean checkout with no
 setup, and leaves nothing behind.
+
+## Reaching the outside world
+
+`prompt` was the only way an Aria program could: no files, no arguments, no environment, no
+clock. A program could not read the file it was meant to process, could not be told which
+file that was, and could not report how long it took.
+
+`File`, `OS` and `Time` follow the pattern the rest of the library already does — `runtime_*`
+builtins for what Aria cannot express, and an Aria surface over them — so the library stays
+readable and the Go surface stays small.
+
+**The builtins raise; the library wraps.** `runtime_read_file` fails the way anything else
+in the evaluator does, and `File.read` turns that into a tagged result with `try`. That
+keeps the convention in Aria, where it is written down, rather than duplicated in Go — and
+it is why this came after the error model rather than before it. Adding IO first would have
+baked `panic` into the one place it hurts most.
+
+**Recognised file errors get fixed text**, not the operating system's. "no such file or
+directory" against "The system cannot find the file specified." is a difference that would
+otherwise leak into anything comparing output, this repository's own goldens included.
+
+**Two clocks, because they answer different questions.** `Time.now` is milliseconds since
+the Unix epoch, which is what you write down; `Time.monotonic` is nanoseconds from an
+arbitrary origin, which is what you subtract. Only the second is safe to subtract, since a
+wall clock can move backwards. Both are `Int`s: a `Float` would start losing nanoseconds
+somewhere around 1970 plus a decade. Neither is in the characterization suite, which runs
+every case seven times and would flag them.
+
+**Sandboxing.** There is none, and that is now worth saying out loud. A program can read and
+write any path the process can, `import` reaches any path it is given, and the CLI runs
+whatever source it is handed. Aria is a toy language; running untrusted Aria source is
+running untrusted code, and nothing here pretends otherwise.
 
 ## The tools
 
