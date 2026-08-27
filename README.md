@@ -60,6 +60,7 @@ println(pipe) // "Expressive Aria Language"
 * [Pipe Operator](#pipe-operator)
 * [Immutability](#immutability)
 * [Modules](#modules)
+* [Records](#records)
 * [Imports](#imports)
 * [Comments](#comments)
 * [Standard Library](#standard-library)
@@ -1255,7 +1256,7 @@ Think first of how you would write the problem with immutable values and only mo
 
 ## Modules
 
-Modules are very simple containers of data and nothing more. They're not an imitation of classes, as they can't be initialized, don't have any type of access control, inheritance or whatever. If you need to think in Object Oriented terms, they're like a class with only static properties and methods. They're good to give some structure to a program, but not to represent cars, trees and cats.
+Modules are very simple containers of data and nothing more. They're not an imitation of classes, as they can't be initialized, don't have any type of access control, inheritance or whatever. If you need to think in Object Oriented terms, they're like a class with only static properties and methods. They're good to give some structure to a program, but not to represent cars, trees and cats — that's what [records](#records) are for.
 
 ```swift
 module Color
@@ -1302,6 +1303,60 @@ And `.` is an operator over expressions rather than a form over two names, so it
 let config = [:db => [:host => "localhost"]]
 println(config.db.host)
 ```
+
+## Records
+
+Modules give a program structure but can't be instantiated, and a dictionary carries data without any identity — `typeof` says `Dictionary` for every one of them. A record is the shape for a car, a tree or a cat.
+
+```swift
+record Point
+  x: Int
+  y: Int
+end
+
+let p = Point(1, 2)
+println(p.x)
+println(typeof(p))  // "Point"
+println(p is Point) // true
+```
+
+A record's fields are a parameter list, so constructing one is an ordinary call — same arity check, same type hints, same defaults:
+
+```swift
+record Config
+  host: String
+  port: Int = 8080
+end
+println(Config("localhost"))
+```
+
+Two records with the same fields are still different types, which is the whole point of having one:
+
+```swift
+record Point
+  x: Int
+end
+record Size
+  x: Int
+end
+println(Point(1) == Size(1)) // false
+```
+
+Records are immutable like everything else, so writing a field rebinds the name — the same reading `a[0] = v` already has:
+
+```swift
+record Point
+  x: Int
+  y: Int
+end
+var p = Point(1, 2)
+let before = p
+p.x = 5
+println(p)      // Point(x: 5, y: 2)
+println(before) // Point(x: 1, y: 2)
+```
+
+That works through dictionaries too, and to any depth.
 
 ## Imports
 

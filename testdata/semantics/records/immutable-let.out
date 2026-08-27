@@ -1,0 +1,7 @@
+immutable-let.ari:8:1: error: cannot modify 'fixed': it is bound with let, which cannot be rebound
+  fixed.x = 3
+  ^^^^^
+immutable-let.ari:7:5: note: 'fixed' is declared here
+  let fixed = Point(1, 2)
+      ^^^^^
+--- exit: 1

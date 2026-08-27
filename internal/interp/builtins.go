@@ -62,7 +62,9 @@ func (i *Interp) installBuiltins() {
 
 	def("typeof", func(ip *Interp, args []value.Value, span source.Span) value.Value {
 		ip.wantArgs("typeof", args, 1, span)
-		return value.String(args[0].Type().String())
+		// TypeName, not Type().String(): a record answers its own name, which
+		// is the whole point of it having one.
+		return value.String(value.TypeName(args[0]))
 	})
 
 	def("String", func(ip *Interp, args []value.Value, span source.Span) value.Value {

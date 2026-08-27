@@ -642,6 +642,25 @@ func (n *Access) Inspect() string {
 	return n.Left.Inspect() + dot + n.Name.Inspect()
 }
 
+// Record declares a named set of fields.
+//
+// Fields reuse FunctionParameter, because a field and a parameter are the same
+// shape — a name, an optional type hint, an optional default — and a record's
+// constructor is a call.
+type Record struct {
+	Base
+	Name   *Identifier
+	Fields []*FunctionParameter
+}
+
+func (n *Record) Inspect() string {
+	parts := make([]string, 0, len(n.Fields))
+	for _, f := range n.Fields {
+		parts = append(parts, f.Inspect())
+	}
+	return "record " + inspectOr(n.Name, "") + " " + strings.Join(parts, ", ") + " end"
+}
+
 // Import splices another source file into this scope.
 type Import struct {
 	Base

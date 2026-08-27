@@ -1,7 +1,7 @@
-unknown-parameter-type.ari:3:18: error: 'Banana' is not a type: expected one of Nil, Bool, Int, Float, String, Atom, Array, Dictionary, Function, Module, Any
+unknown-parameter-type.ari:3:18: error: 'Banana' is not a type: expected one of Nil, Bool, Int, Float, String, Atom, Array, Dictionary, Function, Module, Record, Any
   let f = func (n: Banana) -> Fruit do n end
                    ^^^^^^
-unknown-parameter-type.ari:3:29: error: 'Fruit' is not a type: expected one of Nil, Bool, Int, Float, String, Atom, Array, Dictionary, Function, Module, Any
+unknown-parameter-type.ari:3:29: error: 'Fruit' is not a type: expected one of Nil, Bool, Int, Float, String, Atom, Array, Dictionary, Function, Module, Record, Any
   let f = func (n: Banana) -> Fruit do n end
                               ^^^^^
 --- exit: 1

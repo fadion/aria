@@ -502,6 +502,43 @@ spends a section on. A count needs no new token, where a label would; it reads p
 two, but two is the case that comes up. The resolver counts the loops a `break` is inside,
 so `break 3` inside two is a diagnostic rather than an unwind out of the enclosing function.
 
+## Records: structured data has a home
+
+Anything shaped like a domain object had none. A module holds only `let` and cannot be
+instantiated — the README says so — and a dictionary carries data but no identity, so
+`typeof` reported `Dictionary` for every one of them and `is` could not tell a point from a
+config. Structured data was untyped dictionaries, checked by hand.
+
+**A record's fields are a parameter list**, so constructing one is an ordinary call:
+`Point(1, 2)`, with the same arity check, the same type hints and the same defaults every
+other call has. That is why a record needs no construction syntax of its own, and a field
+needs no syntax that a parameter did not already have.
+
+*Named construction is deliberately not here.* `Point(x: 1, y: 2)` would be a change to
+every call in the language, not a record feature, and it is worth making once for all calls
+rather than only where records happen to need it.
+
+**Identity is the point.** `typeof` reports the record's own name and `is` tests against it,
+so `p is Point` is true and `p is Dictionary` is false. Two records with the same field
+values are still different types: `Point(1, 2) == Size(1, 2)` is false, which is what having
+a type is for. `value.TypeName` is the one place that answers this, and everything that
+compares a type name goes through it — `typeof`, `is`, parameter hints, return hints, case
+types, the reassignment type lock.
+
+**Update returns a new record.** `p.x = 5` rebinds `p`, which is the reading `a[0] = v`
+already had under the frozen-collections rule, so a record is not a new kind of thing here.
+It nests through records and dictionaries alike, and a `let`-bound record cannot be written
+through for the same reason a `let`-bound array cannot. Field assignment on a dictionary
+falls out of the same code, and works now where it did not before.
+
+**A missing field is a runtime error naming the record**, and an unknown field on a
+declaration is caught where it is written. Records are hoisted like modules, so the order of
+two declarations does not matter.
+
+**Destructuring a record by field is not here.** It needs the same spelling dictionary
+destructuring needs — binding by name rather than by position — and both are worth deciding
+together. Field access plus `case is Point` covers matching in the meantime.
+
 ## `let` marks binding, everywhere
 
 `for k, v` was the only multi-bind in the language: there was no way to take an array apart
@@ -704,7 +741,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 212 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 219 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash

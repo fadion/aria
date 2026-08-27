@@ -104,6 +104,8 @@ type Interp struct {
 
 	globals *env
 	modules map[string]*Module
+	// records holds the record types declared in this compilation.
+	records map[string]*RecordDef
 	// dir is where relative imports resolve from.
 	dir string
 	// imported guards against re-importing, matching the original's cache.
@@ -147,6 +149,7 @@ func New(file *source.File, info *resolver.Info) *Interp {
 		In:       os.Stdin,
 		globals:  newEnv(nil),
 		modules:  map[string]*Module{},
+		records:  map[string]*RecordDef{},
 		imported: map[string]bool{},
 	}
 	i.dir = filepath.Dir(file.Name)
@@ -317,7 +320,9 @@ func (i *Interp) eval(n ast.Node, e *env) value.Value {
 			i.eval(n.Left, e)
 			return value.True
 		}
-		return value.Of(i.eval(n.Left, e).Type().String() == n.Right.Value)
+		// TypeName, not Type().String(): a record answers its own name, which
+		// is the whole point of it having one.
+		return value.Of(value.TypeName(i.eval(n.Left, e)) == n.Right.Value)
 	case *ast.As:
 		return i.convert(i.eval(n.Left, e), n.Right.Value, n.Span())
 
@@ -375,6 +380,8 @@ func (i *Interp) eval(n ast.Node, e *env) value.Value {
 	case *ast.Module:
 		i.evalModule(n, e)
 		return value.NilValue
+	case *ast.Record:
+		return i.evalRecord(n, e)
 	case *ast.Access:
 		return i.evalAccess(n, e)
 
@@ -425,16 +432,11 @@ func (i *Interp) evalAssign(n *ast.Assign, e *env) value.Value {
 		return rhs
 	}
 
-	sub, ok := n.Name.(*ast.Subscript)
-	if !ok {
-		i.fail(n.Span(), "assignment expects a name on the left")
-	}
-
-	// Under immutable collections a subscript write is a rebinding: build the
-	// updated collection, then assign it back to the name it came from.
-	base, path := flattenSubscript(sub)
+	// Under immutable collections a subscript or field write is a rebinding:
+	// build the updated value, then assign it back to the name it came from.
+	base, path := flattenTarget(n.Name)
 	id, ok := base.(*ast.Identifier)
-	if !ok {
+	if !ok || len(path) == 0 {
 		i.fail(n.Span(), "assignment expects a name on the left")
 	}
 
@@ -448,6 +450,34 @@ func (i *Interp) evalAssign(n *ast.Assign, e *env) value.Value {
 	return rhs
 }
 
+// targetStep is one link of an assignment target: `a[i]` or `a.field`.
+type targetStep struct {
+	index ast.Node
+	field *ast.Identifier
+}
+
+// flattenTarget walks an assignment target down to the name being written
+// through, collecting the links in source order.
+//
+// `p.x = 5` reads the same way `a[0] = v` does — rebind `p` to a new value with
+// one field replaced — which is what the frozen-collections rule already meant
+// for a dictionary, and now also for a record.
+func flattenTarget(n ast.Node) (ast.Node, []targetStep) {
+	var path []targetStep
+	for {
+		switch t := n.(type) {
+		case *ast.Subscript:
+			path = append([]targetStep{{index: t.Index}}, path...)
+			n = t.Left
+		case *ast.Access:
+			path = append([]targetStep{{field: t.Name}}, path...)
+			n = t.Left
+		default:
+			return n, path
+		}
+	}
+}
+
 // assignChecked writes v to name, enforcing the type lock.
 func (i *Interp) assignChecked(id *ast.Identifier, v value.Value, e *env) {
 	old, found := e.lookup(id.Value)
@@ -456,40 +486,51 @@ func (i *Interp) assignChecked(id *ast.Identifier, v value.Value, e *env) {
 	}
 	// Reassignment preserves the original type. Nil is exempt, since a binding
 	// that started nil has no type to preserve.
-	if old.Type() != v.Type() && old.Type() != value.TNil && v.Type() != value.TNil {
+	// TypeName, so two different records do not both read as "Record".
+	if value.TypeName(old) != value.TypeName(v) && old.Type() != value.TNil && v.Type() != value.TNil {
 		i.fail(id.Span(), "'%s' holds %s, so it cannot be assigned %s",
-			id.Value, old.Type(), v.Type())
+			id.Value, value.TypeName(old), value.TypeName(v))
 	}
 	if !e.assign(id.Value, v) {
 		i.fail(id.Span(), "'%s' is not defined", id.Value)
 	}
 }
 
-// flattenSubscript peels nested indexing down to the base name, returning the
-// index expressions outermost-last so a[0][1] can be rebuilt in order.
-func flattenSubscript(s *ast.Subscript) (ast.Node, []ast.Node) {
-	var path []ast.Node
-	var node ast.Node = s
-	for {
-		sub, ok := node.(*ast.Subscript)
-		if !ok {
-			break
-		}
-		path = append([]ast.Node{sub.Index}, path...)
-		node = sub.Left
-	}
-	return node, path
-}
-
 // updatePath returns a copy of container with the value at path replaced.
-func (i *Interp) updatePath(container value.Value, path []ast.Node, v value.Value, e *env, span source.Span) value.Value {
+func (i *Interp) updatePath(container value.Value, path []targetStep, v value.Value, e *env, span source.Span) value.Value {
 	if len(path) == 0 {
 		return v
 	}
 
-	idxNode := path[0]
 	rest := path[1:]
 
+	// A field step, `a.name`, reads whatever is at that name and puts back a
+	// copy with it replaced.
+	if field := path[0].field; field != nil {
+		switch c := container.(type) {
+		case *value.Record:
+			inner, found := c.Get(field.Value)
+			if !found {
+				i.fail(field.Span(), "%s has no field '%s'", c.Def.Name, field.Value)
+			}
+			out, _ := c.With(field.Value, i.updatePath(inner, rest, v, e, span))
+			return out
+
+		case *value.Dict:
+			key := value.String(field.Value)
+			if len(rest) == 0 {
+				return c.With(key, v)
+			}
+			inner, found := c.Get(key)
+			if !found {
+				i.fail(field.Span(), "no key '%s' in the dictionary", field.Value)
+			}
+			return c.With(key, i.updatePath(inner, rest, v, e, span))
+		}
+		i.fail(span, "cannot write '.%s' to %s", field.Value, value.TypeName(container))
+	}
+
+	idxNode := path[0].index
 	switch c := container.(type) {
 	case *value.Array:
 		// An empty index or `_` appends.
@@ -547,7 +588,7 @@ func (i *Interp) updatePath(container value.Value, path []ast.Node, v value.Valu
 		return value.String(string(out))
 	}
 
-	i.fail(span, "cannot index into %s", container.Type())
+	i.fail(span, "cannot index into %s", value.TypeName(container))
 	return value.NilValue
 }
 
@@ -801,7 +842,9 @@ func (i *Interp) caseValueMatches(el ast.Node, control value.Value, e *env) bool
 		if el.Name.Value == value.Any {
 			return true
 		}
-		return control.Type().String() == el.Name.Value
+		// TypeName, so `case is Point` matches a Point rather than every
+		// record.
+		return value.TypeName(control) == el.Name.Value
 
 	case *ast.Array:
 		// An array literal in case position pattern-matches element by element,

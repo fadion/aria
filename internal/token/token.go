@@ -109,6 +109,7 @@ const (
 	Try
 	Rescue
 	Module
+	Record
 	Import
 )
 
@@ -200,6 +201,7 @@ var names = [...]string{
 	Try:      "try",
 	Rescue:   "rescue",
 	Module:   "module",
+	Record:   "record",
 	Import:   "import",
 }
 
@@ -240,6 +242,7 @@ var keywords = map[string]Kind{
 	"try":      Try,
 	"rescue":   Rescue,
 	"module":   Module,
+	"record":   Record,
 	"import":   Import,
 	// true, false and nil are keywords lexically, but carry a literal's kind
 	// so the parser treats them as the values they are.

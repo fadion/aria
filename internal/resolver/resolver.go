@@ -167,6 +167,11 @@ type Resolver struct {
 	// this file.
 	moduleMembers map[*Binding][]string
 
+	// records holds the record types declared anywhere in the compilation, so
+	// `is Point` and `p: Point` name something this pass can check. Records are
+	// hoisted, like modules.
+	records map[string][]string
+
 	// loops and funcs count the enclosing loop and function bodies, so that
 	// break, continue and return can be checked where they mean something. A
 	// function body resets loops: a `break` inside a function nested in a loop
@@ -188,6 +193,7 @@ func New(file *source.File, diags *diag.Bag) *Resolver {
 		modules:       map[string]bool{},
 		hoisted:       map[*Binding]bool{},
 		moduleMembers: map[*Binding][]string{},
+		records:       map[string][]string{},
 	}
 	r.current = newScope(nil)
 	for _, name := range Builtins {
@@ -293,6 +299,26 @@ func (r *Resolver) unit(prog *ast.Program) {
 func (r *Resolver) collectModules(nodes []ast.Node) {
 	for _, n := range nodes {
 		switch n := n.(type) {
+		case *ast.Record:
+			// A record is hoisted like a module: its name is a type, and a type
+			// that only exists after its declaration would make the order of two
+			// declarations matter for no reason.
+			if n.Name == nil || r.records[n.Name.Value] != nil {
+				continue
+			}
+			fields := []string{}
+			for _, f := range n.Fields {
+				if f != nil && f.Name != nil {
+					fields = append(fields, f.Name.Value)
+				}
+			}
+			r.records[n.Name.Value] = fields
+			b := r.declare(n.Name, KindLet, false)
+			if b != nil {
+				// The constructor is reachable by name, and `Point.x` is not a
+				// thing, so the definition has no members to access.
+				r.moduleMembers[b] = nil
+			}
 		case *ast.Module:
 			// A second `module M` is left undeclared on purpose: the evaluator
 			// reports the redeclaration, with the module's own message.
@@ -572,6 +598,25 @@ func (r *Resolver) node(n ast.Node) {
 
 	case *ast.Module:
 		r.module(n)
+	case *ast.Record:
+		// The name is declared by collectModules; the field hints and defaults
+		// are what is left to check, exactly as for a function's parameters.
+		for _, f := range n.Fields {
+			if f == nil {
+				continue
+			}
+			r.typeName(f.Type)
+			if f.Default == nil {
+				continue
+			}
+			r.node(f.Default)
+			if f.Type != nil && f.Type.Value != value.Any {
+				if got := literalType(f.Default); got != "" && got != f.Type.Value {
+					r.diags.Errorf(f.Default.Span(), "field '%s' is declared %s but defaults to %s",
+						f.Name.Value, f.Type.Value, got)
+				}
+			}
+		}
 	case *ast.Access:
 		// The left side is an ordinary expression. resolveName already lets a
 		// bare module name through, so `Enum.size` resolves without `.` having
@@ -731,17 +776,24 @@ func (r *Resolver) assign(n *ast.Assign) {
 	target := n.Name
 	subscript := false
 	for {
-		sub, ok := target.(*ast.Subscript)
-		if !ok {
-			break
+		switch t := target.(type) {
+		case *ast.Subscript:
+			subscript = true
+			// `a[] = v` and `a[_] = v` both parse to a placeholder index. On
+			// the left of an assignment that is the append target, not a stray
+			// `_`.
+			if _, appendTarget := t.Index.(*ast.Placeholder); !appendTarget {
+				r.node(t.Index)
+			}
+			target = t.Left
+			continue
+		case *ast.Access:
+			// `p.x = v` rebinds p, the same way `a[0] = v` rebinds a.
+			subscript = true
+			target = t.Left
+			continue
 		}
-		subscript = true
-		// `a[] = v` and `a[_] = v` both parse to a placeholder index. On the
-		// left of an assignment that is the append target, not a stray `_`.
-		if _, appendTarget := sub.Index.(*ast.Placeholder); !appendTarget {
-			r.node(sub.Index)
-		}
-		target = sub.Left
+		break
 	}
 
 	id, ok := target.(*ast.Identifier)
@@ -899,6 +951,9 @@ func (r *Resolver) typeName(id *ast.Identifier) {
 	if id == nil || value.IsTypeName(id.Value) {
 		return
 	}
+	if _, isRecord := r.records[id.Value]; isRecord {
+		return
+	}
 	// One diagnostic rather than an error and a note: a note with the same span
 	// would draw the same line and caret underneath itself.
 	r.diags.Errorf(id.Span(), "'%s' is not a type: expected one of %s",
@@ -923,7 +978,7 @@ func (r *Resolver) moduleMember(n *ast.Access) {
 		return // undefined, or hidden behind an import; already handled
 	}
 	members, known := r.moduleMembers[ref.Binding]
-	if !known {
+	if !known || members == nil {
 		return // not a module, or one whose members this pass cannot see
 	}
 	for _, m := range members {

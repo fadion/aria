@@ -1,0 +1,5 @@
+record Point
+  x: Int
+  y: Int
+end
+println(Point(1, "two"))

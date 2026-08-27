@@ -166,6 +166,13 @@ func Children(n Node) []Node {
 	case *Module:
 		ident(n.Name)
 		block(n.Body)
+	case *Record:
+		ident(n.Name)
+		for _, f := range n.Fields {
+			if f != nil {
+				out = append(out, f)
+			}
+		}
 	case *Access:
 		node(n.Left)
 		ident(n.Name)

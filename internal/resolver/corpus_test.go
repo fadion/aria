@@ -118,6 +118,7 @@ var expectedResolveErrors = map[string]string{
 	"switch-capture-scope.ari":       "reads a capture outside its own arm",
 	"try-rescue-scope.ari":           "reads a rescued name outside its rescue",
 	"_undefined.ari":                 "is a fixture whose whole point is an undefined name",
+	"immutable-let.ari":              "writes a field through a let-bound record",
 }
 
 // Three cases that USED to fail now resolve cleanly, which is the point:

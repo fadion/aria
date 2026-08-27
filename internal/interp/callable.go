@@ -102,6 +102,10 @@ func (i *Interp) apply(callee value.Value, args []value.Value, span source.Span,
 		if fn.call != nil {
 			return fn.call.Fn(i, args, span)
 		}
+	case *RecordDef:
+		// A record's fields are a parameter list, so constructing one is an
+		// ordinary call. That is why a record needs no construction syntax.
+		return i.construct(fn, args, span)
 	}
 	i.fail(span, "cannot call %s", callee.Type())
 	return value.NilValue
@@ -177,9 +181,9 @@ func (i *Interp) callFunction(fn *Function, args []value.Value, span source.Span
 	}
 
 	if decl.ReturnType != nil && decl.ReturnType.Value != value.Any &&
-		result.Type().String() != decl.ReturnType.Value {
+		value.TypeName(result) != decl.ReturnType.Value {
 		i.failIn(callerFile, span, "%s declares it returns %s but returned %s",
-			fnName(decl), decl.ReturnType.Value, result.Type())
+			fnName(decl), decl.ReturnType.Value, value.TypeName(result))
 	}
 	return result
 }
@@ -188,8 +192,9 @@ func (i *Interp) checkParamType(p *ast.FunctionParameter, arg value.Value, file 
 	if p.Type == nil || p.Type.Value == value.Any {
 		return
 	}
-	if arg.Type().String() != p.Type.Value {
-		i.failIn(file, span, "parameter '%s' expects %s, got %s", p.Name.Value, p.Type.Value, arg.Type())
+	if value.TypeName(arg) != p.Type.Value {
+		i.failIn(file, span, "parameter '%s' expects %s, got %s",
+			p.Name.Value, p.Type.Value, value.TypeName(arg))
 	}
 }
 
@@ -260,6 +265,12 @@ func (i *Interp) evalAccess(n *ast.Access, e *env) value.Value {
 	}
 
 	switch v := left.(type) {
+	case *value.Record:
+		if member, found := v.Get(n.Name.Value); found {
+			return member
+		}
+		i.fail(n.Name.Span(), "%s has no field '%s'", v.Def.Name, n.Name.Value)
+
 	case *Module:
 		member, found := v.Member(n.Name.Value)
 		if !found {

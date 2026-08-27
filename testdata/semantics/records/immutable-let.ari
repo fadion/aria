@@ -1,0 +1,8 @@
+// A record bound with `let` cannot be rebound, and a field write IS a rebinding
+// — the same reading `a[0] = v` already had for a collection.
+record Point
+  x: Int
+  y: Int
+end
+let fixed = Point(1, 2)
+fixed.x = 3

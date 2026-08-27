@@ -1,0 +1,29 @@
+// Records are immutable like everything else, so `p.x = 5` rebinds p to a new
+// record — the same reading `a[0] = v` already had for a collection.
+record Point
+  x: Int
+  y: Int
+end
+
+var p = Point(1, 2)
+let original = p
+p.x = 5
+println(p)
+println(original)
+
+// It nests, through records and dictionaries alike.
+record Line
+  from: Point
+  to: Point
+end
+var l = Line(Point(0, 0), Point(1, 1))
+l.to.x = 9
+println(l)
+
+var cfg = [:db => [:host => "old"]]
+cfg.db.host = "new"
+println(cfg)
+
+var points = [Point(1, 1), Point(2, 2)]
+points[0].x = 7
+println(points)
