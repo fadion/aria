@@ -1,0 +1,7 @@
+_aliased.ari:1:8: error: module 'Shapes' cannot be reached through the alias 'Lib': a module holds only 'let', so import this file without 'as Lib' and use 'Shapes' directly
+  module Shapes
+         ^^^^^^
+_aliased.ari:4:8: error: record 'Point' cannot be reached through the alias 'Lib': a module holds only 'let', so import this file without 'as Lib' and use 'Point' directly
+  record Point
+         ^^^^^
+--- exit: 1

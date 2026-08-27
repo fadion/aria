@@ -21,6 +21,22 @@ module String
     str[String.count(str) - 1]
   end
 
+  // A codepoint and a character, in both directions. Aria strings index by
+  // rune, so these are codepoints and not bytes: String.code("é") is 233, and
+  // String.fromCode(233) is "é".
+  //
+  // code answers nil for an empty string, the way first and last do, because
+  // there is no codepoint to give and an empty string is ordinary data.
+  // fromCode raises for a number that is not a codepoint, because that is the
+  // caller's arithmetic being wrong rather than an outcome to handle.
+  let code = func (str: String)
+    runtime_code(str)
+  end
+
+  let fromCode = func (code: Int) -> String
+    runtime_from_code(code)
+  end
+
   let lower = func (str: String) -> String
     runtime_tolower(str)
   end

@@ -21,16 +21,6 @@ let jumps = func (source: String) -> Dictionary
   state[1]
 end
 
-// The standard library has no codepoint-to-character function, so this indexes
-// a table of printable ASCII. See the note at the bottom.
-let printable = " !" + "\"" + "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[" + "\\" + "]^_`abcdefghijklmnopqrstuvwxyz{|}~"
-
-let char = func (code: Int) -> String
-  if code == 10 then return "\n" end
-  if code < 32 || code > 126 then return "?" end
-  printable[code - 32]
-end
-
 let run = func (source: String) -> String
   let table = jumps(source)
   let width = String.count(source)
@@ -46,7 +36,7 @@ let run = func (source: String) -> String
     case "<" then head -= 1
     case "+" then tape[head] = (tape[head] + 1) % 256
     case "-" then tape[head] = (tape[head] + 255) % 256
-    case "." then out += char(tape[head])
+    case "." then out += String.fromCode(tape[head])
     case "[" then
       if tape[head] == 0 then pc = table[pc] end
     case "]" then
@@ -64,7 +54,3 @@ println(run("++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+
 
 // Adding two cells: 2 + 5, printed as the character '7'.
 println(run("++>+++++[<+>-]<++++++++++++++++++++++++++++++++++++++++++++++++."))
-
-// Note: `char` exists because the standard library has no way to turn a
-// codepoint into a character. String indexing goes the other way fine. Adding
-// String.code and String.fromCode would remove the table entirely.

@@ -1,0 +1,38 @@
+// A codepoint and a character, in both directions. Codepoints, not bytes:
+// strings index by rune everywhere else too.
+println(String.code("A"))
+println(String.fromCode(65))
+println(String.code("é"))
+println(String.fromCode(233))
+println(String.code("😀"))
+println(String.fromCode(128512))
+
+// code reads the first rune of a longer string.
+println(String.code("abc"))
+
+// Round trips.
+println(String.fromCode(String.code("λ")))
+println(String.fromCode(10) == "\n")
+
+// Empty is nil, the way String.first is: no codepoint to give, and an empty
+// string is ordinary data rather than a caller's mistake.
+println(String.code(""))
+
+// A number that is not a codepoint raises, because that is the caller's
+// arithmetic being wrong. Go would answer U+FFFD and let it travel.
+println(try
+  String.fromCode(-1)
+rescue e
+  e.message
+end)
+println(try
+  String.fromCode(1114112)
+rescue e
+  e.message
+end)
+// Surrogates are not characters.
+println(try
+  String.fromCode(55296)
+rescue e
+  e.message
+end)

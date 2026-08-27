@@ -42,6 +42,7 @@ var Builtins = []string{
 	"runtime_len", "runtime_slice", "runtime_index_of", "runtime_last_index_of",
 	"runtime_split", "runtime_replace",
 	"runtime_join", "runtime_repeat", "runtime_reverse",
+	"runtime_code", "runtime_from_code",
 	"runtime_sort", "runtime_has_key",
 	"runtime_read_file", "runtime_write_file", "runtime_append_file",
 	"runtime_remove_file", "runtime_file_exists",
@@ -275,6 +276,10 @@ func (r *Resolver) IncludeNamespaced(file *source.File, prog *ast.Program, diags
 			if n.Name != nil {
 				members = append(members, n.Name.Value)
 			}
+		case *ast.Module:
+			r.aliasedDeclaration(n.Name, alias, "module")
+		case *ast.Record:
+			r.aliasedDeclaration(n.Name, alias, "record")
 		}
 	}
 	r.pop(prog)
@@ -282,6 +287,27 @@ func (r *Resolver) IncludeNamespaced(file *source.File, prog *ast.Program, diags
 	r.modules[alias] = true
 	r.predeclare(alias, KindLet)
 	r.moduleMembers[r.current.names[alias]] = members
+}
+
+// aliasedDeclaration reports a module or record in a file imported under an
+// alias.
+//
+// An alias works by making the unit's scope a module, and a module body holds
+// only `let` -- modules do not nest and a record cannot live in one, which is
+// enforced everywhere a module is written by hand. So there is nowhere for such
+// a declaration to go, and it used to go nowhere silently: neither `Geo.Shapes`
+// nor a bare `Shapes` resolved, and the diagnostic named the alias, which reads
+// as a typo in the caller rather than a problem with the import.
+//
+// A file that declares a module already namespaces itself, which is what the
+// alias was for, so the fix is to drop one of the two. The message says so.
+func (r *Resolver) aliasedDeclaration(name *ast.Identifier, alias, kind string) {
+	if name == nil {
+		return
+	}
+	r.diags.Errorf(name.Span(),
+		"%s '%s' cannot be reached through the alias '%s': a module holds only 'let', so import this file without 'as %s' and use '%s' directly",
+		kind, name.Value, alias, alias, name.Value)
 }
 
 // unit resolves one program's nodes into the current scope.
