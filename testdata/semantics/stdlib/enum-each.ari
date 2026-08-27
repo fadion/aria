@@ -1,0 +1,3 @@
+// Iterating for effect without building the array of results.
+Enum.each([1, 2, 3], (v) -> println(v))
+println(Enum.each([], (v) -> v))

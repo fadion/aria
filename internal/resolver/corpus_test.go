@@ -107,6 +107,7 @@ var expectedResolveErrors = map[string]string{
 	"self-referential-let.ari":       "reads a name inside its own initializer",
 	"hoisting-not-for-values.ari":    "reads a non-function `let` before it is declared",
 	"hoisting-limits.ari":            "calls a later function from inside a function body",
+	"break-too-many-levels.ari":      "breaks out of more loops than it is inside",
 }
 
 // Three cases that USED to fail now resolve cleanly, which is the point:

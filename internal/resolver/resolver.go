@@ -451,6 +451,11 @@ func (r *Resolver) node(n ast.Node) {
 
 	case *ast.For:
 		r.forLoop(n)
+	case *ast.While:
+		r.node(n.Condition)
+		r.loops++
+		r.node(n.Body)
+		r.loops--
 
 	case *ast.Function:
 		r.function(n)
@@ -472,8 +477,13 @@ func (r *Resolver) node(n ast.Node) {
 	// stray `break` at top level discarded the rest of the file with no
 	// diagnostic and exit code 0.
 	case *ast.Break:
-		if r.loops == 0 {
+		switch {
+		case r.loops == 0:
 			r.diags.Errorf(n.Span(), "'break' outside a loop")
+		case n.Levels > r.loops:
+			// `break 3` inside two loops has nothing to leave, and would
+			// otherwise unwind out of the enclosing function at runtime.
+			r.diags.Errorf(n.Span(), "'break %d' inside %d loop(s)", n.Levels, r.loops)
 		}
 	case *ast.Continue:
 		if r.loops == 0 {

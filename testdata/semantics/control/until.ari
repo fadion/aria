@@ -1,0 +1,14 @@
+// `until` is `while` with its condition negated, so the two share every rule.
+var i = 0
+until i == 3
+  i += 1
+end
+println(i)
+
+var j = 10
+until j <= 0 do
+  j -= 2
+end
+println(j)
+
+println(until true do 1 end)

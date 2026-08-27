@@ -1,0 +1,23 @@
+// A `for` that is not the last node of its block produces a value nobody reads,
+// so nothing is collected. Invisible to a program; the difference is that a
+// two-million-iteration side-effect loop no longer builds a two-million-element
+// array to throw away.
+var count = 0
+for i in 1..5
+  count += i
+end
+println(count)
+
+// The last node of a block is left alone, because a block evaluates to it.
+let doubled = func () do
+  for i in 1..3
+    i * 2
+  end
+end
+println(doubled())
+
+// And a `for` in expression position still collects.
+let squares = for i in 1..4
+  i * i
+end
+println(squares)
