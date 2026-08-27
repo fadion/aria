@@ -175,6 +175,10 @@ jobs:
       - name: Examples
         run: bash scripts/check-examples.sh
 
+      # Adding a suite here means adding it to the release workflow's `verify`
+      # job too. Nothing enforces that the two agree, and the last time they
+      # drifted it was this step that was missing from a release.
+
   # Cheap, and both targets have found real bugs. 30s each, as in CLAUDE.md.
   fuzz:
     needs: changes
