@@ -109,6 +109,18 @@ jobs:
             exit 1
           fi
 
+      # One iteration each, which measures nothing and is not meant to. It
+      # proves the benchmarks still compile and still run, so they cannot rot
+      # into something that fails the first time somebody reaches for them --
+      # which is always while chasing a regression and never at a good moment.
+      #
+      # Nothing here compares numbers. Wall-clock on a shared runner is noise,
+      # and gating on it would need a stored baseline that goes stale. Comparing
+      # revisions is a local benchstat job; see internal/interp/bench_test.go.
+      - name: Benchmarks run
+        if: matrix.os == 'ubuntu-latest'
+        run: go test ./internal/interp/ -run=XXX -bench=. -benchtime=1x
+
   # Static analysis beyond `go vet`. Ubuntu only: the linters are
   # platform-independent, and running them three times says the same thing
   # three times.
