@@ -184,7 +184,15 @@ func (r *Resolver) Predeclare(name string) { r.predeclare(name, KindLet) }
 
 // PredeclareModule adds a module name, for modules supplied by the standard
 // library rather than declared in this file.
-func (r *Resolver) PredeclareModule(name string) { r.modules[name] = true }
+//
+// A module is a value, so the name is an ordinary global binding as well as an
+// entry in the module set. It used to be only the latter, which is why
+// resolveName had to let bare module names through unresolved and `let E = Enum`
+// then failed in the evaluator with "'Enum' is not defined".
+func (r *Resolver) PredeclareModule(name string) {
+	r.modules[name] = true
+	r.predeclare(name, KindLet)
+}
 
 func (r *Resolver) predeclare(name string, kind Kind) {
 	b := &Binding{Name: name, Kind: kind, Depth: 0, Slot: r.current.slots}
@@ -212,8 +220,11 @@ func (r *Resolver) collectModules(nodes []ast.Node) {
 	for _, n := range nodes {
 		switch n := n.(type) {
 		case *ast.Module:
-			if n.Name != nil {
+			// A second `module M` is left undeclared on purpose: the evaluator
+			// reports the redeclaration, with the module's own message.
+			if n.Name != nil && !r.modules[n.Name.Value] {
 				r.modules[n.Name.Value] = true
+				r.declare(n.Name, KindLet, false)
 			}
 		case *ast.Import:
 			r.hasImport = true
@@ -289,11 +300,6 @@ func (r *Resolver) resolveName(id *ast.Identifier) {
 			return
 		}
 		hops++
-	}
-
-	// A module used as a value, as in passing `Enum` around, is not a binding.
-	if r.modules[id.Value] {
-		return
 	}
 
 	// An import can introduce names this pass never saw, so reporting here
@@ -403,8 +409,12 @@ func (r *Resolver) node(n ast.Node) {
 
 	case *ast.Module:
 		r.module(n)
-	case *ast.ModuleAccess:
-		r.moduleAccess(n)
+	case *ast.Access:
+		// The left side is an ordinary expression. resolveName already lets a
+		// bare module name through, so `Enum.size` resolves without `.` having
+		// to know anything about modules — and `cfg.db.host`, `f().a` and
+		// `a[0].k` resolve for the same reason.
+		r.node(n.Left)
 
 	// A control keyword outside the construct it controls is knowable here,
 	// and silent otherwise: Interp.Run stops its node loop on any signal, so a
@@ -605,30 +615,4 @@ func (r *Resolver) module(n *ast.Module) {
 	}
 
 	r.pop(n)
-}
-
-// moduleAccess checks the module exists. Members are not checked here: a module
-// body is resolved in its own scope, and matching members up across files is the
-// evaluator's job.
-func (r *Resolver) moduleAccess(n *ast.ModuleAccess) {
-	if n.Object == nil {
-		return
-	}
-	if r.modules[n.Object.Value] {
-		return
-	}
-
-	// A local binding of that name is fine too — the evaluator decides what a
-	// dotted access means for a non-module value.
-	for s := r.current; s != nil; s = s.parent {
-		if _, ok := s.names[n.Object.Value]; ok {
-			r.resolveName(n.Object)
-			return
-		}
-	}
-
-	if r.hasImport {
-		return
-	}
-	r.diags.Errorf(n.Object.Span(), "module '%s' is not defined", n.Object.Value)
 }

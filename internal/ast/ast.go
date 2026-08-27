@@ -468,14 +468,19 @@ func (n *Module) Inspect() string {
 	return "module " + n.Name.Inspect() + " { " + n.Body.Inspect() + " }"
 }
 
-// ModuleAccess reads a member of a module, as in `Enum.size`.
-type ModuleAccess struct {
+// Access reads a named member of whatever is on its left, as in `Enum.size`,
+// `config.host` or `rows[0].name`.
+//
+// Left is an arbitrary expression, not an identifier. As a special form over
+// two identifiers, `.` could not chain: `cfg.db.host` had `cfg.db` on its left
+// and was rejected as a module name, and so were `f().a` and `a[0].k`.
+type Access struct {
 	Base
-	Object    *Identifier
-	Parameter *Identifier
+	Left Node
+	Name *Identifier
 }
 
-func (n *ModuleAccess) Inspect() string { return n.Object.Inspect() + "." + n.Parameter.Inspect() }
+func (n *Access) Inspect() string { return n.Left.Inspect() + "." + n.Name.Inspect() }
 
 // Import splices another source file into this scope.
 type Import struct {

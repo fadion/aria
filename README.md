@@ -1018,6 +1018,21 @@ let font_color = Color.hexToRGB(Color.grey)
 
 Because modules are interpreted and cached before-hand, properties and functions have access to each other. In contrast to modules, everything else in Aria is single pass and as such, it will only recognize calls to a module that has already been declared.
 
+A module is an ordinary value, so its name can be bound, passed to a function and returned from one:
+
+```swift
+let C = Color
+println(C.white)
+println(typeof(Color)) // "Module"
+```
+
+And `.` is an operator over expressions rather than a form over two names, so it chains over anything — a member, a call, a subscript:
+
+```swift
+let config = [:db => [:host => "localhost"]]
+println(config.db.host)
+```
+
 ## Imports
 
 Source file imports are a good way of breaking down projects into smaller, easily digestible files. There's no special syntax or rules to imported files. They're included in the caller's scope and treated as if they were originally there. Imports are cached, so in multiple imports, only the first one is actually interpreted.

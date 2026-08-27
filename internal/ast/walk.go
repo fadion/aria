@@ -139,9 +139,9 @@ func Children(n Node) []Node {
 	case *Module:
 		ident(n.Name)
 		block(n.Body)
-	case *ModuleAccess:
-		ident(n.Object)
-		ident(n.Parameter)
+	case *Access:
+		node(n.Left)
+		ident(n.Name)
 
 		// Leaves: Identifier, Integer, Float, String, Atom, Boolean, Nil,
 		// Placeholder, Break, Continue, Import, Bad, IdentifierList.

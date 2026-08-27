@@ -1,0 +1,6 @@
+[:host => "localhost", :port => 5432]
+localhost
+5432
+app
+app
+--- exit: 0

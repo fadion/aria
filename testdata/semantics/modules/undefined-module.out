@@ -1,4 +1,4 @@
-undefined-module.ari:1:9: error: module 'Nope' is not defined
+undefined-module.ari:1:9: error: 'Nope' is not defined
   println(Nope.thing)
           ^^^^
 --- exit: 1

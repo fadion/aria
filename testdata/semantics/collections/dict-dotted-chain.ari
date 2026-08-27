@@ -1,0 +1,10 @@
+// Dotted access into a dictionary used to work exactly one level deep, because
+// the left of `.` had to be a bare identifier.
+let cfg = [:db => [:host => "localhost", :port => 5432], "name" => "app"]
+println(cfg.db)
+println(cfg.db.host)
+println(cfg.db.port)
+
+// An Atom keys as the String of its text, so both spellings reach the entry.
+println(cfg.name)
+println(cfg["name"])

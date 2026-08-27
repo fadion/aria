@@ -1010,3 +1010,47 @@ func TestFloatModuloByZeroFails(t *testing.T) {
 	fails(t, `println(5.0 % 0.0)`, "division by zero")
 	fails(t, `println(0 ** -1)`, "division by zero")
 }
+
+// A module is an ordinary value: bindable, passable, returnable. It used to
+// live only in the interpreter's registry, so the resolver let a bare module
+// name through as "not a binding" and the evaluator then failed on it.
+func TestModuleIsAValue(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`let E = Enum
+println(E.size([1, 2, 3]))`, "3"},
+		{`println(typeof(Enum))`, "Module"},
+		{`let f = func (m) do m.size([1, 2]) end
+println(f(Enum))`, "2"},
+		// String is both a conversion builtin and a module; the module carries
+		// the builtin it shadows, so the one value does both.
+		{`println(String(42))`, "42"},
+		{`println(String.join([1, 2], "-"))`, "1-2"},
+		{`let S = String
+println(S(7))`, "7"},
+	}
+	for _, test := range tests {
+		if got := withStdlib(t, test.src); got != test.want {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+}
+
+// `.` is an operator over expressions, so it chains over calls and subscripts.
+// Each of these used to be a parse error: "cannot be used as a module name".
+func TestAccessChains(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`let cfg = [:db => [:host => "x"]]
+println(cfg.db.host)`, "x"},
+		{`let f = func () do [:a => 1] end
+println(f().a)`, "1"},
+		{`let rows = [[:name => "first"]]
+println(rows[0].name)`, "first"},
+	}
+	for _, test := range tests {
+		if got := output(t, test.src); got != test.want+"\n" {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+
+	fails(t, `println(1 .foo)`, "cannot read '.foo' from Int")
+}

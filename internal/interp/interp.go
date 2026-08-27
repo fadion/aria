@@ -305,8 +305,8 @@ func (i *Interp) eval(n ast.Node, e *env) value.Value {
 	case *ast.Module:
 		i.evalModule(n, e)
 		return value.NilValue
-	case *ast.ModuleAccess:
-		return i.evalModuleAccess(n, e)
+	case *ast.Access:
+		return i.evalAccess(n, e)
 
 	case *ast.Import:
 		return i.evalImport(n, e)

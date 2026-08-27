@@ -214,6 +214,28 @@ have made the set consistent at the cost of keeping an operator whose meaning no
 reading it would guess, and would foreclose a real element-wise ordering later. Length has
 a spelling that says what it is: `Enum.size(a) < Enum.size(b)`.
 
+### A module is a value, and `.` is an operator
+
+Modules used to live outside the value system, in a registry on the interpreter rather
+than in any scope. The resolver let a bare module name through as "not a binding" and the
+evaluator then failed on it, so `let E = Enum` reported `'Enum' is not defined` — with the
+two passes disagreeing about scoping in exactly the place `eval` claims they cannot.
+
+A module is now bound in the scope it is declared in, like anything else. `typeof(Enum)`
+is `Module`, and a module can be bound, passed and returned.
+
+`.` was a special form over two identifiers, which is why it never chained: `cfg.db.host`
+had `cfg.db` on its left and was rejected as a module name, and so were `f().a` and
+`a[0].k`. It is an operator over an arbitrary expression now — evaluate the left side,
+then dispatch on what it is — which *removes* the two-branch special case in
+`evalModuleAccess` rather than adding a feature.
+
+That surfaced a collision the two namespaces had been hiding: `String` is both a
+conversion builtin and a standard library module, and as a value the name has to mean one
+thing. It means both. A module that shadows a builtin of its own name carries it, so
+`String("x")` converts, `String.join(...)` reads a member, and `let S = String` gets a
+value that still does both.
+
 ### Collections are immutable
 
 Every operation on an array or dictionary returns a new value. Nothing is mutated in
@@ -324,7 +346,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 143 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 146 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash
