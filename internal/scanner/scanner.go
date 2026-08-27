@@ -247,6 +247,14 @@ func (s *Scanner) scanOperator(start source.Pos) (token.Token, bool) {
 	case '~':
 		return s.token(token.BitNot, start), true
 	case '?':
+		switch s.ch {
+		case '?':
+			s.advance()
+			return s.token(token.Coalesce, start), true
+		case '.':
+			s.advance()
+			return s.token(token.SafeDot, start), true
+		}
 		return s.token(token.Question, start), true
 	case ',':
 		return s.token(token.Comma, start), true
@@ -310,7 +318,13 @@ func (s *Scanner) scanIdent(start source.Pos) token.Token {
 	}
 	// A trailing ? or ! belongs to the name, but only one and only at the end,
 	// so `a?b` is still one identifier while `a ? b : c` stays a ternary.
-	if s.ch == '?' || s.ch == '!' {
+	//
+	// `?.` is the exception: a `?` followed by a dot is safe navigation, not the
+	// end of a name, so `cfg?.db` reads as cfg and `?.db` rather than as a name
+	// called `cfg?`. That makes `empty?.x` unwritable as a member access on the
+	// result of `empty?` — parenthesise it — which is the side of the ambiguity
+	// worth losing, since the other side is every safe navigation there is.
+	if (s.ch == '?' && s.peek() != '.') || s.ch == '!' {
 		s.advance()
 	}
 

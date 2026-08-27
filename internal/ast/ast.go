@@ -539,9 +539,19 @@ type Access struct {
 	Base
 	Left Node
 	Name *Identifier
+	// Safe is `?.`, which yields nil as soon as a link is nil instead of
+	// failing. Reading a missing key already yields nil, so threading nil
+	// through a chain is an ordinary thing to be doing in Aria.
+	Safe bool
 }
 
-func (n *Access) Inspect() string { return n.Left.Inspect() + "." + n.Name.Inspect() }
+func (n *Access) Inspect() string {
+	dot := "."
+	if n.Safe {
+		dot = "?."
+	}
+	return n.Left.Inspect() + dot + n.Name.Inspect()
+}
 
 // Import splices another source file into this scope.
 type Import struct {

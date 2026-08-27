@@ -253,6 +253,12 @@ func (i *Interp) evalModule(n *ast.Module, e *env) {
 func (i *Interp) evalAccess(n *ast.Access, e *env) value.Value {
 	left := i.eval(n.Left, e)
 
+	// `?.` stops at the first nil link rather than failing, which is what makes
+	// a chain of them worth writing.
+	if n.Safe && left == value.NilValue {
+		return value.NilValue
+	}
+
 	switch v := left.(type) {
 	case *Module:
 		member, found := v.Member(n.Name.Value)
@@ -266,6 +272,11 @@ func (i *Interp) evalAccess(n *ast.Access, e *env) value.Value {
 		// text, so `config.host` finds :host and "host" alike.
 		if member, found := v.Get(value.String(n.Name.Value)); found {
 			return member
+		}
+		if n.Safe {
+			// A missing key is a nil link, and `?.` is how a caller says it
+			// expects one. Subscripting already answers nil for the same read.
+			return value.NilValue
 		}
 		i.fail(n.Name.Span(), "no key '%s' in the dictionary", n.Name.Value)
 	}

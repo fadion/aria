@@ -338,6 +338,8 @@ func (p *Parser) parsePrefix() ast.Node {
 		return p.parseWhile(false)
 	case token.Until:
 		return p.parseWhile(true)
+	case token.Do:
+		return p.parseBlockExpression()
 	case token.For:
 		return p.parseFor()
 	case token.Module:
@@ -366,7 +368,9 @@ func (p *Parser) parseInfix(left ast.Node) ast.Node {
 	case token.LBracket:
 		return p.parseSubscript(left)
 	case token.Dot:
-		return p.parseAccess(left)
+		return p.parseAccess(left, false)
+	case token.SafeDot:
+		return p.parseAccess(left, true)
 	case token.Pipe:
 		return p.parsePipe(left)
 	case token.Arrow:
@@ -890,7 +894,7 @@ func (p *Parser) parseSubscript(left ast.Node) ast.Node {
 // identifier, which is what stopped `.` from chaining; the old parser also
 // called TokenLexeme on it without checking for nil, which is the crash a
 // fuzzer found in under a second.
-func (p *Parser) parseAccess(left ast.Node) ast.Node {
+func (p *Parser) parseAccess(left ast.Node, safe bool) ast.Node {
 	if !p.expectPeek(token.Ident) {
 		return &ast.Bad{Base: ast.Base{Sp: span(left.Span(), p.tok.Span)}, Text: "."}
 	}
@@ -899,6 +903,7 @@ func (p *Parser) parseAccess(left ast.Node) ast.Node {
 		Base: ast.Base{Sp: span(left.Span(), p.tok.Span)},
 		Left: left,
 		Name: &ast.Identifier{Base: ast.Base{Sp: p.tok.Span}, Value: p.text(p.tok)},
+		Safe: safe,
 	}
 }
 
@@ -1092,6 +1097,23 @@ func markDiscarded(nodes []ast.Node) {
 			loop.Discard = i < len(nodes)-1
 		}
 	}
+}
+
+// parseBlockExpression reads `do ... end` in expression position.
+//
+// Everything in Aria is expression-valued except a block, which is the one place
+// the claim was not true. ast.Block and evalBlock already do exactly this; it
+// needed a prefix parse and nothing else.
+func (p *Parser) parseBlockExpression() ast.Node {
+	start := p.tok.Span
+	p.advance()
+
+	block := p.parseBlock(token.End)
+	if !p.at(token.End) {
+		return p.bad(span(start, p.tok.Span), "missing 'end' to close 'do'")
+	}
+	block.Sp = span(start, p.tok.Span)
+	return block
 }
 
 // parseBreak reads `break` or `break N`, where N is how many enclosing loops to

@@ -1,0 +1,25 @@
+// Everything in Aria is expression-valued except a block, which was the one
+// place the claim was not true. `do ... end` yields its last value and has its
+// own scope.
+let x = do
+  let a = 21
+  a * 2
+end
+println(x)
+
+// Its own scope: what it declares does not outlive it.
+let outer = "kept"
+let y = do
+  let outer = "shadowed"
+  outer
+end
+println(y)
+println(outer)
+
+// It nests, and an empty one is nil like any other empty body.
+println(do
+  do
+    "inner"
+  end
+end)
+println(do end)

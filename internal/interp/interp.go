@@ -1080,6 +1080,14 @@ func (i *Interp) evalInfix(n *ast.Infix, e *env) value.Value {
 			return value.True
 		}
 		return value.Of(value.Truthy(i.eval(n.Right, e)))
+	case "??":
+		// nil, not falsy: that is the whole point of having it alongside `||`,
+		// which coerces, so `0 || 5` is true rather than 0. Short-circuits, so
+		// the default is not evaluated when the left side is there.
+		if left := i.eval(n.Left, e); left != value.NilValue {
+			return left
+		}
+		return i.eval(n.Right, e)
 	}
 
 	return i.applyInfix(n.Operator, i.eval(n.Left, e), i.eval(n.Right, e), n.Span())

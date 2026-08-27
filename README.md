@@ -466,6 +466,7 @@ By order of precedence, loosest first:
 
 ```
 ||                    OR
+??                    nil-coalescing
 &&                    AND
 == != < <= > >=       equality and comparison
 |                     bitwise OR
@@ -477,6 +478,23 @@ By order of precedence, loosest first:
 * / %                 multiplication, division, modulo
 **                    power (right associative)
 ! ~ -                 prefix NOT, bitwise NOT, negation
+```
+
+`??` yields its left side unless it is `nil`, and short-circuits. It tests for `nil` and not for truthiness, which is the whole point of having it alongside `||`:
+
+```swift
+let config = [:retries => 0]
+println(config["port"] ?? 8080) // 8080
+println(config[:retries] ?? 3)  // 0, because 0 is not nil
+println(0 || 5)                 // true, which is why || can't do this job
+```
+
+A dot can be written `?.`, which yields `nil` as soon as a link is `nil` rather than failing on the next access:
+
+```swift
+let cfg = [:db => [:host => "localhost"]]
+println(cfg?.db?.host)
+println(cfg?.missing?.host ?? "none")
 ```
 
 Two of these are worth a second look, because they read the other way round in some
@@ -793,6 +811,19 @@ let add = func x, factor
   x + factor(x)
 end
 add(5, (x) -> x * 2)
+```
+
+## Blocks
+
+`do ... end` is an expression. It yields its last value and has a scope of its own, which is how you give a name to something built in a few steps without leaking the steps:
+
+```swift
+let area = do
+  let width = 6
+  let height = 7
+  width * height
+end
+println(area) // 42
 ```
 
 ## Conditionals

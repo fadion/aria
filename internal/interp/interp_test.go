@@ -1633,3 +1633,95 @@ func withStdlibFails(t *testing.T, src, want string) {
 		t.Errorf("%q: failure did not mention %q:\n%v", src, want, err)
 	}
 }
+
+// `??` tests for nil, not for truthiness — that is the whole point of having it
+// alongside `||`, which coerces, so `0 || 5` is true rather than 0.
+func TestNilCoalescing(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`println([:a => 1]["b"] ?? 8080)`, "8080"},
+		{`println([:a => 1][:a] ?? 8080)`, "1"},
+		{`println(0 ?? 5)`, "0"},
+		{`println(0 || 5)`, "true"},
+		{`println("" ?? "fallback")`, ""},
+		{`println(false ?? true)`, "false"},
+		{`println(nil ?? "fallback")`, "fallback"},
+		// Binds tighter than || and looser than &&.
+		{`println(nil ?? false || true)`, "true"},
+	}
+	for _, test := range tests {
+		if got := output(t, test.src); got != test.want+"\n" {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+
+	// It short-circuits: the default is not evaluated when the left side is
+	// there.
+	if got := output(t, `var runs = 0
+let fallback = func () do
+  runs += 1
+  "computed"
+end
+println("present" ?? fallback())
+println(runs)`); got != "present\n0\n" {
+		t.Errorf("got %q", got)
+	}
+}
+
+// `?.` yields nil as soon as a link is nil, instead of failing on the next
+// access.
+func TestSafeNavigation(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`let cfg = [:db => [:host => "x"]]
+println(cfg?.db?.host)`, "x"},
+		{`let cfg = [:db => [:host => "x"]]
+println(cfg?.missing?.host)`, "nil"},
+		{`let cfg = [:db => [:host => "x"]]
+println(cfg?.db?.missing)`, "nil"},
+		{`let cfg = [:db => 1]
+println(cfg?.missing ?? "default")`, "default"},
+	}
+	for _, test := range tests {
+		if got := output(t, test.src); got != test.want+"\n" {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+
+	// A trailing `?` still belongs to a name when no dot follows.
+	if got := withStdlib(t, `println(Enum.empty?([]))`); got != "true" {
+		t.Errorf("got %q", got)
+	}
+
+	// A plain dot still fails on a missing key, which is what `?.` opts out of.
+	fails(t, `let cfg = [:a => 1]
+println(cfg.missing)`, "no key 'missing'")
+}
+
+// `do ... end` is an expression with its own scope: the one place Aria's
+// everything-is-an-expression claim was not true.
+func TestBlockExpression(t *testing.T) {
+	if got := output(t, `let x = do
+  let a = 21
+  a * 2
+end
+println(x)`); got != "42\n" {
+		t.Errorf("got %q", got)
+	}
+
+	// Its own scope: what it declares does not outlive it.
+	fails(t, `let x = do
+  let inner = 1
+  inner
+end
+println(inner)`, "'inner' is not defined")
+
+	// And it shadows rather than reassigns.
+	if got := output(t, `let outer = "kept"
+let y = do
+  let outer = "shadowed"
+  outer
+end
+println(y)
+println(outer)`); got != "shadowed\nkept\n" {
+		t.Errorf("got %q", got)
+	}
+}
