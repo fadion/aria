@@ -31,7 +31,7 @@ end
 
 let config = [
   "name" => "aria",
-  "version" => "0.6.0",
+  "version" => "1.0.0",
   "toy" => true,
   "authors" => ["fadion"],
   "limits" => ["depth" => 100, "timeout" => 3.5],
