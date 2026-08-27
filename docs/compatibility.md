@@ -107,7 +107,7 @@ notice breaking it. Aria can:
 
 - **226 characterization cases** recording exactly what the interpreter prints and the code
   it exits with, run seven times each to catch anything that varies.
-- **140 README code blocks**, executed, because the documentation is where the promise is
+- **141 README code blocks**, executed, because the documentation is where the promise is
   written down and an example that stopped working is a broken promise.
 - **20 examples**, each with a golden.
 
