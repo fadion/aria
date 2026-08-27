@@ -31,7 +31,8 @@ For such a program, 1.x guarantees:
 2. **Semantics.** What the program computes, and what it prints when it prints a value.
 3. **The standard library.** Documented functions keep their names, their parameters and
    what they answer, tagged results included.
-4. **Exit status.** `0` when the program ran to completion. Non-zero when it did not.
+4. **Exit status.** `0` when the program ran to completion, `1` when it did not, and `2`
+   for a usage mistake such as an unknown command or an unknown flag.
 5. **The command line.** `run`, `check`, `repl`, `-e` and `-` keep working and keep meaning
    what they mean.
 
@@ -104,7 +105,7 @@ person at a terminal, not for a script to drive.
 Most projects cannot make a compatibility promise honestly, because they have no way to
 notice breaking it. Aria can:
 
-- **223 characterization cases** recording exactly what the interpreter prints and the code
+- **224 characterization cases** recording exactly what the interpreter prints and the code
   it exits with, run seven times each to catch anything that varies.
 - **140 README code blocks**, executed, because the documentation is where the promise is
   written down and an example that stopped working is a broken promise.

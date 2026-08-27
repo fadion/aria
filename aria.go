@@ -42,7 +42,25 @@ func main() {
 			runSource(source.NewFile("-e", []byte(src)), c.Args())
 			return nil
 		}
+		// An argument left over here is a command that does not exist, and this
+		// is where it lands: setting app.Action makes urfave/cli route unmatched
+		// arguments to it rather than to CommandNotFound, which is why that hook
+		// was dead code and has been removed. Without this, `aria rnu file.ari`
+		// printed the help and exited 0, so a typo in a script read as success.
+		if c.NArg() > 0 {
+			color.Red("Command %q doesn't exist.", c.Args().First())
+			os.Exit(2)
+		}
+		// No arguments at all is a request for help, not a mistake.
 		return cli.ShowAppHelp(c)
+	}
+
+	// A flag that does not exist is the same kind of mistake as a command that
+	// does not exist. By default it printed "Incorrect Usage" and exited 0.
+	app.OnUsageError = func(c *cli.Context, err error, isSubcommand bool) error {
+		color.Red("%s", err)
+		os.Exit(2)
+		return nil
 	}
 
 	app.Commands = []cli.Command{
@@ -63,11 +81,6 @@ func main() {
 			Usage:  "Start the interactive repl",
 			Action: runREPL,
 		},
-	}
-
-	app.CommandNotFound = func(ctx *cli.Context, command string) {
-		fmt.Fprintf(ctx.App.Writer, "Command %q doesn't exist.\n", command)
-		os.Exit(2)
 	}
 
 	if err := app.Run(os.Args); err != nil {

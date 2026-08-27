@@ -1,0 +1,22 @@
+// String.first and String.last answer nil on an empty string, the way
+// Enum.first and Enum.last do on an empty array. They used to declare
+// `-> String`, so the empty case surfaced the interpreter's own return-type
+// check to a caller who had done nothing wrong.
+println(String.first(""))
+println(String.last(""))
+println(Enum.first([]))
+println(Enum.last([]))
+
+// The non-empty case is unchanged, and still counts runes rather than bytes.
+println(String.first("abc"))
+println(String.last("abc"))
+println(String.first("héllo"))
+println(String.last("naïve"))
+
+// Nothing catchable is raised, so a caller can test the answer directly.
+println(String.first("") == nil)
+println(try
+  String.first("")
+rescue e
+  "raised: #{e.message}"
+end)

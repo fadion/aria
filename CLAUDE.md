@@ -56,7 +56,7 @@ go test ./internal/parser/  -run=Fuzz -fuzz=FuzzParse -fuzztime=30s
 
 ## The characterization suite is the arbiter
 
-`testdata/semantics/` holds 223 cases, each a `.ari` file with a `.out` golden recording
+`testdata/semantics/` holds 224 cases, each a `.ari` file with a `.out` golden recording
 exactly what the interpreter prints and what it exits with. Files prefixed with `_` are
 fixtures another case imports, and have no golden of their own.
 
