@@ -1,0 +1,4 @@
+pipe-placeholder-duplicate.ari:3:19: error: a piped call takes at most one '_', which marks where the piped value goes
+  println(1 |> f(_, _))
+                    ^
+--- exit: 1

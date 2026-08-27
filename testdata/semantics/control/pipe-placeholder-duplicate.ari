@@ -1,0 +1,3 @@
+// Two placeholders would leave the second with nothing to receive.
+let f = func (a, b) do a end
+println(1 |> f(_, _))

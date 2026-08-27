@@ -1,0 +1,8 @@
+// The right side of |> had to be a function call, so `4 |> double()` worked and
+// `4 |> double` did not — an empty argument list on something that takes an
+// argument reads as a mistake.
+let double = func (x) do x * 2 end
+println(4 |> double)
+println(4 |> double())
+println("x" |> String.upper)
+println([1, 2, 3] |> Enum.size)
