@@ -1,0 +1,4 @@
+switch-capture-scope.ari:5:9: error: 'n' is not defined
+  println(n)
+          ^
+--- exit: 1

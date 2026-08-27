@@ -1,0 +1,37 @@
+// `for k, v` was the only multi-bind in the language: there was no way to take
+// an array apart by shape.
+let [a, b] = [1, 2]
+println(a)
+println(b)
+
+// `_` is a hole, binding nothing.
+let [_, second] = ["skip", "keep"]
+println(second)
+
+// `...name` takes whatever the fixed elements do not claim, which may be
+// nothing.
+let [head, ...tail] = [1, 2, 3, 4]
+println(head)
+println(tail)
+
+let [only, ...none] = [1]
+println(only)
+println(none)
+
+// Elements after the rest count back from the end.
+let [first, ...middle, last] = [1, 2, 3, 4, 5]
+println(first)
+println(middle)
+println(last)
+
+// Patterns nest.
+let [x, [y, z]] = [1, [2, 3]]
+println(x)
+println(y)
+println(z)
+
+// `var` destructures too, and what it binds is reassignable.
+var [p, q] = [10, 20]
+p = 99
+println(p)
+println(q)

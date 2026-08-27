@@ -223,23 +223,74 @@ func (n *Dictionary) Inspect() string {
 // Bindings
 // ---------------------------------------------------------------------------
 
-// Let binds an immutable name.
-type Let struct {
+// ArrayPattern is `[a, b, ...rest]` on the left of a binding, taking an array
+// apart by shape.
+//
+// Distinct from an Array literal, which is what a case arm uses: in a binding
+// every name is a name being bound, and in a case every value is a value being
+// compared. `let` is what marks binding in both — at the front of the statement
+// here, and on the individual name in a case.
+type ArrayPattern struct {
 	Base
-	Name  *Identifier
-	Value Node
+	Elements []Node
 }
 
-func (n *Let) Inspect() string { return "let " + n.Name.Inspect() + " = " + inspectOr(n.Value, "") }
+func (n *ArrayPattern) Inspect() string { return "[" + inspectAll(n.Elements, ", ") + "]" }
+
+// Rest is `...name` in a pattern, taking whatever elements are left over.
+type Rest struct {
+	Base
+	Name *Identifier
+}
+
+func (n *Rest) Inspect() string { return "..." + inspectOr(n.Name, "") }
+
+// Binder is `let name` inside a case pattern, capturing what matched.
+//
+// A bare identifier in a case is still a reference compared with the control,
+// which is what it has always been. Making an undeclared one bind instead would
+// mean the same arm binds in one file and compares in another, and a typo would
+// become a binding that always matches — `let` says which is meant, using the
+// keyword that already means exactly that.
+type Binder struct {
+	Base
+	Name *Identifier
+}
+
+func (n *Binder) Inspect() string { return "let " + inspectOr(n.Name, "") }
+
+// Let binds an immutable name, or takes a value apart by shape when Pattern is
+// set instead of Name.
+type Let struct {
+	Base
+	Name    *Identifier
+	Pattern *ArrayPattern
+	Value   Node
+}
+
+func (n *Let) Inspect() string {
+	return "let " + bindTarget(n.Name, n.Pattern) + " = " + inspectOr(n.Value, "")
+}
 
 // Var binds a reassignable name.
 type Var struct {
 	Base
-	Name  *Identifier
-	Value Node
+	Name    *Identifier
+	Pattern *ArrayPattern
+	Value   Node
 }
 
-func (n *Var) Inspect() string { return "var " + n.Name.Inspect() + " = " + inspectOr(n.Value, "") }
+func (n *Var) Inspect() string {
+	return "var " + bindTarget(n.Name, n.Pattern) + " = " + inspectOr(n.Value, "")
+}
+
+// bindTarget renders whichever of a binding's two shapes is in use.
+func bindTarget(name *Identifier, pattern *ArrayPattern) string {
+	if pattern != nil {
+		return pattern.Inspect()
+	}
+	return inspectOr(name, "")
+}
 
 // Assign reassigns an existing binding. Name is an Identifier or a Subscript.
 type Assign struct {

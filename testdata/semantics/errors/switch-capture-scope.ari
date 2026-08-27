@@ -1,0 +1,5 @@
+// A capture is in scope for its own arm and nowhere else.
+switch 1 do
+  case let n then println(n)
+end
+println(n)

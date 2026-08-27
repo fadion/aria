@@ -1,0 +1,4 @@
+// A pattern without a `...` requires an exact match: a shape that does not fit
+// is a mistake, not a silent partial bind.
+let [a, b] = [1]
+println(a)
