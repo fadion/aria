@@ -363,7 +363,14 @@ func KeyOf(v Value) (Key, bool) {
 	case String:
 		return Key{T: TString, Str: string(v)}, true
 	case Atom:
-		return Key{T: TAtom, Str: string(v)}, true
+		// An Atom keys as the String of its text, because `:a == "a"` is true.
+		// Equality and keying are separate operations but they cannot
+		// contradict each other: two values that report equal have to be
+		// interchangeable as keys, or `d[:a]` and `d["a"]` reach different
+		// entries in a dictionary whose keys are "equal". Only the spelling
+		// differs, and the dictionary keeps the key value it was given, so a
+		// dictionary written with atoms still prints with atoms.
+		return Key{T: TString, Str: string(v)}, true
 	}
 	return Key{}, false
 }

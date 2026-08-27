@@ -188,6 +188,32 @@ println(["hi"])   // ["hi"]
 
 An empty array prints `[]` and an empty dictionary `[=>]`, so the two are not confusable.
 
+### Equality and keying may not contradict each other
+
+Separate operations, but not independent ones: two values that report equal have to be
+interchangeable as dictionary keys. `Equal` said an `Atom` and the `String` of the same
+text were equal while `KeyOf` tagged them `TAtom` and `TString`, so `d[:a]` and `d["a"]`
+reached different entries in a dictionary whose keys the language claimed were equal.
+
+An `Atom` now keys as the `String` of its text. The other direction — making `:a != "a"`,
+as Elixir does — was available and would also have been coherent, but the README already
+says atoms "can generally be interchanged" and shows a dictionary written with atoms being
+read with a string. Interchangeable is what the language claims, so keying is what moved.
+Only the key is shared; the dictionary stores the key value it was given, so a dictionary
+written with atoms still prints with atoms.
+
+### Collections have no order
+
+`<` and `>` on an `Array` or `Dictionary` compared lengths, and `<=` and `>=` were not
+defined on them at all — four comparison operators meaning two different things on one
+type. The meaning they had is also not the one they read as: `[1, 2, 3] < [9]` was false,
+because it asked whether 3 < 1.
+
+All four are now undefined on collections. Defining the missing two the same way would
+have made the set consistent at the cost of keeping an operator whose meaning nobody
+reading it would guess, and would foreclose a real element-wise ordering later. Length has
+a spelling that says what it is: `Enum.size(a) < Enum.size(b)`.
+
 ### Collections are immutable
 
 Every operation on an array or dictionary returns a new value. Nothing is mutated in
@@ -273,7 +299,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 137 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 139 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash

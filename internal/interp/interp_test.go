@@ -940,3 +940,23 @@ func TestStdlibStringJoinRendersNonStrings(t *testing.T) {
 		t.Errorf("got %q, want %q", got, "1,2,3")
 	}
 }
+
+// `<` and `>` on collections compared lengths while `<=` and `>=` were not
+// defined at all — four operators meaning two things on one type, and the one
+// they meant is not what they read as.
+func TestCollectionsHaveNoOrder(t *testing.T) {
+	for _, op := range []string{"<", "<=", ">", ">="} {
+		fails(t, `println([1, 2, 3] `+op+` [9])`, "Arrays have no order")
+		fails(t, `println([:a => 1] `+op+` [:b => 2])`, "Dictionaries have no order")
+	}
+}
+
+// An Atom keys as the String of its text, because the two compare equal.
+func TestAtomAndStringAreTheSameKey(t *testing.T) {
+	if got := output(t, `let d = [:a => 1]
+println(d["a"])
+println(d[:a])
+println(d)`); got != "1\n1\n[:a => 1]\n" {
+		t.Errorf("got %q", got)
+	}
+}

@@ -173,6 +173,8 @@ let code = "if(name == \"ben\"){\n\tprint(10)\n}"
 
 Atoms, or symbols as some languages refer to them, are constants where the name is their value. Although they behave a lot like strings and can generally be interchanged, internally they are treated as their own type. As the language progresses, Atoms will be put to better use.
 
+Interchangeable means interchangeable: `:a == "a"` is true, and the two are the same dictionary key, so a dictionary written with atoms can be read with strings and the other way round. It keeps the spelling it was given.
+
 ```swift
 let eq = :dog == :cat
 let arr = ["dog", :cat, :mouse]
@@ -457,17 +459,22 @@ Addition can be used to concatenate Strings or combine Arrays and Dictionaries:
 ["a" => 1, "b" => 2] + ["c" => 3]
 ```
 
-Comparison operators can compare Integers and Float by exact value, Strings, Arrays and Dictionaries by length:
+Comparison operators compare Integers and Floats by value, and Strings lexicographically:
 
 ```swift
 5 > 2
 3.2 <= 4.5
 "one" < "three"
-[1, 2] > [5]
-["a" => 1] < ["b" => 2, "c" => 3]
 ```
 
-Equality and inequality can be used for most data types. Integers, Floats and Booleans will be compared by exact value, Strings by length, Arrays by the value and position of the elements, and Dictionaries by the the combination of key and value.
+Arrays and Dictionaries have no order, so `<`, `<=`, `>` and `>=` are not defined on them. To compare sizes, say so:
+
+```swift
+Enum.size([1, 2]) > Enum.size([5])
+Dict.size(["a" => 1]) < Dict.size(["b" => 2, "c" => 3])
+```
+
+Equality and inequality can be used for most data types. Integers, Floats and Booleans will be compared by exact value, Strings by their text, Arrays by the value and position of the elements, and Dictionaries by the the combination of key and value.
 
 ```swift
 1 != 4
