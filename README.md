@@ -90,7 +90,7 @@ shelf
 * [Files, Arguments, Environment and Time](#files-arguments-environment-and-time)
 * [Standard Library](#standard-library)
 
-_Working on the interpreter itself? [docs/architecture.md](docs/architecture.md) covers how it's put together and why the design decisions went the way they did. [docs/compatibility.md](docs/compatibility.md) says what a version number promises and what it doesn't._
+_Working on the interpreter itself? [docs/architecture.md](docs/architecture.md) covers how it's put together and why the design decisions went the way they did. [docs/compatibility.md](docs/compatibility.md) says what a version number promises and what it doesn't, [CHANGELOG.md](CHANGELOG.md) what changed per release, and [SECURITY.md](SECURITY.md) what is and isn't a vulnerability in a language with no sandbox._
 
 ## Usage
 

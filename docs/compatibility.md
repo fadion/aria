@@ -9,7 +9,7 @@ because each of them has an edge worth naming before somebody finds it the hard 
 
 ## Version numbers
 
-Releases are tagged `vX.Y.Z`. The `v` is not decoration — Go's module proxy only recognises
+Releases are tagged `vX.Y.Z`. The `v` is not decoration: Go's module proxy only recognises
 a version tagged that way.
 
 | | |
@@ -64,7 +64,7 @@ that changes when the failure arrives and what came out on stdout first.
 Making something legal that used to be rejected is additive, and lands in a minor. Nothing
 that worked stops working, because the thing in question did not work.
 
-That covers every syntax decision currently deferred — nullable and union type
+That covers every syntax decision currently deferred. Nullable and union type
 annotations, record and dictionary destructuring by name, and named call arguments are each
 a parse or resolve error today, so none of them needs a major to arrive.
 
@@ -86,8 +86,8 @@ diagnostic rather than a stack overflow. The exact numbers may move, in either d
 
 ### Anything under `internal/`
 
-Go enforces this — those packages cannot be imported from outside the module — which is
-also the point. The scanner, parser, resolver, evaluator and value types are implementation.
+Go enforces this, since those packages cannot be imported from outside the module, and
+that is also the point. The scanner, parser, resolver, evaluator and value types are implementation.
 There is no Go API promise, and the pkg.go.dev listing is not one.
 
 ### Performance
