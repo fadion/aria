@@ -4,21 +4,15 @@ on:
   # Only master on push. A branch with a PR open is covered by pull_request,
   # and listening for both ran every one of them twice.
   #
-  # paths-ignore lists the files nothing here reads. README.md is deliberately
-  # not among them: the language job runs every one of its code blocks through
-  # the interpreter, so it is executable and a change to it can fail CI.
-  # Anchors would say this once, but Actions does not expand them.
+  # No paths filter on either trigger, deliberately. A workflow that a path
+  # filter stops from triggering reports no check run at all, and a required
+  # status check waits for it forever -- so the moment master requires these
+  # checks, a docs-only pull request becomes unmergeable. A job skipped by an
+  # `if` does report, as "skipped", which satisfies the requirement. So the
+  # filtering moved from the trigger into the jobs, below.
   push:
     branches: [master]
-    paths-ignore:
-      - 'docs/**'
-      - 'CLAUDE.md'
-      - 'LICENSE'
   pull_request:
-    paths-ignore:
-      - 'docs/**'
-      - 'CLAUDE.md'
-      - 'LICENSE'
   workflow_dispatch:
 
 permissions:
@@ -30,8 +24,58 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Which of the jobs below are worth running. A change confined to files
+  # nothing here reads should not pay for six jobs across three platforms, and
+  # this is where that is decided now that the triggers no longer decide it.
+  #
+  # README.md is deliberately not in the list: the language job runs every one
+  # of its code blocks through the interpreter, so it is executable and a change
+  # to it can fail CI. Same for examples/.
+  #
+  # A push to master always runs everything. It is the check after the merge,
+  # it is rare, and making it conditional would only add a way to be wrong.
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      # The API rather than a checkout and a diff: no clone, no fetch-depth to
+      # get wrong, and no third-party action in the supply chain for something
+      # this small.
+      - id: filter
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            echo "not a pull request, running everything"
+            exit 0
+          fi
+
+          files="$(gh api "repos/$GH_REPO/pulls/$NUMBER/files" --paginate --jq '.[].filename')"
+          echo "changed:"
+          echo "$files" | sed 's/^/  /'
+
+          # Anything outside the ignorable set means run everything. Written as
+          # "is there a file that is not ignorable" rather than the inverse, so
+          # an unfamiliar path is treated as code and the jobs run.
+          if echo "$files" | grep -qvE '^(docs/|CLAUDE\.md$|LICENSE$)'; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "code=false" >> "$GITHUB_OUTPUT"
+            echo "documentation only, skipping the rest"
+          fi
+
   # The Go side, on every platform we ship a binary for.
   test:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     name: test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
@@ -73,6 +117,8 @@ jobs:
   # service is retired -- its badge now renders the word "retired" -- and its
   # own site points at golangci-lint instead.
   lint:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     name: lint
     runs-on: ubuntu-latest
     steps:
@@ -89,9 +135,23 @@ jobs:
         with:
           version: v2.13.1
 
+      # Known vulnerabilities in the dependencies, and in the toolchain itself.
+      # Unpinned on purpose, unlike golangci-lint above: the reason to pin a
+      # linter is that a new check turning a branch red says nothing about this
+      # repo, and the reverse is true here -- a new finding is exactly a fact
+      # about this repo that nobody knew yesterday. govulncheck also reports
+      # only what is actually reachable from this code, so a vulnerability in an
+      # unused corner of a dependency does not stop the build.
+      - name: govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
   # The language side. Ubuntu only: both scripts need bash 4 (mapfile) and GNU
   # coreutils (timeout), and the macOS runner ships bash 3.2 with neither.
   language:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     name: language
     runs-on: ubuntu-latest
     steps:
@@ -117,6 +177,8 @@ jobs:
 
   # Cheap, and both targets have found real bugs. 30s each, as in CLAUDE.md.
   fuzz:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     name: fuzz
     runs-on: ubuntu-latest
     steps:
