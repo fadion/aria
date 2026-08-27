@@ -81,6 +81,26 @@ To run an Aria source file, give it a path relative to the current directory.
 aria run path/to/file.ari
 ```
 
+A `-` reads from standard input, so aria can sit in a pipeline:
+
+```
+cat path/to/file.ari | aria run -
+```
+
+### Run a one-liner
+
+```
+aria -e 'println(1 + 2)'
+```
+
+### Check without running
+
+`check` takes a file through the whole pipeline except evaluation — parse, then resolve — and exits non-zero if anything is wrong. That is what CI or an editor wants, and it catches everything the resolver knows: undefined names, immutable rebinding, unknown type hints, mistyped module members.
+
+```
+aria check path/to/file.ari
+```
+
 ### REPL
 
 As any serious language, Aria provides a REPL too:
@@ -88,6 +108,10 @@ As any serious language, Aria provides a REPL too:
 ```
 aria repl
 ```
+
+It reads whole constructs, not lines, so a multi-line `func`, `module`, `if` or `for` can be typed straight in — the prompt changes to `..` while one is still open, and an empty line abandons it. A statement that produced nothing prints nothing.
+
+`:help` lists the commands: `:load` evaluates a file into the session, `:vars` and `:modules` show what is in scope, and `:quit` leaves.
 
 ## Variables
 

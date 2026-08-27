@@ -236,6 +236,13 @@ func (p *Parser) errorAt(span source.Span, format string, args ...any) {
 		return
 	}
 	p.panicking = true
+	// Reporting while sitting at end of input means the parser ran out, not
+	// that it found something wrong: a construct is still open and more source
+	// could close it. That is what lets a REPL tell "keep typing" from "wrong"
+	// without matching on the message text.
+	if p.at(token.EOF) {
+		p.diags.MarkIncomplete()
+	}
 	p.diags.Errorf(span, format, args...)
 }
 

@@ -84,9 +84,7 @@ const (
 	Dot        // .
 	Underscore // _
 
-	// Keywords. keywordStart and keywordEnd bracket this run so IsKeyword is
-	// a range check; keep every keyword between them.
-	keywordStart
+	// Keywords.
 	Let
 	Var
 	Func
@@ -109,7 +107,6 @@ const (
 	Continue
 	Module
 	Import
-	keywordEnd
 )
 
 // names is indexed by Kind. Entries for operators and delimiters are the
@@ -208,9 +205,6 @@ func (k Kind) String() string {
 	}
 	return "unknown token"
 }
-
-// IsKeyword reports whether k is a reserved word.
-func (k Kind) IsKeyword() bool { return k > keywordStart && k < keywordEnd }
 
 // keywords maps reserved words to their kind. It is written once here and only
 // ever read afterwards, so it is safe to share across concurrent scanners —

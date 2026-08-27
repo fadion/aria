@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	"github.com/fadion/aria/internal/ast"
@@ -57,11 +58,14 @@ func Run(file *source.File, opts Options) bool {
 		}
 	}
 
+	// Globals first, then modules: predeclaring a name replaces its binding, and
+	// a module's binding is the one its member list is attached to. A module IS
+	// a global, so the other order silently dropped the member checking.
 	r := resolver.New(file, bag)
-	i.predeclareModules(r)
 	for name := range i.globals.vars {
 		r.Predeclare(name)
 	}
+	i.predeclareModules(r)
 	info := r.Resolve(prog)
 	if bag.HasErrors() {
 		fmt.Fprint(opts.Err, bag.Render())
@@ -76,6 +80,44 @@ func Run(file *source.File, opts Options) bool {
 			return false
 		}
 		i.Report(re)
+		return false
+	}
+	return true
+}
+
+// Check compiles file without evaluating it, reporting into Options.Err.
+//
+// It is the same pipeline Run uses, stopped after resolution — which is what an
+// editor or a CI step wants, and what Run already did internally before
+// evaluating anything.
+func Check(file *source.File, opts Options) bool {
+	if opts.Err == nil {
+		panic("interp.Check: Err is required")
+	}
+
+	bag := diag.New(file)
+	prog := parser.New(file, bag).Parse()
+	if bag.HasErrors() {
+		fmt.Fprint(opts.Err, bag.Render())
+		return false
+	}
+
+	// The standard library has to be loaded, not just named: resolution checks
+	// module members, and those are only known once it has been evaluated.
+	i := New(file, nil)
+	i.Out, i.Err, i.In = io.Discard, opts.Err, strings.NewReader("")
+	if !opts.NoStdlib && !i.loadStdlib(opts.Err) {
+		return false
+	}
+
+	r := resolver.New(file, bag)
+	for name := range i.globals.vars {
+		r.Predeclare(name)
+	}
+	i.predeclareModules(r)
+	r.Resolve(prog)
+	if bag.HasErrors() {
+		fmt.Fprint(opts.Err, bag.Render())
 		return false
 	}
 	return true
@@ -172,10 +214,10 @@ func Eval(name, src string, opts Options) (value.Value, error) {
 	}
 
 	r := resolver.New(file, bag)
-	i.predeclareModules(r)
 	for n := range i.globals.vars {
 		r.Predeclare(n)
 	}
+	i.predeclareModules(r)
 	info := r.Resolve(prog)
 	if bag.HasErrors() {
 		return nil, fmt.Errorf("%s", bag.Render())
@@ -210,6 +252,27 @@ type Session struct {
 	line     int
 }
 
+// Declared lists the names earlier fragments introduced, in sorted order, so a
+// REPL can show what is in scope.
+func (s *Session) Declared() []string {
+	out := make([]string, 0, len(s.declared))
+	for name := range s.declared {
+		out = append(out, name)
+	}
+	sort.Strings(out)
+	return out
+}
+
+// Modules lists the modules in scope, standard library included.
+func (s *Session) Modules() []string {
+	out := make([]string, 0, len(s.interp.modules))
+	for name := range s.interp.modules {
+		out = append(out, name)
+	}
+	sort.Strings(out)
+	return out
+}
+
 // NewSession starts a session with the standard library loaded.
 func NewSession(opts Options) (*Session, error) {
 	file := source.NewFile("<repl>", nil)
@@ -235,8 +298,17 @@ func NewSession(opts Options) (*Session, error) {
 	return &Session{interp: i, declared: map[string]bool{}}, nil
 }
 
-// Eval runs one line. It returns the line's value, or an error describing why it
+// ErrIncomplete says the source given to Session.Eval opened a construct it did
+// not close, so more input could complete it. A REPL buffers on this rather than
+// reporting it.
+var ErrIncomplete = errors.New("incomplete input")
+
+// Eval runs one fragment. It returns its value, or an error describing why it
 // could not run — already formatted with a caret, as a file would be.
+//
+// A REPL that reads one line at a time cannot enter a multi-line func, module,
+// if or for at all, which rules out most of what a REPL is for. Eval takes a
+// whole fragment and says ErrIncomplete when more input could complete it.
 func (s *Session) Eval(src string) (value.Value, error) {
 	s.line++
 	file := source.NewFile(fmt.Sprintf("<repl:%d>", s.line), []byte(src))
@@ -244,6 +316,12 @@ func (s *Session) Eval(src string) (value.Value, error) {
 
 	prog := parser.New(file, bag).Parse()
 	if bag.HasErrors() {
+		if bag.Incomplete() {
+			// The fragment opened something it did not close. A REPL reads this
+			// as "keep typing" rather than as a mistake.
+			s.line--
+			return nil, ErrIncomplete
+		}
 		return nil, fmt.Errorf("%s", strings.TrimRight(bag.Render(), "\n"))
 	}
 
