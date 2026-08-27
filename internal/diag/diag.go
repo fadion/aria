@@ -54,6 +54,11 @@ type Bag struct {
 	list   []Diagnostic
 	max    int
 	capped bool
+	// incomplete records that something ran off the end of the input with a
+	// construct still open. It is what lets a REPL tell "keep typing" from
+	// "wrong", which is not something the message text should have to be
+	// matched against.
+	incomplete bool
 }
 
 // New returns a Bag for file, keeping at most DefaultMax diagnostics.
@@ -89,6 +94,13 @@ func (b *Bag) add(sev Severity, span source.Span, format string, args ...any) {
 		Message:  fmt.Sprintf(format, args...),
 	})
 }
+
+// MarkIncomplete records that the input ended with a construct still open.
+func (b *Bag) MarkIncomplete() { b.incomplete = true }
+
+// Incomplete reports whether more input could make this parse. It stays false
+// once anything else has gone wrong, since more input cannot fix that.
+func (b *Bag) Incomplete() bool { return b.incomplete && b.Len() == 1 }
 
 // HasErrors reports whether any diagnostic is an error.
 func (b *Bag) HasErrors() bool {

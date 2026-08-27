@@ -536,6 +536,9 @@ func (s *Scanner) scanRawString(start source.Pos) token.Token {
 	for {
 		switch s.ch {
 		case eof:
+			// A raw string spans lines, so running out of input with one open
+			// means more input could close it.
+			s.diags.MarkIncomplete()
 			s.diags.Errorf(source.Span{Start: start, End: s.off}, "unterminated raw string")
 			return s.token(token.Invalid, start)
 		case '`':
@@ -564,6 +567,7 @@ func (s *Scanner) scanBlockComment(start source.Pos) (token.Token, bool) {
 	for {
 		switch s.ch {
 		case eof:
+			s.diags.MarkIncomplete()
 			s.diags.Errorf(source.Span{Start: start, End: s.off}, "unterminated block comment")
 			return s.token(token.Invalid, start), true
 		case '*':

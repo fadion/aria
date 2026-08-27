@@ -634,6 +634,35 @@ compared case by case. With it unset the runner uses a binary in the repo root i
 one, and otherwise builds a throwaway — so the suite runs from a clean checkout with no
 setup, and leaves nothing behind.
 
+## The tools
+
+`run`, `check`, `repl`, and `-e` for a one-liner. `run -` reads standard input.
+
+`check` is the pipeline stopped after resolution, which is what `Run` already did internally
+before evaluating anything. It catches everything the resolver knows — undefined names,
+immutable rebinding, unknown type hints, mistyped module members — without the program
+having any effect, which is what CI or an editor integration wants.
+
+**The REPL reads constructs, not lines.** A session that takes one line at a time cannot
+accept a multi-line `func`, `module`, `if` or `for` at all, which rules out most of what a
+REPL is for. `Session.Eval` takes a whole fragment and answers `ErrIncomplete` when more
+input could complete it, so the REPL buffers until it parses.
+
+Incompleteness is a flag on the `diag.Bag`, not a string match on the message. The parser
+sets it when it reports its first diagnostic while sitting at end of input: that means it
+ran out of source with a construct still open, rather than that it found something wrong.
+An unterminated raw string and an unterminated block comment set it from the scanner, since
+both may span lines; an unterminated `"` string does not, since it may not.
+
+**Nothing prints for a statement that produced nothing.** Half a session used to be `nil`
+from `println` calls.
+
+**There is no `fmt`.** A formatter is a separate project rather than a missing subcommand:
+it needs a decision about every layout question in the language, and where a line may break
+was only settled above. `scanner.ScanComments` stays, because the fuzzer runs the scanner in
+both modes and so the mode is covered code rather than speculative code. `token.IsKeyword`
+went, because nothing called it and nothing covered it.
+
 ## Testing
 
 - Unit tests per package.
