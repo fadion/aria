@@ -965,15 +965,15 @@ println(d)`); got != "1\n1\n[:a => 1]\n" {
 // signed integer with no unsigned counterpart, so a program has no way to
 // observe or intend a wrap.
 func TestIntArithmeticFailsOnOverflow(t *testing.T) {
-	const max = "9223372036854775807"
-	const min = "-9223372036854775807 - 1"
+	const intMax = "9223372036854775807"
+	const intMin = "-9223372036854775807 - 1"
 
 	for _, src := range []string{
-		`println(` + max + ` + 1)`,
-		`println(` + max + ` * 2)`,
-		`println((` + min + `) - 1)`,
-		`println(-(` + min + `))`,
-		`println((` + min + `) / -1)`,
+		`println(` + intMax + ` + 1)`,
+		`println(` + intMax + ` * 2)`,
+		`println((` + intMin + `) - 1)`,
+		`println(-(` + intMin + `))`,
+		`println((` + intMin + `) / -1)`,
 		`println(3 ** 40)`,
 		`println(2 ** 63)`,
 		`println(1 << 63)`,
@@ -994,7 +994,7 @@ func TestIntArithmeticFailsOnOverflow(t *testing.T) {
 		{`println(2 ** -1)`, "0"},
 		{`println(1 ** -3)`, "1"},
 		{`println((-1) ** -3)`, "-1"},
-		{`println((` + min + `) % -1)`, "0"},
+		{`println((` + intMin + `) % -1)`, "0"},
 		{`println(1 << 62)`, "4611686018427387904"},
 	}
 	for _, test := range tests {

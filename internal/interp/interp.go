@@ -1104,20 +1104,24 @@ func mulInt(a, b int64) (int64, bool) {
 // powInt is exponentiation by squaring, exact within int64. exp must not be
 // negative; intOp handles that case before calling.
 func powInt(base, exp int64) (int64, bool) {
-	result, b, ok := int64(1), base, true
+	result, b := int64(1), base
 	for exp > 0 {
 		if exp&1 == 1 {
-			if result, ok = mulInt(result, b); !ok {
+			r, ok := mulInt(result, b)
+			if !ok {
 				return 0, false
 			}
+			result = r
 		}
 		exp >>= 1
 		if exp == 0 {
 			break // the last squaring is never used, and can overflow
 		}
-		if b, ok = mulInt(b, b); !ok {
+		sq, ok := mulInt(b, b)
+		if !ok {
 			return 0, false
 		}
+		b = sq
 	}
 	return result, true
 }
