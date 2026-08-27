@@ -1,0 +1,37 @@
+// A switch could match an array's shape but not bind what it matched, so every
+// pattern match was followed by manual indexing.
+//
+// `let name` captures. A bare identifier in a case is still a reference compared
+// with the control, which is what it has always been: making an undeclared one
+// bind instead would mean the same arm binds in one file and compares in
+// another, and a typo would become a binding that always matches.
+let describe = func (result) do
+  switch result
+  case [:ok, let value] then "ok: #{value}"
+  case [:error, let message] then "error: #{message}"
+  default then "not a result"
+  end
+end
+println(describe([:ok, 42]))
+println(describe([:error, "boom"]))
+println(describe(7))
+
+// A capture is in scope for the guard too, since the guard runs only once the
+// value has matched.
+println(switch 7 do
+  case let n when n > 5 then "big #{n}"
+  case let n then "small #{n}"
+end)
+
+// A bare name is still a comparison, not a capture.
+let expected = 3
+println(switch 3 do
+  case expected then "matched the variable"
+  default then "no"
+end)
+
+// Captures nest, and live only in their own arm.
+println(switch [:pair, [1, 2]] do
+  case [:pair, [let x, let y]] then x + y
+  default then 0
+end)

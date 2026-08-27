@@ -865,6 +865,36 @@ let add = func (
 end
 ```
 
+## Destructuring
+
+An array can be taken apart by shape in a `let` or a `var`. `_` is a hole, `...name` takes the rest, and patterns nest:
+
+```swift
+let [a, b] = [1, 2]
+let [_, second] = ["skip", "keep"]
+let [head, ...tail] = [1, 2, 3, 4]
+let [first, ...middle, last] = [1, 2, 3, 4, 5]
+let [x, [y, z]] = [1, [2, 3]]
+println(middle) // [2, 3, 4]
+```
+
+Without a `...`, the shape has to match exactly — a pattern that doesn't fit is an error rather than a partial bind.
+
+In a `switch` arm, `let name` captures what matched:
+
+```swift
+let describe = func (result)
+  switch result
+  case [:ok, let value] then "ok: #{value}"
+  case [:error, let message] then "error: #{message}"
+  default then "not a result"
+  end
+end
+println(describe([:ok, 42]))
+```
+
+A bare identifier in a case is still a reference compared against the control, as it always was. `let` is what says "bind this", the same way it does at the front of a statement.
+
 ## Blocks
 
 `do ... end` is an expression. It yields its last value and has a scope of its own, which is how you give a name to something built in a few steps without leaking the steps:

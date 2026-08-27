@@ -270,10 +270,18 @@ func (i *Interp) eval(n ast.Node, e *env) value.Value {
 
 	case *ast.Let:
 		v := i.eval(n.Value, e)
+		if n.Pattern != nil {
+			i.destructure(n.Pattern, v, e, n.Span())
+			return v
+		}
 		e.define(n.Name.Value, v)
 		return v
 	case *ast.Var:
 		v := i.eval(n.Value, e)
+		if n.Pattern != nil {
+			i.destructure(n.Pattern, v, e, n.Span())
+			return v
+		}
 		e.define(n.Name.Value, v)
 		return v
 	case *ast.Assign:
@@ -719,8 +727,12 @@ func (i *Interp) evalSwitch(n *ast.Switch, e *env) value.Value {
 	}
 
 	for _, c := range n.Cases {
-		if i.caseMatches(c, control, e) {
-			return i.evalBlock(c.Body, newEnv(e))
+		// An arm's captures are bound into a scope of its own, which the guard
+		// and the body then share. Matching writes into it as it goes, so a
+		// failed arm leaves nothing behind.
+		arm := newEnv(e)
+		if i.caseMatches(c, control, arm) {
+			return i.evalBlock(c.Body, arm)
 		}
 	}
 	if n.Default != nil {
@@ -762,6 +774,11 @@ func (i *Interp) caseValueMatches(el ast.Node, control value.Value, e *env) bool
 		// A bare `_` matches anything, which is `default` said in an arm.
 		return true
 
+	case *ast.Binder:
+		// `let name` captures whatever is here, matching anything.
+		e.define(el.Name.Value, control)
+		return true
+
 	case *ast.TypeCase:
 		if el.Name.Value == value.Any {
 			return true
@@ -777,10 +794,7 @@ func (i *Interp) caseValueMatches(el ast.Node, control value.Value, e *env) bool
 			return false
 		}
 		for idx, item := range el.List.Elements {
-			if _, wild := item.(*ast.Placeholder); wild {
-				continue
-			}
-			if !value.Equal(i.eval(item, e), arr.At(idx)) {
+			if !i.caseValueMatches(item, arr.At(idx), e) {
 				return false
 			}
 		}
@@ -1538,3 +1552,58 @@ func (i *Interp) Report(err *Error) {
 
 // stdin returns a buffered reader over the configured input.
 func (i *Interp) stdin() *bufio.Reader { return bufio.NewReader(i.In) }
+
+// destructure binds every name in a pattern from v, or fails saying why.
+//
+// A pattern without a `...` element requires an exact match: a shape that does
+// not fit is a mistake, not a silent partial bind. With one, everything the
+// fixed elements do not claim goes to the rest, which may be empty.
+func (i *Interp) destructure(pattern *ast.ArrayPattern, v value.Value, e *env, span source.Span) {
+	arr, ok := v.(*value.Array)
+	if !ok {
+		i.fail(span, "cannot destructure %s: a pattern takes an Array apart", v.Type())
+	}
+
+	restAt := -1
+	for idx, el := range pattern.Elements {
+		if _, isRest := el.(*ast.Rest); isRest {
+			restAt = idx
+			break
+		}
+	}
+
+	fixed := len(pattern.Elements)
+	if restAt >= 0 {
+		fixed--
+	}
+	switch {
+	case restAt < 0 && arr.Len() != fixed:
+		i.fail(span, "cannot destructure: the pattern has %d element(s), the Array has %d",
+			fixed, arr.Len())
+	case restAt >= 0 && arr.Len() < fixed:
+		i.fail(span, "cannot destructure: the pattern needs at least %d element(s), the Array has %d",
+			fixed, arr.Len())
+	}
+
+	// Elements after the rest count back from the end, so `[a, ...mid, z]`
+	// works whichever way the array is long.
+	after := len(pattern.Elements) - restAt - 1
+
+	for idx, el := range pattern.Elements {
+		at := idx
+		if restAt >= 0 && idx > restAt {
+			at = arr.Len() - (len(pattern.Elements) - idx)
+		}
+
+		switch el := el.(type) {
+		case *ast.Identifier:
+			e.define(el.Value, arr.At(at))
+		case *ast.Placeholder:
+			// A hole, binding nothing.
+		case *ast.ArrayPattern:
+			i.destructure(el, arr.At(at), e, span)
+		case *ast.Rest:
+			e.define(el.Name.Value, value.NewArray(append([]value.Value{}, arr.Elems()[idx:arr.Len()-after]...)))
+		}
+	}
+}

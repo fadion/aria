@@ -68,9 +68,15 @@ func Children(n Node) []Node {
 
 	case *Let:
 		ident(n.Name)
+		if n.Pattern != nil {
+			out = append(out, n.Pattern)
+		}
 		node(n.Value)
 	case *Var:
 		ident(n.Name)
+		if n.Pattern != nil {
+			out = append(out, n.Pattern)
+		}
 		node(n.Value)
 	case *Assign:
 		node(n.Name)
@@ -111,6 +117,15 @@ func Children(n Node) []Node {
 		node(n.Guard)
 		block(n.Body)
 	case *TypeCase:
+		ident(n.Name)
+
+	case *ArrayPattern:
+		for _, el := range n.Elements {
+			node(el)
+		}
+	case *Rest:
+		ident(n.Name)
+	case *Binder:
 		ident(n.Name)
 	case *For:
 		if n.Arguments != nil {

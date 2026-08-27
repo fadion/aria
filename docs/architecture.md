@@ -502,6 +502,35 @@ spends a section on. A count needs no new token, where a label would; it reads p
 two, but two is the case that comes up. The resolver counts the loops a `break` is inside,
 so `break 3` inside two is a diagnostic rather than an unwind out of the enclosing function.
 
+## `let` marks binding, everywhere
+
+`for k, v` was the only multi-bind in the language: there was no way to take an array apart
+by shape, in a binding or in a pattern.
+
+`let [a, b] = pair` destructures, with `_` as a hole, `...name` for the rest, and nesting to
+any depth. Elements after the rest count back from the end, so `[first, ...middle, last]`
+works whichever way the array is long. Without a `...`, the shape has to match exactly: a
+pattern that does not fit is a mistake, not a silent partial bind.
+
+In a `switch` arm, `let name` captures what matched. That is the question the old design
+sidestepped — in `case [:ok, value]`, is `value` a binding or a reference? The rule is that
+a bare identifier is still a reference compared with the control, which is what it has
+always been, and `let` says the other thing, using the keyword that already means exactly
+that.
+
+The alternative — a bare undeclared identifier binds — was available and is what Elixir
+does, but it makes the meaning of an arm depend on what happens to be in scope: the same
+arm binds in one file and compares in another, and a typo silently becomes a binding that
+matches everything. `let` at the front of a binding statement and `let` on a name in a case
+are then the same rule said twice, rather than two rules.
+
+A capture is bound into a scope belonging to its arm, which the guard and the body share.
+Matching writes into it as it goes, so an arm that fails to match leaves nothing behind.
+
+**Dictionary destructuring is deliberately not here.** It needs a spelling for binding by
+key — `let [:host => h] = cfg` is the obvious candidate — and that is a second syntax
+decision worth making with a second use for it, rather than guessed at alongside the first.
+
 ## A case list is alternatives; a pattern is an array literal
 
 `case 1, 2` used to mean "1 or 2" for a scalar control and "the array `[1, 2]`" for an
@@ -634,7 +663,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 193 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 198 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash

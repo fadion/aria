@@ -1847,3 +1847,68 @@ func TestSwitchRangeCases(t *testing.T) {
 		}
 	}
 }
+
+// `for k, v` was the only multi-bind in the language: there was no way to take
+// an array apart by shape.
+func TestDestructuring(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{"let [a, b] = [1, 2]\nprintln(a)", "1"},
+		{"let [a, b] = [1, 2]\nprintln(b)", "2"},
+		{`let [_, second] = ["skip", "keep"]` + "\nprintln(second)", "keep"},
+		{"let [head, ...tail] = [1, 2, 3]\nprintln(tail)", "[2, 3]"},
+		{"let [only, ...none] = [1]\nprintln(none)", "[]"},
+		// Elements after the rest count back from the end.
+		{"let [first, ...middle, last] = [1, 2, 3, 4, 5]\nprintln(middle)", "[2, 3, 4]"},
+		{"let [first, ...middle, last] = [1, 2, 3, 4, 5]\nprintln(last)", "5"},
+		// Patterns nest.
+		{"let [x, [y, z]] = [1, [2, 3]]\nprintln(y + z)", "5"},
+		// `var` destructures too, and what it binds is reassignable.
+		{"var [p, q] = [10, 20]\np = 99\nprintln(p)", "99"},
+	}
+	for _, test := range tests {
+		if got := output(t, test.src); got != test.want+"\n" {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+
+	// A shape that does not fit is a mistake, not a silent partial bind.
+	fails(t, "let [a, b] = [1]\nprintln(a)", "the pattern has 2 element(s), the Array has 1")
+	fails(t, "let [a, b] = [1, 2, 3]\nprintln(a)", "the pattern has 2 element(s), the Array has 3")
+	fails(t, "let [a, ...r] = []\nprintln(a)", "needs at least 1 element(s)")
+	fails(t, "let [a, b] = 5\nprintln(a)", "cannot destructure Int")
+	fails(t, "let [a, ...r, ...s] = [1]", "only one '...' element")
+
+	// The resolver declares pattern-bound names, so a name the pattern does not
+	// bind is undefined like any other.
+	fails(t, "let [a] = [1]\nprintln(b)", "'b' is not defined")
+}
+
+// A switch could match an array's shape but not bind what it matched. `let name`
+// captures; a bare identifier is still a reference compared with the control.
+func TestSwitchCapture(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`switch [:ok, 42] do case [:ok, let v] then v default then 0 end`, "42"},
+		{`switch [:error, 1] do case [:ok, let v] then v default then 0 end`, "0"},
+		// In scope for the guard, which runs only once the value matched.
+		{`switch 7 do case let n when n > 5 then n case let n then 0 end`, "7"},
+		{`switch 3 do case let n when n > 5 then n case let n then 0 end`, "0"},
+		// Captures nest.
+		{`switch [:pair, [1, 2]] do case [:pair, [let x, let y]] then x + y default then 0 end`, "3"},
+	}
+	for _, test := range tests {
+		if got := str(t, test.src); got != test.want {
+			t.Errorf("%s: got %s, want %s", test.src, got, test.want)
+		}
+	}
+
+	// A bare name is a comparison, not a capture.
+	if got := str(t, "let expected = 3\nswitch 3 do case expected then 10 default then 20 end"); got != "10" {
+		t.Errorf("got %s, want 10", got)
+	}
+	if got := str(t, "let expected = 3\nswitch 4 do case expected then 10 default then 20 end"); got != "20" {
+		t.Errorf("got %s, want 20", got)
+	}
+
+	// A capture lives in its own arm and nowhere else.
+	fails(t, "switch 1 do\n  case let n then n\nend\nprintln(n)", "'n' is not defined")
+}

@@ -115,6 +115,7 @@ var expectedResolveErrors = map[string]string{
 	"unknown-parameter-type.ari":     "annotates with names that are not types",
 	"default-type-violation.ari":     "gives a parameter a default its annotation forbids",
 	"switch-unknown-type-case.ari":   "matches against a name that is not a type",
+	"switch-capture-scope.ari":       "reads a capture outside its own arm",
 }
 
 // Three cases that USED to fail now resolve cleanly, which is the point:

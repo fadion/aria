@@ -416,8 +416,16 @@ func (r *Resolver) node(n ast.Node) {
 		r.resolveName(n)
 
 	case *ast.Let:
+		if n.Pattern != nil {
+			r.patternBinding(n.Pattern, n.Value, KindLet, false)
+			return
+		}
 		r.binding(n.Name, n.Value, KindLet, false)
 	case *ast.Var:
+		if n.Pattern != nil {
+			r.patternBinding(n.Pattern, n.Value, KindVar, true)
+			return
+		}
 		r.binding(n.Name, n.Value, KindVar, true)
 	case *ast.Assign:
 		r.assign(n)
@@ -469,6 +477,11 @@ func (r *Resolver) node(n ast.Node) {
 	case *ast.Switch:
 		r.node(n.Control)
 		for _, c := range n.Cases {
+			// An arm's captures are in scope for its guard and its body and
+			// nowhere else, so the arm gets a scope of its own. The body's own
+			// Block would push a second one; resolve its contents directly so
+			// captures and body names share one level.
+			r.push()
 			// A case value may be `_`, the wildcard, and an array pattern may
 			// hold them too. Walk the elements rather than the list so a
 			// placeholder is not reported as one out of position.
@@ -478,7 +491,12 @@ func (r *Resolver) node(n ast.Node) {
 				}
 			}
 			r.node(c.Guard)
-			r.node(c.Body)
+			if c.Body != nil {
+				for _, node := range c.Body.Nodes {
+					r.node(node)
+				}
+			}
+			r.pop(c)
 		}
 		if n.Default != nil {
 			r.node(n.Default)
@@ -552,6 +570,8 @@ func (r *Resolver) caseValue(el ast.Node) {
 	case *ast.Placeholder:
 	case *ast.TypeCase:
 		r.typeName(el.Name)
+	case *ast.Binder:
+		r.declare(el.Name, KindLet, false)
 	case *ast.Array:
 		if el.List != nil {
 			for _, item := range el.List.Elements {
@@ -560,6 +580,32 @@ func (r *Resolver) caseValue(el ast.Node) {
 		}
 	default:
 		r.node(el)
+	}
+}
+
+// patternBinding resolves a destructuring `let` or `var`: the initializer
+// first, then every name the pattern binds.
+//
+// The pending check that catches `let x = x` does not apply: a pattern's names
+// are declared after its value is resolved, so none of them is in scope inside
+// it.
+func (r *Resolver) patternBinding(pattern *ast.ArrayPattern, value ast.Node, kind Kind, mutable bool) {
+	r.node(value)
+	r.declarePattern(pattern, kind, mutable)
+}
+
+func (r *Resolver) declarePattern(pattern *ast.ArrayPattern, kind Kind, mutable bool) {
+	for _, el := range pattern.Elements {
+		switch el := el.(type) {
+		case *ast.Identifier:
+			r.declare(el, kind, mutable)
+		case *ast.Rest:
+			r.declare(el.Name, kind, mutable)
+		case *ast.ArrayPattern:
+			r.declarePattern(el, kind, mutable)
+		case *ast.Placeholder:
+			// A hole, binding nothing.
+		}
 	}
 }
 

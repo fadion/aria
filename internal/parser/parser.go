@@ -694,10 +694,33 @@ func (p *Parser) parseAtom() ast.Node {
 // Bindings
 // ---------------------------------------------------------------------------
 
-// parseBinding reads `let name = value` or `var name = value`.
+// parseBinding reads `let name = value`, `var name = value`, or either with an
+// array pattern on the left.
 func (p *Parser) parseBinding(kind token.Kind) ast.Node {
 	start := p.tok.Span
 	word := kind.String()
+
+	// `let [a, b] = pair` takes the value apart by shape. `for k, v` used to be
+	// the only multi-bind in the language.
+	if p.atPeek(token.LBracket) {
+		p.advance()
+		pattern := p.parseArrayPattern()
+		if bad, isBad := pattern.(*ast.Bad); isBad {
+			return bad
+		}
+
+		if !p.expectPeek(token.Assign) {
+			return &ast.Bad{Base: ast.Base{Sp: span(start, p.tok.Span)}, Text: word}
+		}
+		p.advance()
+		value := p.parseExpr(lowest)
+		sp := span(start, value.Span())
+
+		if kind == token.Let {
+			return &ast.Let{Base: ast.Base{Sp: sp}, Pattern: pattern.(*ast.ArrayPattern), Value: value}
+		}
+		return &ast.Var{Base: ast.Base{Sp: sp}, Pattern: pattern.(*ast.ArrayPattern), Value: value}
+	}
 
 	if !p.expectPeek(token.Ident) {
 		return &ast.Bad{Base: ast.Base{Sp: start}, Text: word}
@@ -716,6 +739,71 @@ func (p *Parser) parseBinding(kind token.Kind) ast.Node {
 		return &ast.Let{Base: ast.Base{Sp: sp}, Name: name, Value: value}
 	}
 	return &ast.Var{Base: ast.Base{Sp: sp}, Name: name, Value: value}
+}
+
+// parseArrayPattern reads `[a, _, [b, c], ...rest]`. The cursor is on `[`.
+//
+// Every name here is a name being bound, which is what makes this a different
+// node from an array literal: the `let` at the front of the statement covers the
+// whole shape.
+func (p *Parser) parseArrayPattern() ast.Node {
+	start := p.tok.Span
+	pattern := &ast.ArrayPattern{Base: ast.Base{Sp: start}}
+	seenRest := false
+
+	for {
+		p.skipPeekSeparators()
+		if p.atPeek(token.RBracket) {
+			p.advance()
+			pattern.Sp = span(start, p.tok.Span)
+			return pattern
+		}
+		p.advance()
+
+		switch p.tok.Kind {
+		case token.Ident:
+			pattern.Elements = append(pattern.Elements,
+				&ast.Identifier{Base: ast.Base{Sp: p.tok.Span}, Value: p.text(p.tok)})
+
+		case token.Underscore:
+			pattern.Elements = append(pattern.Elements, &ast.Placeholder{Base: ast.Base{Sp: p.tok.Span}})
+
+		case token.LBracket:
+			nested := p.parseArrayPattern()
+			if bad, isBad := nested.(*ast.Bad); isBad {
+				return bad
+			}
+			pattern.Elements = append(pattern.Elements, nested)
+
+		case token.Ellipsis:
+			if seenRest {
+				return p.bad(p.tok.Span, "a pattern may have only one '...' element")
+			}
+			seenRest = true
+			restStart := p.tok.Span
+			if !p.expectPeek(token.Ident) {
+				return &ast.Bad{Base: ast.Base{Sp: restStart}, Text: "..."}
+			}
+			pattern.Elements = append(pattern.Elements, &ast.Rest{
+				Base: ast.Base{Sp: span(restStart, p.tok.Span)},
+				Name: &ast.Identifier{Base: ast.Base{Sp: p.tok.Span}, Value: p.text(p.tok)},
+			})
+
+		default:
+			return p.bad(p.tok.Span, "unexpected %s in a binding pattern", p.describe(p.tok))
+		}
+
+		p.skipPeekSeparators()
+		if p.atPeek(token.Comma) {
+			p.advance()
+			continue
+		}
+		if !p.expectPeek(token.RBracket) {
+			return &ast.Bad{Base: ast.Base{Sp: span(start, p.tok.Span)}, Text: "["}
+		}
+		pattern.Sp = span(start, p.tok.Span)
+		return pattern
+	}
 }
 
 // parseAssign reads `name = value` and the compound forms. The cursor is on the
@@ -1437,6 +1525,25 @@ func (p *Parser) parseParameter(fn *ast.Function, variadicSeen bool) (ast.Node, 
 // here, where there is no left-hand side to write, so it is read here rather
 // than given a prefix parse that would be wrong everywhere else.
 func (p *Parser) parseCaseValue() ast.Node {
+	// `let name` captures what matched. A bare identifier is still a reference
+	// compared with the control, which is what it has always been.
+	if p.at(token.Let) {
+		start := p.tok.Span
+		if !p.expectPeek(token.Ident) {
+			return &ast.Bad{Base: ast.Base{Sp: start}, Text: "let"}
+		}
+		return &ast.Binder{
+			Base: ast.Base{Sp: span(start, p.tok.Span)},
+			Name: &ast.Identifier{Base: ast.Base{Sp: p.tok.Span}, Value: p.text(p.tok)},
+		}
+	}
+
+	// An array literal in case position is a pattern, so its elements are case
+	// values in turn — binders and wildcards included, to any depth.
+	if p.at(token.LBracket) {
+		return p.parseCasePattern()
+	}
+
 	if !p.at(token.Is) {
 		return p.parseExpr(lowest)
 	}
@@ -1448,6 +1555,33 @@ func (p *Parser) parseCaseValue() ast.Node {
 	return &ast.TypeCase{
 		Base: ast.Base{Sp: span(start, p.tok.Span)},
 		Name: &ast.Identifier{Base: ast.Base{Sp: p.tok.Span}, Value: p.text(p.tok)},
+	}
+}
+
+// parseCasePattern reads an array pattern in case position. The cursor is on `[`.
+func (p *Parser) parseCasePattern() ast.Node {
+	start := p.tok.Span
+	list := &ast.ExpressionList{Base: ast.Base{Sp: start}}
+
+	for {
+		p.skipPeekSeparators()
+		if p.atPeek(token.RBracket) {
+			p.advance()
+			return &ast.Array{Base: ast.Base{Sp: span(start, p.tok.Span)}, List: list}
+		}
+
+		p.advance()
+		list.Elements = append(list.Elements, p.parseCaseValue())
+
+		p.skipPeekSeparators()
+		if p.atPeek(token.Comma) {
+			p.advance()
+			continue
+		}
+		if !p.expectPeek(token.RBracket) {
+			return &ast.Bad{Base: ast.Base{Sp: span(start, p.tok.Span)}, Text: "["}
+		}
+		return &ast.Array{Base: ast.Base{Sp: span(start, p.tok.Span)}, List: list}
 	}
 }
 
