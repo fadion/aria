@@ -999,11 +999,30 @@ itself a compatibility break.
   evaluator ignores, walking a chain of name maps instead. Switching would make lookup an
   array index.
 
-  There is now a number attached to this. `BenchmarkMicro/name-lookup-deep` and
+  There is a number attached to part of this. `BenchmarkMicro/name-lookup-deep` and
   `name-lookup-shallow` run the same loop and the same arithmetic, differing only in
-  whether the names come from three scopes up or from beside the loop, so the gap between
-  them is chain-walking and nothing else. On one machine the deep case costs around a fifth
-  more time and **ten more allocations out of eleven thousand** — the chain costs pointer
-  chasing, not garbage. That is the ceiling on what slots could win, in a case built to
-  make the chain as expensive as possible; a real program keeps its names closer. Measure
-  with benchstat before believing any of it, and before spending a rewrite on it.
+  whether the names come from three scopes up or from beside the loop. On one machine the
+  deep case costs around a fifth more time and **ten more allocations out of eleven
+  thousand**: the chain costs pointer chasing, not garbage.
+
+  That bounds the chain-walking half and nothing else, which is worth being precise about.
+  Both cases pay exactly one *successful* map lookup, so what the difference measures is
+  the *failed* lookups at the scopes in between. Replacing that final map lookup with an
+  array index is the other half of what slots would do, and no benchmark here can see it.
+  So a fifth is not the ceiling on slots; it is the ceiling on the part that has been
+  measured, in a case built to make the chain as expensive as possible.
+
+  The cheaper half can be had on its own. `Ref.Hops` already says how far up the binding
+  lives, so the evaluator could walk exactly that many parents and do one map lookup
+  instead of up to `Hops + 1`. That collects the whole measured difference while `vars`
+  stays a map, with no scope sizes to plumb through and no change to `define` or `assign`.
+
+  Either version is a bigger step than swapping a data structure, because the evaluator has
+  no runtime dependency on resolution at all: `i.info` is assigned in two places and read
+  in none. Both would introduce one, and the name-keyed paths that would still need names
+  are real — the REPL's `:vars` walks `globals.vars`, an aliased import builds its module
+  by reading `scope.vars[name]`, and four `New(file, nil)` call sites have no `Info` to
+  consult.
+
+  Measure with benchstat before believing any of this, and before spending a rewrite on
+  it.
