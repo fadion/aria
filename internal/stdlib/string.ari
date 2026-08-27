@@ -8,11 +8,16 @@ module String
     runtime_len(str)
   end
 
-  let first = func (str: String) -> String
+  // No `-> String` on either of these. The body is a subscript, which answers
+  // nil on an empty string, and a declared return type would turn that into
+  // "declares it returns String but returned Nil" -- an internal contract
+  // violation shown to a caller who did nothing wrong. Enum.first and Enum.last
+  // have always answered nil the same way and carry no hint for the same reason.
+  let first = func (str: String)
     str[0]
   end
 
-  let last = func (str: String) -> String
+  let last = func (str: String)
     str[String.count(str) - 1]
   end
 
