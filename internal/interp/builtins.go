@@ -90,14 +90,70 @@ func (i *Interp) installBuiltins() {
 		return lo + value.Int(rand.N(int64(hi-lo)+1))
 	})
 
-	// floor and ceil are primitives, not arithmetic. Written in Aria in terms
-	// of `nr % 1` they inherited Go's math.Mod, which takes the sign of the
-	// dividend, so for negative input the two returned each other's answers.
-	def("runtime_floor", func(ip *Interp, args []value.Value, span source.Span) value.Value {
-		return value.Int(int64(math.Floor(ip.wantNumber("runtime_floor", args, span))))
+	// The rounding functions are primitives, not arithmetic. Written in Aria in
+	// terms of `nr % 1` they inherited Go's math.Mod, which takes the sign of
+	// the dividend, so for negative input floor and ceil returned each other's
+	// answers.
+	//
+	// They return an Int, and raise when the exact result does not fit in one
+	// rather than converting out of range — the same ruling as integer
+	// overflow, and for the same reason.
+	for _, r := range []struct {
+		name string
+		fn   func(float64) float64
+	}{
+		{"runtime_floor", math.Floor},
+		{"runtime_ceil", math.Ceil},
+		{"runtime_round", math.Round},
+		{"runtime_trunc", math.Trunc},
+	} {
+		def(r.name, func(ip *Interp, args []value.Value, span source.Span) value.Value {
+			return ip.wholeNumber(r.fn(ip.wantNumber(r.name, args, span)), span)
+		})
+	}
+
+	// The transcendental functions are primitives too: writing them in Aria
+	// would be numeric analysis in an interpreted language. All the same shape,
+	// so they are registered from a table. Every one returns a Float, because
+	// none of them has an integer answer in general.
+	for _, r := range []struct {
+		name string
+		fn   func(float64) float64
+	}{
+		{"runtime_sqrt", math.Sqrt},
+		{"runtime_cbrt", math.Cbrt},
+		{"runtime_exp", math.Exp},
+		{"runtime_log", math.Log},
+		{"runtime_log2", math.Log2},
+		{"runtime_log10", math.Log10},
+		{"runtime_sin", math.Sin},
+		{"runtime_cos", math.Cos},
+		{"runtime_tan", math.Tan},
+		{"runtime_asin", math.Asin},
+		{"runtime_acos", math.Acos},
+		{"runtime_atan", math.Atan},
+	} {
+		def(r.name, func(ip *Interp, args []value.Value, span source.Span) value.Value {
+			return value.Float(r.fn(ip.wantNumber(r.name, args, span)))
+		})
+	}
+
+	// Infinity and NaN are values value.formatFloat already renders, and were
+	// reachable only by accident. These make them nameable, so Math.isNaN? has
+	// something to be asked about.
+	def("runtime_inf", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		ip.wantArgs("runtime_inf", args, 0, span)
+		return value.Float(math.Inf(1))
 	})
-	def("runtime_ceil", func(ip *Interp, args []value.Value, span source.Span) value.Value {
-		return value.Int(int64(math.Ceil(ip.wantNumber("runtime_ceil", args, span))))
+	def("runtime_nan", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		ip.wantArgs("runtime_nan", args, 0, span)
+		return value.Float(math.NaN())
+	})
+	def("runtime_is_nan", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		return value.Of(math.IsNaN(ip.wantNumber("runtime_is_nan", args, span)))
+	})
+	def("runtime_is_inf", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		return value.Of(math.IsInf(ip.wantNumber("runtime_is_inf", args, span), 0))
 	})
 
 	def("runtime_tolower", func(ip *Interp, args []value.Value, span source.Span) value.Value {
@@ -141,6 +197,17 @@ func (i *Interp) wantNumber(name string, args []value.Value, span source.Span) f
 	}
 	i.fail(span, "%s() expects an Int or a Float, got %s", name, args[0].Type())
 	return 0
+}
+
+// wholeNumber converts an already-rounded float to an Int, raising when it does
+// not fit. Converting out of int64's range is undefined in Go and lands on
+// MinInt64 on amd64, which is the same silent wrong answer integer overflow
+// used to produce.
+func (i *Interp) wholeNumber(f float64, span source.Span) value.Value {
+	if math.IsNaN(f) || f < math.MinInt64 || f >= -float64(math.MinInt64) {
+		i.fail(span, "Int overflow: %s does not fit in an Int", value.Float(f).String())
+	}
+	return value.Int(int64(f))
 }
 
 func (i *Interp) wantString(name string, args []value.Value, span source.Span) string {

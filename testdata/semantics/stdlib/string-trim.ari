@@ -1,0 +1,13 @@
+// trim used to require an explicit character set — there was no way to ask for
+// whitespace, which is the overwhelmingly common case — and stripped exactly
+// one character per side: trim("  hi  ", " ") was " hi ".
+println("[" + String.trim("  hi  ") + "]")
+println("[" + String.trim("  hi  ", " ") + "]")
+println("[" + String.trimLeft("xxxhi", "x") + "]")
+println("[" + String.trimRight("hixxx", "x") + "]")
+println("[" + String.trim("\t\n hi \r\n") + "]")
+
+// Nothing to strip, and nothing left after stripping.
+println("[" + String.trim("hi") + "]")
+println("[" + String.trim("") + "]")
+println("[" + String.trim("     ") + "]")

@@ -1,0 +1,5 @@
+// floor, ceil, round and trunc answer with an Int, so a value too large for one
+// has no answer. Converting out of int64's range is undefined in Go and lands
+// on MinInt64 on amd64, which is the silent wrong answer the numeric rules in
+// docs/architecture.md exist to prevent.
+println(Math.floor(1.0e300))
