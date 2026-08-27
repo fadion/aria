@@ -1,0 +1,5 @@
+// A type case naming something that is not a type would silently never match.
+println(switch 1 do
+  case is Banana then "never"
+  default then "always"
+end)

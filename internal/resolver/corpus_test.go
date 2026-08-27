@@ -114,6 +114,7 @@ var expectedResolveErrors = map[string]string{
 	"as-unknown-type.ari":            "converts to a name that is not a type",
 	"unknown-parameter-type.ari":     "annotates with names that are not types",
 	"default-type-violation.ari":     "gives a parameter a default its annotation forbids",
+	"switch-unknown-type-case.ari":   "matches against a name that is not a type",
 }
 
 // Three cases that USED to fail now resolve cleanly, which is the point:

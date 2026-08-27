@@ -729,30 +729,98 @@ func (i *Interp) evalSwitch(n *ast.Switch, e *env) value.Value {
 	return value.NilValue
 }
 
-// caseMatches reports whether a case arm matches the control value. An array
-// control pattern-matches element by element, with `_` as a wildcard.
+// caseMatches reports whether a case arm matches the control value.
+//
+// A comma-separated list is always a list of alternatives. It used to mean that
+// for a scalar control and "the array [1, 2]" for an array control, chosen by
+// the runtime type of the subject — one syntax with two meanings. A pattern is
+// written as an array literal now, `case [1, _]`, which is a spelling the parser
+// can already tell apart.
 func (i *Interp) caseMatches(c *ast.SwitchCase, control value.Value, e *env) bool {
-	// An array control with a matching arity is pattern-matched element by
-	// element, and that answer is final. Falling through to scalar matching
-	// afterwards would let a `_` anywhere in the pattern match everything.
-	if arr, ok := control.(*value.Array); ok && len(c.Values.Elements) == arr.Len() {
-		for idx, el := range c.Values.Elements {
-			if _, wild := el.(*ast.Placeholder); wild {
+	matched := false
+	for _, el := range c.Values.Elements {
+		if i.caseValueMatches(el, control, e) {
+			matched = true
+			break
+		}
+	}
+	if !matched {
+		return false
+	}
+
+	// The guard is tested only once a value has matched, so it may lean on
+	// whatever the match established.
+	if c.Guard != nil {
+		return value.Truthy(i.eval(c.Guard, e))
+	}
+	return true
+}
+
+func (i *Interp) caseValueMatches(el ast.Node, control value.Value, e *env) bool {
+	switch el := el.(type) {
+	case *ast.Placeholder:
+		// A bare `_` matches anything, which is `default` said in an arm.
+		return true
+
+	case *ast.TypeCase:
+		if el.Name.Value == value.Any {
+			return true
+		}
+		return control.Type().String() == el.Name.Value
+
+	case *ast.Array:
+		// An array literal in case position pattern-matches element by element,
+		// with `_` as a wildcard. Only when the arities agree: a shorter or
+		// longer pattern is simply a different array.
+		arr, ok := control.(*value.Array)
+		if !ok || arr.Len() != len(el.List.Elements) {
+			return false
+		}
+		for idx, item := range el.List.Elements {
+			if _, wild := item.(*ast.Placeholder); wild {
 				continue
 			}
-			if !value.Equal(i.eval(el, e), arr.At(idx)) {
+			if !value.Equal(i.eval(item, e), arr.At(idx)) {
 				return false
 			}
 		}
 		return true
+
+	case *ast.Infix:
+		// A range case tests membership rather than equality, which is what
+		// `case 1..9` reads as.
+		if el.Operator == ".." {
+			return i.inRange(i.eval(el.Left, e), i.eval(el.Right, e), control, el.Span())
+		}
 	}
 
-	for _, el := range c.Values.Elements {
-		if _, wild := el.(*ast.Placeholder); wild {
-			return true
+	return value.Equal(i.eval(el, e), control)
+}
+
+// inRange reports whether control falls inside from..to.
+//
+// An Int range is tested by comparison, so `case 1..1000000` costs nothing.
+// Anything else materialises, which is what `..` does outside a case anyway.
+func (i *Interp) inRange(from, to, control value.Value, span source.Span) bool {
+	if a, isInt := from.(value.Int); isInt {
+		if b, isInt := to.(value.Int); isInt {
+			n, ok := control.(value.Int)
+			if !ok {
+				return false
+			}
+			lo, hi := int64(a), int64(b)
+			if lo > hi {
+				lo, hi = hi, lo
+			}
+			return int64(n) >= lo && int64(n) <= hi
 		}
-		if value.Equal(i.eval(el, e), control) {
-			return true
+	}
+
+	if arr, ok := i.applyInfix("..", from, to, span).(*value.Array); ok {
+		for _, v := range arr.Elems() {
+			if value.Equal(v, control) {
+				return true
+			}
 		}
 	}
 	return false

@@ -1,8 +1,38 @@
+// A comma-separated case list is always a list of ALTERNATIVES. It used to mean
+// that for a scalar control and "the array [1, 2]" for an array control, chosen
+// by the runtime type of the subject — one syntax with two meanings.
+//
+// A pattern is written as an array literal, which is a spelling the parser can
+// already tell apart.
 println(switch [1, 2] do
-  case 1, 2 then "one two"
+  case 1, 2 then "alternatives"
+  case [1, 2] then "pattern"
+  default then "other"
+end)
+println(switch 2 do
+  case 1, 2 then "one or two"
+  default then "other"
+end)
+
+// `_` inside a pattern is a wildcard for that element.
+println(switch [1, 9] do
+  case [1, _] then "one anything"
   default then "other"
 end)
 println(switch [1, 9] do
-  case 1, _ then "one anything"
+  case [2, _] then "two anything"
+  default then "other"
+end)
+
+// A pattern of a different arity is simply a different array.
+println(switch [1, 9] do
+  case [1] then "just one"
+  default then "other"
+end)
+
+// A bare `_` among alternatives is still the match-anything wildcard, which is
+// `default` said in an arm.
+println(switch [1, 9] do
+  case 2, _ then "anything"
   default then "other"
 end)

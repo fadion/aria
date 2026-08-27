@@ -943,33 +943,63 @@ default
 end
 ```
 
+### Guards, Types and Ranges
+
+A `when` clause guards an arm. It's tested only once one of the arm's values has already matched, which is what lets the control-less form replace an else-if chain without repeating the subject:
+
+```swift
+let describe = func (n)
+  switch n
+  case 1..9 when n % 2 == 0 then "even digit"
+  case 1..9 then "odd digit"
+  default then "not a digit"
+  end
+end
+println(describe(4))
+```
+
+`is` works in case position, matching on the control's type. A range matches membership:
+
+```swift
+let classify = func (v)
+  switch v
+  case is Int then "a number"
+  case is String then "some text"
+  case is Any then "something else"
+  end
+end
+println(classify("hi"))
+```
+
+A guard that fails falls through to the next arm rather than to `default`.
+
 ### Pattern Matching
 
-When fed arrays as the control condition, the `switch` can pattern match its elements. Every argument to the switch case is compared to the respective element of the array. Off course, for a match, the number of arguments should match the size of the array.
+An array literal in case position pattern matches its elements. For a match, the pattern and the array have to be the same size:
 
 ```swift
 switch ["game", "of", "thrones"]
-case "game", "thrones"
+case ["game", "thrones"]
   println("no match")
-case "game", "of", "thrones"
+case ["game", "of", "thrones"]
   println("yep!")
 end
 ```
 
-That's probably useful from time to time, but it's totally achievable with array cases. The `switch` can do much better than that.
+The `_` is a placeholder that will match any type and value, so you can compare arrays where you don't need to know every element:
 
 ```swift
 switch ["John", "Lick", 2]
-case "John", _, _
+case ["John", _, _]
   println("John Something")
-case _, _ 2
+case [_, _, 2]
   println("Something 2")
 default
   println("Lame movie pun not found")
 end
 ```
 
-The `_` is a placeholder that will match any type and value. That makes it powerful to compare arrays where you don't need to know every element. You can mix and match values with placeholders in any position, as long as they match the size of the array.
+A comma-separated case list is a list of *alternatives*, not a pattern — `case 1, 2` means "1 or 2" whatever the control is. That distinction is why a pattern gets the array-literal spelling: the same syntax used to mean both, chosen by the runtime type of the subject.
 
 ## For Loop
 

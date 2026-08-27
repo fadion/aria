@@ -1433,6 +1433,24 @@ func (p *Parser) parseParameter(fn *ast.Function, variadicSeen bool) (ast.Node, 
 }
 
 // parseSwitch reads `switch [control] cases... end`.
+// parseCaseValue reads one value of a case arm. `is Type` is only meaningful
+// here, where there is no left-hand side to write, so it is read here rather
+// than given a prefix parse that would be wrong everywhere else.
+func (p *Parser) parseCaseValue() ast.Node {
+	if !p.at(token.Is) {
+		return p.parseExpr(lowest)
+	}
+
+	start := p.tok.Span
+	if !p.expectPeek(token.Ident) {
+		return &ast.Bad{Base: ast.Base{Sp: start}, Text: "is"}
+	}
+	return &ast.TypeCase{
+		Base: ast.Base{Sp: span(start, p.tok.Span)},
+		Name: &ast.Identifier{Base: ast.Base{Sp: p.tok.Span}, Value: p.text(p.tok)},
+	}
+}
+
 func (p *Parser) parseSwitch() ast.Node {
 	start := p.tok.Span
 	node := &ast.Switch{Base: ast.Base{Sp: start}}
@@ -1459,7 +1477,7 @@ func (p *Parser) parseSwitch() ast.Node {
 
 			for {
 				p.advance()
-				values.Elements = append(values.Elements, p.parseExpr(lowest))
+				values.Elements = append(values.Elements, p.parseCaseValue())
 				if p.atPeek(token.Comma) {
 					p.advance()
 					continue
@@ -1467,6 +1485,14 @@ func (p *Parser) parseSwitch() ast.Node {
 				break
 			}
 			c.Values = values
+
+			// A `when` clause guards the arm: it is tested only once one of the
+			// values has already matched.
+			if p.atPeek(token.When) {
+				p.advance()
+				p.advance()
+				c.Guard = p.parseExpr(lowest)
+			}
 
 			p.advance()
 			if p.at(token.Then) {

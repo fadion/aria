@@ -502,6 +502,34 @@ spends a section on. A count needs no new token, where a label would; it reads p
 two, but two is the case that comes up. The resolver counts the loops a `break` is inside,
 so `break 3` inside two is a diagnostic rather than an unwind out of the enclosing function.
 
+## A case list is alternatives; a pattern is an array literal
+
+`case 1, 2` used to mean "1 or 2" for a scalar control and "the array `[1, 2]`" for an
+array control — one syntax with two meanings, chosen by the runtime type of the subject.
+Both were documented in the README as features.
+
+A comma-separated list is always a list of alternatives. A pattern is written as an array
+literal, `case [1, _]`, which the parser can already tell apart, and `_` inside one is a
+wildcard for that element. A pattern of a different arity is simply a different array. A
+bare `_` among alternatives is still the match-anything wildcard, which is `default` said
+in an arm.
+
+That leaves `switch` able to carry the weight the README gives it — it is the language's
+stated answer to the missing `else if` — with three additions:
+
+**`when` guards.** Tested only once one of the arm's values has matched, so the
+control-less form replaces an else-if chain without repeating the subject. A guard that
+fails falls through to the next arm rather than to `default`.
+
+**`case is Type`.** Aria already has `is` as an operator; this is it where there is no
+left-hand side to write, which was the most common reason to reach for a chain of `typeof`
+comparisons. The type name is checked at resolve time, so a typo is a diagnostic rather
+than an arm that never matches.
+
+**`case a..b`.** Membership, not equality. An `Int` range is tested by comparison, so
+`case 1..1000000` costs nothing; anything else materialises, which is what `..` does outside
+a case anyway.
+
 ## Nil is threaded, not tested for truth
 
 Reading a missing array index or dictionary key yields `nil` rather than failing, so
@@ -606,7 +634,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 189 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 193 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash

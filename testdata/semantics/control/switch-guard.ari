@@ -1,0 +1,34 @@
+// A `when` clause is tested only once one of the arm's values has matched, so
+// the control-less form can replace an else-if chain without repeating the
+// subject.
+let describe = func (n) do
+  switch n
+  case 1..9 when n % 2 == 0 then "even digit"
+  case 1..9 then "odd digit"
+  default then "not a digit"
+  end
+end
+println(describe(4))
+println(describe(5))
+println(describe(50))
+
+// A guard that fails falls through to the next arm rather than to default.
+println(switch 5 do
+  case 5 when false then "guarded out"
+  case 5 then "plain"
+  default then "other"
+end)
+
+// It works on alternatives too, and on the control-less form.
+let sign = func (n) do
+  switch
+  case n < 0 then "negative"
+  case n > 0 when n > 100 then "big"
+  case n > 0 then "positive"
+  default then "zero"
+  end
+end
+println(sign(-1))
+println(sign(500))
+println(sign(5))
+println(sign(0))

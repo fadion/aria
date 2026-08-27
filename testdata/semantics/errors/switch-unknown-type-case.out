@@ -1,0 +1,4 @@
+switch-unknown-type-case.ari:3:11: error: 'Banana' is not a type: expected one of Nil, Bool, Int, Float, String, Atom, Array, Dictionary, Function, Module, Any
+    case is Banana then "never"
+            ^^^^^^
+--- exit: 1
