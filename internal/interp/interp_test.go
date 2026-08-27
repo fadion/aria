@@ -1230,3 +1230,79 @@ func TestStdlibStringPrimitiveEdges(t *testing.T) {
 		}
 	}
 }
+
+// There was no sort anywhere in the language. Ordering is the language's own
+// `<`, so a pair it cannot compare is an error rather than an invented
+// cross-type ranking.
+func TestStdlibEnumSort(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`println(Enum.sort([3, 1, 2]))`, "[1, 2, 3]"},
+		{`println(Enum.sort([3, 1.5, 2]))`, "[1.5, 2, 3]"},
+		{`println(Enum.sort(["pear", "apple"]))`, `["apple", "pear"]`},
+		{`println(Enum.sort([]))`, "[]"},
+		{`println(Enum.sortBy(["bbb", "a", "cc"], (s) -> String.count(s)))`, `["a", "cc", "bbb"]`},
+	}
+	for _, test := range tests {
+		if got := withStdlib(t, test.src); got != test.want {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+
+	var out, errOut strings.Builder
+	_, err := interp.Eval("test.ari", `println(Enum.sort([1, "a"]))`, interp.Options{
+		Out: &out, Err: &errOut, In: strings.NewReader(""),
+	})
+	if err == nil || !strings.Contains(err.Error(), "cannot order") {
+		t.Errorf("sorting a mixed array: %v", err)
+	}
+}
+
+func TestStdlibEnumCoverage(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`println(Enum.sum([1, 2, 3]))`, "6"},
+		{`println(Enum.min([3, 1, 2]))`, "1"},
+		{`println(Enum.max(["a", "b"]))`, "b"},
+		{`println(Enum.count([1, 2, 3, 4], (v) -> v % 2 == 0))`, "2"},
+		{`println(Enum.any?([1, 2], (v) -> v > 1))`, "true"},
+		{`println(Enum.all?([1, 2], (v) -> v > 1))`, "false"},
+		{`println(Enum.take([1, 2, 3], 9))`, "[1, 2, 3]"},
+		{`println(Enum.drop([1, 2, 3], 9))`, "[]"},
+		{`println(Enum.takeWhile([1, 2, 3, 1], (v) -> v < 3))`, "[1, 2]"},
+		{`println(Enum.dropWhile([1, 2, 3, 1], (v) -> v < 3))`, "[3, 1]"},
+		{`println(Enum.zip([1, 2, 3], ["a", "b"]))`, `[[1, "a"], [2, "b"]]`},
+		{`println(Enum.flatten([1, [2, [3, 4]], 5]))`, "[1, 2, 3, 4, 5]"},
+		{`println(Enum.chunk([1, 2, 3, 4, 5], 2))`, "[[1, 2], [3, 4], [5]]"},
+		{`println(Enum.indexOf([1, 2, 3], 9))`, "-1"},
+		{`println(Enum.each([1], (v) -> v))`, "nil"},
+	}
+	for _, test := range tests {
+		if got := withStdlib(t, test.src); got != test.want {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+}
+
+// Dict.contains? walked the entries with Equal, so it found an atom key given
+// the equal string while dict[key] did not, and insert/update/delete asked
+// `dict[key] != nil`, which cannot tell a missing key from a nil-valued one.
+func TestStdlibDictCoverage(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`println(Dict.keys([:a => 1, :b => 2]))`, "[:a, :b]"},
+		{`println(Dict.values([:a => 1, :b => 2]))`, "[1, 2]"},
+		{`println(Dict.get([:a => 1], :zz, "none"))`, "none"},
+		{`println(Dict.get([:a => 1], :a))`, "1"},
+		{`println(Dict.has?([:a => 1], "a"))`, "true"},
+		{`println(Dict.has?([:a => 1], :zz))`, "false"},
+		{`println(Dict.has?([:a => nil], :a))`, "true"},
+		{`println(Dict.delete([:a => nil], :a))`, "[=>]"},
+		{`println(Dict.map([:a => 1], (k, v) -> v * 10))`, "[:a => 10]"},
+		{`println(Dict.filter([:a => 1, :b => 2], (k, v) -> v > 1))`, "[:b => 2]"},
+		{`println(Dict.toPairs([:a => 1]))`, "[[:a, 1]]"},
+		{`println(Dict.fromPairs([[:x, 1]]))`, "[:x => 1]"},
+	}
+	for _, test := range tests {
+		if got := withStdlib(t, test.src); got != test.want {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+}

@@ -1,0 +1,14 @@
+// take and drop clamp rather than failing, the way slicing a string does.
+println(Enum.take([1, 2, 3], 2))
+println(Enum.take([1, 2, 3], 9))
+println(Enum.take([1, 2, 3], 0))
+println(Enum.drop([1, 2, 3], 2))
+println(Enum.drop([1, 2, 3], 9))
+println(Enum.takeWhile([1, 2, 3, 1], (v) -> v < 3))
+println(Enum.dropWhile([1, 2, 3, 1], (v) -> v < 3))
+
+println(Enum.zip([1, 2, 3], ["a", "b"]))
+println(Enum.concat([1], [2]))
+println(Enum.flatten([1, [2, [3, 4]], 5]))
+println(Enum.groupBy([1, 2, 3, 4], (v) -> v % 2))
+println(Enum.chunk([1, 2, 3, 4, 5], 2))

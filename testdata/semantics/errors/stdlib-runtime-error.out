@@ -1,4 +1,4 @@
-<stdlib>/dict.ari:37:7: error: Dictionary key 'zz' doesn't exist
+<stdlib>/dict.ari:41:7: error: Dictionary key 'zz' doesn't exist
         panic("Dictionary key '" + String(key) + "' doesn't exist")
         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 --- exit: 1

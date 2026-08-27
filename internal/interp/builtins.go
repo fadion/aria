@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/rand/v2"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -329,6 +330,67 @@ func (i *Interp) installBuiltins() {
 		return value.String(string(runes))
 	})
 
+	// Sorting had no expression in the language at all: value.SortedKeys exists
+	// in Go and was unexported to Aria, so a program could not order a
+	// collection by any means.
+	//
+	// One builtin covers both sort and sortBy: it reorders values by a parallel
+	// array of keys, which for a plain sort is the array itself. The ordering is
+	// the language's own `<` — numbers among numbers, text among text — so a
+	// pair the language cannot compare is an error here too, rather than an
+	// invented cross-type order nobody would guess.
+	def("runtime_sort", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		ip.wantArgs("runtime_sort", args, 2, span)
+		keys, ok1 := args[0].(*value.Array)
+		vals, ok2 := args[1].(*value.Array)
+		if !ok1 || !ok2 {
+			ip.fail(span, "runtime_sort() expects two Arrays")
+		}
+		if keys.Len() != vals.Len() {
+			ip.fail(span, "runtime_sort() expects the keys and the values to be the same length")
+		}
+
+		idx := make([]int, keys.Len())
+		for i := range idx {
+			idx[i] = i
+		}
+		var bad [2]value.Value
+		sort.SliceStable(idx, func(a, b int) bool {
+			ka, kb := keys.At(idx[a]), keys.At(idx[b])
+			c, ok := orderOf(ka, kb)
+			if !ok && bad[0] == nil {
+				bad[0], bad[1] = ka, kb
+			}
+			return c < 0
+		})
+		if bad[0] != nil {
+			ip.fail(span, "cannot order %s and %s", bad[0].Type(), bad[1].Type())
+		}
+
+		out := make([]value.Value, len(idx))
+		for i, at := range idx {
+			out[i] = vals.At(at)
+		}
+		return value.NewArray(out)
+	})
+
+	// runtime_has_key answers through the dictionary's index, so it agrees with
+	// subscript lookup. Dict.contains? walked the entries comparing with Equal,
+	// which found an atom key given the equal string while dict[key] did not,
+	// and was O(n) over a structure with an O(1) index.
+	def("runtime_has_key", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		ip.wantArgs("runtime_has_key", args, 2, span)
+		d, ok := args[0].(*value.Dict)
+		if !ok {
+			ip.fail(span, "runtime_has_key() expects a Dictionary, got %s", args[0].Type())
+		}
+		if _, keyable := value.KeyOf(args[1]); !keyable {
+			return value.False
+		}
+		_, found := d.Get(args[1])
+		return value.Of(found)
+	})
+
 	def("runtime_tolower", func(ip *Interp, args []value.Value, span source.Span) value.Value {
 		return value.String(strings.ToLower(ip.wantString("runtime_tolower", args, span)))
 	})
@@ -349,6 +411,52 @@ func (i *Interp) installBuiltins() {
 		}
 		return value.Of(re.MatchString(string(subject)))
 	})
+}
+
+// orderOf compares two values the way `<` does — numbers among numbers, text
+// among text — reporting whether the pair is comparable at all. Nothing else is:
+// a total order across every type would have to invent a ranking of types, which
+// is exactly the kind of meaning-nobody-would-guess that `<` on collections was
+// removed for.
+func orderOf(a, b value.Value) (int, bool) {
+	if x, ok := numberOf(a); ok {
+		if y, ok := numberOf(b); ok {
+			switch {
+			case x < y:
+				return -1, true
+			case x > y:
+				return 1, true
+			}
+			return 0, true
+		}
+		return 0, false
+	}
+	if x, ok := textOf(a); ok {
+		if y, ok := textOf(b); ok {
+			return strings.Compare(x, y), true
+		}
+	}
+	return 0, false
+}
+
+func numberOf(v value.Value) (float64, bool) {
+	switch n := v.(type) {
+	case value.Int:
+		return float64(n), true
+	case value.Float:
+		return float64(n), true
+	}
+	return 0, false
+}
+
+func textOf(v value.Value) (string, bool) {
+	switch t := v.(type) {
+	case value.String:
+		return string(t), true
+	case value.Atom:
+		return string(t), true
+	}
+	return "", false
 }
 
 // step is how far a scan advances past a match. An empty needle matches at every

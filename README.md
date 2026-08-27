@@ -1162,7 +1162,25 @@ Math.max(3, 7, 1)    // 7
 Math.clamp(15, 0, 10) // 10
 ```
 
-**`Enum`**, **`Dict`** and **`Type`** cover collections and type conversion.
+**`Enum`** — `size`, `empty?`, `first`, `last`, `reverse`, `insert`, `delete`, `map`, `filter`, `reduce`, `find`, `contains?`, `indexOf`, `unique`, `random`, `sort`, `sortBy`, `each`, `sum`, `min`, `max`, `count`, `any?`, `all?`, `take`, `drop`, `takeWhile`, `dropWhile`, `zip`, `concat`, `flatten`, `groupBy`, `chunk`.
+
+Sorting orders with the language's own `<`, so numbers order among numbers and text among text, and a pair `<` cannot compare is an error rather than an invented ordering across types. `sortBy` takes a key function:
+
+```swift
+Enum.sort([3, 1, 2])                                  // [1, 2, 3]
+Enum.sortBy(["bbb", "a", "cc"], (s) -> String.count(s)) // ["a", "cc", "bbb"]
+```
+
+**`Dict`** — `size`, `empty?`, `keys`, `values`, `get`, `has?`, `contains?`, `insert`, `update`, `delete`, `merge`, `map`, `filter`, `toPairs`, `fromPairs`.
+
+`get` takes a fallback, which `dict[key]` cannot express — it can't tell a missing key from one whose value is `nil`:
+
+```swift
+let user = [:name => "Ada"]
+println(Dict.get(user, :city, "unknown"))
+```
+
+**`Type`** covers type inspection and conversion.
 
 ## Future Plans
 

@@ -221,6 +221,19 @@ read with a string. Interchangeable is what the language claims, so keying is wh
 Only the key is shared; the dictionary stores the key value it was given, so a dictionary
 written with atoms still prints with atoms.
 
+### Sorting orders with `<`
+
+There was no sort anywhere in the language: `value.SortedKeys` existed in Go and was
+unexported to Aria, so a program had no way to order a collection at all.
+
+`Enum.sort` and `Enum.sortBy` order with the language's own `<` — numbers among numbers,
+text among text. A pair `<` cannot compare is an error, naming the two types, rather than
+an invented total order across every type. Ranking `Int` against `String` would be the same
+kind of meaning-nobody-would-guess that got `<` removed from collections below.
+
+`sortBy` takes a key function rather than a comparator. A comparator has to answer in three
+values, and the language has no convention for that; a key composes with the same `<`.
+
 ### Collections have no order
 
 `<` and `>` on an `Array` or `Dictionary` compared lengths, and `<=` and `>=` were not
@@ -420,7 +433,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 159 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 164 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash
