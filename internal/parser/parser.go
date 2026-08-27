@@ -282,7 +282,7 @@ func (p *Parser) recover() {
 func startsConstruct(kind token.Kind) bool {
 	switch kind {
 	case token.Let, token.Var, token.Func, token.If, token.Switch, token.For,
-		token.While, token.Until,
+		token.While, token.Until, token.Try,
 		token.Module, token.Import, token.Return, token.Break, token.Continue,
 		token.Case, token.Default, token.End:
 		return true
@@ -400,6 +400,8 @@ func (p *Parser) parsePrefix() ast.Node {
 		return p.parseIf()
 	case token.Switch:
 		return p.parseSwitch()
+	case token.Try:
+		return p.parseTry()
 	case token.While:
 		return p.parseWhile(false)
 	case token.Until:
@@ -1290,6 +1292,37 @@ func (p *Parser) parseBreak() ast.Node {
 		n.Sp = span(n.Sp, p.tok.Span)
 	}
 	return n
+}
+
+// parseTry reads `try [do] body rescue [name] body end`.
+func (p *Parser) parseTry() ast.Node {
+	start := p.tok.Span
+	node := &ast.Try{Base: ast.Base{Sp: start}}
+
+	p.advance()
+	if p.at(token.Do) {
+		p.advance()
+	}
+
+	node.Body = p.parseBlock(token.Rescue, token.End)
+	if !p.at(token.Rescue) {
+		return p.bad(span(start, p.tok.Span), "missing 'rescue' in 'try'")
+	}
+
+	// The name is optional, for a rescue that does not care why.
+	if p.atPeek(token.Ident) {
+		p.advance()
+		node.Name = &ast.Identifier{Base: ast.Base{Sp: p.tok.Span}, Value: p.text(p.tok)}
+	}
+
+	p.advance()
+	node.Rescue = p.parseBlock(token.End)
+	if !p.at(token.End) {
+		return p.bad(span(start, p.tok.Span), "missing 'end' to close 'try'")
+	}
+
+	node.Sp = span(start, p.tok.Span)
+	return node
 }
 
 // parseWhile reads `while cond [do] body end`, or the same with `until`, which

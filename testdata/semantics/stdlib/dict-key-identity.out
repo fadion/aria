@@ -3,5 +3,5 @@ true
 1
 false
 true
-[=>]
+[:ok, [=>]]
 --- exit: 0

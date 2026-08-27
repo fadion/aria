@@ -1375,6 +1375,51 @@ Nothing ground breaking in here. You can write either single line or multi line 
 */
 ```
 
+## Errors
+
+A failure halts the program and exits non-zero. That's the right rule for a genuine fault, and the wrong one for "this key isn't in this dictionary" — so Aria has two shapes for recovering, which answer different questions.
+
+### Tagged results
+
+A fallible operation answers `[:ok, value]` or `[:error, reason]`. That needs no special syntax, since `switch` with array patterns and `let` capture takes one apart:
+
+```swift
+let user = [:name => "Ada"]
+println(switch Dict.insert(user, :name, "Bob")
+case [:ok, let updated] then updated
+case [:error, let why] then "could not: #{why}"
+end)
+```
+
+The `Result` module gives the shape a name and the usual ways to consume it — `Result.ok?`, `Result.unwrap` with a fallback, `Result.expect`, `Result.reason`:
+
+```swift
+let user = [:name => "Ada"]
+println(Result.unwrap(Dict.delete(user, :missing), user))
+```
+
+### try and rescue
+
+`try` catches a failure and is an expression, like everything else — it evaluates to whichever block ran. The rescued value is a dictionary with `:message`, `:file`, `:line` and `:column`:
+
+```swift
+println(try
+  1 / 0
+rescue e
+  "caught: #{e.message}"
+end)
+```
+
+Every runtime error is catchable, including one the runtime raised itself: whether a division by zero is a bug or a validation outcome is the caller's call, not the language's. The name after `rescue` is optional. A `return` inside a `try` is not a failure and unwinds to its function as usual.
+
+`Result.attempt` bridges the two shapes:
+
+```swift
+println(Result.attempt(() -> 1 / 0))
+```
+
+The library draws the line at data versus misuse. `Dict.insert`, `Dict.update` and `Dict.delete` answer tagged results, because a key that is or isn't there is an ordinary outcome. Passing the wrong kind of thing — `Math.max("a", 1)` — still raises, because that's a mistake in the caller.
+
 ## Standard Library
 
 The Standard Library is fully written in Aria with the help of a few essential functions provided by the runtime. That is currently the best source to check out some "production" Aria code and see what it's capable of. [Read the documentation](https://github.com/fadion/aria/wiki/Standard-Library).
@@ -1419,6 +1464,8 @@ Enum.sortBy(["bbb", "a", "cc"], (s) -> String.count(s)) // ["a", "cc", "bbb"]
 let user = [:name => "Ada"]
 println(Dict.get(user, :city, "unknown"))
 ```
+
+**`Result`** — `ok`, `error`, `ok?`, `error?`, `unwrap`, `expect`, `reason`, `attempt`. See [Errors](#errors).
 
 **`Type`** covers type inspection and conversion.
 

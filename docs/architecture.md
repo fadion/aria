@@ -637,6 +637,47 @@ main.ari:3:11: error: unterminated string
 A failed run exits non-zero. The original exited `0` on every parse and runtime error
 alike, which made failure undetectable from a script.
 
+### Aria has recoverable errors, in two shapes
+
+It used to have none, and that answer was not written down anywhere, which made it read as
+an oversight rather than a position. `panic` was terminal, every runtime fault unwound to
+the top of `Run`, and no Aria code could be defensive.
+
+The two shapes answer different questions, and the pairing is the usual one.
+
+**A tagged-result convention, for outcomes a caller should expect.** A fallible operation
+answers `[:ok, value]` or `[:error, reason]`. This needs no new syntax — `switch` with array
+patterns and `let` capture takes one apart — and the `Result` module gives the shape a name
+along with the common ways to consume it: `ok?`, `unwrap` with a fallback, `expect`,
+`reason`.
+
+**`try ... rescue e ... end`, for genuine faults.** An expression, like everything else in
+Aria: it evaluates to whichever block ran.
+
+Every runtime error is catchable, including one the runtime raised itself. The line between
+"a fault" and "an expected failure" is the *caller's* to draw, not the runtime's — the same
+division by zero is a bug in one program and a validation outcome in another. What is not
+catchable is anything that is not a runtime error: a parse or resolve failure means the
+program never started. A control signal is not a failure either, so a `return` inside a
+`try` unwinds to its function as it would anywhere else.
+
+The rescued value is a dictionary — `:message`, `:file`, `:line`, `:column` — rather than a
+string. The message is what a program usually wants, but where it happened is what lets a
+rescue report anything useful, and a dictionary is what dotted access already reads well on.
+
+`Result.attempt(fn)` is the bridge: it runs a function and turns whatever it raises into an
+error result.
+
+**Where the library draws the line.** `Dict.insert`, `Dict.update` and `Dict.delete` answer
+tagged results: a key that is already there, or one that is not, is an ordinary outcome, and
+the only way to avoid the old panic was to duplicate the check before every call. Passing
+the wrong *kind* of thing — `Math.max("a", 1)` — still raises, because that is a mistake in
+the caller rather than an outcome, and `try` is what catches it. Data versus misuse is the
+line.
+
+A failure nobody catches still halts the program and exits non-zero. `try` is what makes
+recovery possible, not what makes failure quiet.
+
 ### A runtime error carries the file its span indexes into
 
 A `source.Span` is a pair of byte offsets and nothing else, so it only means something
@@ -663,7 +704,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 198 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 203 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash

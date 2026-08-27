@@ -135,6 +135,10 @@ func Children(n Node) []Node {
 		}
 		node(n.Enumerable)
 		block(n.Body)
+	case *Try:
+		block(n.Body)
+		ident(n.Name)
+		block(n.Rescue)
 	case *While:
 		node(n.Condition)
 		block(n.Body)

@@ -1,0 +1,11 @@
+caught: division by zero
+42
+boom
+index 10 is out of bounds for length 3
+cannot apply '+' to Int and String
+something went wrong
+<stdlib>/math.ari:64 Math.max() expects a Float or Int
+rethrown: division by zero
+returned through the try
+division by zero
+--- exit: 0

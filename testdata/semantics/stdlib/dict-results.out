@@ -1,0 +1,11 @@
+[:ok, [:a => 1, :b => 2]]
+[:error, "Dictionary key 'a' already exists"]
+[:ok, [:a => 9]]
+[:error, "Dictionary key 'zz' doesn't exist"]
+[:ok, [=>]]
+[:error, "Dictionary key 'zz' doesn't exist"]
+[:a => 1, :b => 2]
+[:a => 1]
+could not: Dictionary key 'zz' doesn't exist
+Math.max() expects a Float or Int
+--- exit: 0

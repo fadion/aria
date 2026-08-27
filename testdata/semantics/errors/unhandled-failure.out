@@ -1,0 +1,6 @@
+before
+handled
+unhandled-failure.ari:10:9: error: division by zero
+  println(1 / 0)
+          ^^^^^
+--- exit: 1

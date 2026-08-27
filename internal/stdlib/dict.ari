@@ -19,26 +19,35 @@ module Dict
     size(dict) == 0
   end
 
-  let insert = func (dict: Dictionary, key, value) -> Dictionary
-    // The index, not `dict[key] != nil`: a key whose value is nil exists.
+  // insert, update and delete answer a tagged result rather than raising.
+  //
+  // A key that is already there, or one that is not, is an ordinary outcome a
+  // caller should be able to handle — and the only way to avoid the old panic
+  // was to duplicate the check before every call. A caller who knows the key's
+  // state can still say so with Result.expect, and one who has a default can
+  // use Result.unwrap. See docs/architecture.md.
+  //
+  // The check goes through the index, not `dict[key] != nil`: a key whose value
+  // is nil exists.
+  let insert = func (dict: Dictionary, key, value) -> Array
     if has?(dict, key)
-      panic("Dictionary key '" + String(key) + "' already exists")
+      return Result.error("Dictionary key '" + String(key) + "' already exists")
     end
 
-    dict + [key => value]
+    Result.ok(dict + [key => value])
   end
 
-  let update = func (dict: Dictionary, key, value) -> Dictionary
+  let update = func (dict: Dictionary, key, value) -> Array
     if !has?(dict, key)
-      panic("Dictionary key '" + String(key) + "' doesn't exist")
+      return Result.error("Dictionary key '" + String(key) + "' doesn't exist")
     end
 
-    dict + [key => value]
+    Result.ok(dict + [key => value])
   end
 
-  let delete = func (dict: Dictionary, key) -> Dictionary
+  let delete = func (dict: Dictionary, key) -> Array
     if !has?(dict, key)
-      panic("Dictionary key '" + String(key) + "' doesn't exist")
+      return Result.error("Dictionary key '" + String(key) + "' doesn't exist")
     end
 
     var purged = [=>]
@@ -47,7 +56,7 @@ module Dict
         purged[k] = v
       end
     end
-    purged
+    Result.ok(purged)
   end
 
   let keys = func (dict: Dictionary) -> Array

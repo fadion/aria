@@ -1,0 +1,67 @@
+// There was no way to recover from anything: panic was terminal, every runtime
+// fault unwound to the top of Run, and no Aria code could be defensive.
+//
+// `try` is an expression, like everything else. It evaluates to whichever block
+// ran.
+println(try
+  1 / 0
+rescue e
+  "caught: #{e.message}"
+end)
+
+println(try
+  42
+rescue e
+  "never"
+end)
+
+// Every runtime error is catchable, including one the runtime raised itself:
+// the line between a fault and an expected failure is the caller's to draw.
+println(try panic("boom") rescue e e.message end)
+var a = [1, 2, 3]
+println(try a[10] = "x" rescue e e.message end)
+println(try 5 + "x" rescue e e.message end)
+
+// The name is optional, for a rescue that does not care why.
+println(try 1 / 0 rescue "something went wrong" end)
+
+// The error is a dictionary, so a rescue can report where as well as what.
+println(try
+  Math.max("a", 1)
+rescue e
+  "#{e.file}:#{e.line} #{e.message}"
+end)
+
+// It nests, and a rescue may raise in turn.
+println(try
+  try
+    1 / 0
+  rescue e
+    panic("rethrown: #{e.message}")
+  end
+rescue e
+  e.message
+end)
+
+// A control signal is not a failure: a return inside a try unwinds to its
+// function, as it would anywhere else.
+let f = func () do
+  try
+    return "returned through the try"
+  rescue e
+    "rescued"
+  end
+end
+println(f())
+
+// The captured name lives in the rescue block and nowhere else.
+let g = func () do
+  var seen = ""
+  try
+    1 / 0
+  rescue e
+    seen = e.message
+  end
+  seen
+end
+println(g())
