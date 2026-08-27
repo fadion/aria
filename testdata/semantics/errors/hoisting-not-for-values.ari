@@ -1,0 +1,6 @@
+// A non-function `let` does not hoist, so reading one before it is declared is
+// still an undefined name. Hoisting a value would mean hoisting whatever has to
+// be evaluated to produce it.
+let f = func () do config end
+let config = 42
+println(f())

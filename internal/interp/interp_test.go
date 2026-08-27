@@ -1160,3 +1160,44 @@ end`); got != "[1, \"b\", \"c\"]\n[2, \"b\", \"c\"]\n" {
 		t.Errorf("got %q", got)
 	}
 }
+
+// Top-level `let` did not hoist, so two functions that call each other could not
+// both live at the top level. Wrapping both in a module was the workaround.
+func TestTopLevelFunctionsHoist(t *testing.T) {
+	src := `let isEven = func (n) do
+  if n == 0 then return true end
+  isOdd(n - 1)
+end
+
+let isOdd = func (n) do
+  if n == 0 then return false end
+  isEven(n - 1)
+end
+
+println(isEven(10))
+println(isOdd(10))`
+	if got := output(t, src); got != "true\nfalse\n" {
+		t.Errorf("got %q", got)
+	}
+
+	// The evaluator hoists to match, so the name is bound before its own `let`
+	// has run rather than resolving to something that is not there.
+	if got := output(t, `println(later())
+let later = func () do "hoisted" end`); got != "hoisted\n" {
+		t.Errorf("got %q", got)
+	}
+}
+
+// The line is deliberate on both sides: only function literals, only the top
+// level.
+func TestHoistingIsNarrow(t *testing.T) {
+	fails(t, `let x = x`, "used in its own definition")
+	fails(t, `let f = func () do config end
+let config = 42`, "'config' is not defined")
+	fails(t, `let outer = func () do
+  let a = func () do b() end
+  let b = func () do 5 end
+end`, "'b' is not defined")
+	fails(t, `let f = func () do 1 end
+let f = func () do 2 end`, "already declared")
+}

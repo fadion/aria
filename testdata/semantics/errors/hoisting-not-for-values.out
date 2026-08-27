@@ -1,0 +1,4 @@
+hoisting-not-for-values.ari:4:20: error: 'config' is not defined
+  let f = func () do config end
+                     ^^^^^^
+--- exit: 1

@@ -104,6 +104,9 @@ var expectedResolveErrors = map[string]string{
 	"placeholder-as-value.ari":       "reads `_` where it means nothing",
 	"for-too-many-vars.ari":          "gives a for loop three variables",
 	"pipe-placeholder-duplicate.ari": "marks two slots for one piped value",
+	"self-referential-let.ari":       "reads a name inside its own initializer",
+	"hoisting-not-for-values.ari":    "reads a non-function `let` before it is declared",
+	"hoisting-limits.ari":            "calls a later function from inside a function body",
 }
 
 // Three cases that USED to fail now resolve cleanly, which is the point:

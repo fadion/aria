@@ -156,6 +156,11 @@ type Resolver struct {
 	// names this pass cannot see.
 	hasImport bool
 
+	// hoisted holds top-level function bindings declared before their `let` was
+	// reached, so binding knows to fill one in rather than report it as a
+	// redeclaration.
+	hoisted map[*Binding]bool
+
 	// loops and funcs count the enclosing loop and function bodies, so that
 	// break, continue and return can be checked where they mean something. A
 	// function body resets loops: a `break` inside a function nested in a loop
@@ -175,6 +180,7 @@ func New(file *source.File, diags *diag.Bag) *Resolver {
 			sizes: map[ast.Node]int{},
 		},
 		modules: map[string]bool{},
+		hoisted: map[*Binding]bool{},
 	}
 	r.current = newScope(nil)
 	for _, name := range Builtins {
@@ -209,6 +215,7 @@ func (r *Resolver) predeclare(name string, kind Kind) {
 func (r *Resolver) Resolve(prog *ast.Program) *Info {
 	// Modules are hoisted, so collect their names before resolving anything.
 	r.collectModules(prog.Nodes)
+	r.hoistFunctions(prog.Nodes)
 
 	for _, n := range prog.Nodes {
 		r.node(n)
@@ -233,6 +240,37 @@ func (r *Resolver) collectModules(nodes []ast.Node) {
 			}
 		case *ast.Import:
 			r.hasImport = true
+		}
+	}
+}
+
+// hoistFunctions declares every top-level function-valued `let` before anything
+// is resolved, so two functions that call each other can both live at the top
+// level. Wrapping them in a module was the only way to write that, which is a
+// strange thing to have to do for two free functions.
+//
+// Only the top level, and only `let` whose value is a function literal. A
+// hoisted name is in scope during its own initializer by construction, so
+// hoisting anything else would defeat the `pending` check that catches
+// `let x = x`; and a function value is the one case the evaluator can hoist to
+// match, since a function literal needs nothing evaluated first.
+func (r *Resolver) hoistFunctions(nodes []ast.Node) {
+	for _, n := range nodes {
+		let, ok := n.(*ast.Let)
+		if !ok || let.Name == nil {
+			continue
+		}
+		if _, isFunc := let.Value.(*ast.Function); !isFunc {
+			continue
+		}
+		// Already taken — by a module, a builtin, or an earlier `let` of the
+		// same name. Leave it to binding, which reports the collision where the
+		// second declaration is written.
+		if _, taken := r.current.names[let.Name.Value]; taken {
+			continue
+		}
+		if b := r.declare(let.Name, KindLet, false); b != nil {
+			r.hoisted[b] = true
 		}
 	}
 }
@@ -496,7 +534,15 @@ func (r *Resolver) binding(name *ast.Identifier, value ast.Node, kind Kind, muta
 	// Marking it pending meanwhile catches the case that cannot mean anything,
 	// `let x = x`. The pending check looks only at the innermost scope, and a
 	// function body opens a new one, so the two do not conflict.
-	r.declare(name, kind, mutable)
+	// A hoisted name is already declared. Claim it rather than declaring it
+	// again, which would report the hoist as a redeclaration of itself; a
+	// second `let` of the same name finds it unclaimed and is reported.
+	if b, ok := r.current.names[name.Value]; ok && r.hoisted[b] {
+		delete(r.hoisted, b)
+		r.info.decls[name] = b
+	} else {
+		r.declare(name, kind, mutable)
+	}
 
 	r.current.pending[name.Value] = true
 	r.node(value)

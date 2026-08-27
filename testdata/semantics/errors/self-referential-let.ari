@@ -1,0 +1,5 @@
+// A name read inside its own initializer, in the same scope, cannot mean
+// anything. Hoisting is restricted to function literals so that this still
+// holds: a hoisted name is in scope during its own initializer by construction.
+let x = x
+println(x)
