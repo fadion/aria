@@ -1,0 +1,32 @@
+// Anything shaped like a domain object had no home. A module holds only `let`
+// and cannot be instantiated; a dictionary carries data but no identity, so
+// typeof said "Dictionary" for every one of them.
+record Point
+  x: Int
+  y: Int
+end
+
+let p = Point(1, 2)
+println(p)
+println(p.x)
+println(p.y)
+
+// A record's fields are a parameter list, so constructing one is an ordinary
+// call: the same arity check, the same type hints, the same defaults. That is
+// why a record needs no construction syntax of its own.
+record Config
+  host: String
+  port: Int = 8080
+  debug: Bool = false
+end
+println(Config("localhost"))
+println(Config("localhost", 9000))
+println(Config("localhost", 9000, true))
+
+// A field with no hint takes anything.
+record Box
+  contents
+end
+println(Box(1))
+println(Box("anything"))
+println(Box([1, 2]))

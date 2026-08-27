@@ -41,6 +41,7 @@ const (
 	TDict
 	TFunc
 	TModule
+	TRecord
 )
 
 func (t Type) String() string {
@@ -63,6 +64,8 @@ func (t Type) String() string {
 		return "Function"
 	case TModule:
 		return "Module"
+	case TRecord:
+		return "Record"
 	}
 	return "Nil"
 }
@@ -72,21 +75,23 @@ func (t Type) String() string {
 // yet annotated" and `: Any` means "anything, deliberately".
 const Any = "Any"
 
-// TypeNames are the names a type annotation, `is` or `as` may use.
+// TypeNames are the built-in names a type annotation, `is` or `as` may use. A
+// declared record adds its own, which the resolver knows about and this package
+// does not.
 func TypeNames() []string {
-	names := make([]string, 0, int(TModule)+2)
-	for t := TNil; t <= TModule; t++ {
+	names := make([]string, 0, int(TRecord)+2)
+	for t := TNil; t <= TRecord; t++ {
 		names = append(names, t.String())
 	}
 	return append(names, Any)
 }
 
-// IsTypeName reports whether s names a type an annotation may use.
+// IsTypeName reports whether s names a built-in type.
 func IsTypeName(s string) bool {
 	if s == Any {
 		return true
 	}
-	for t := TNil; t <= TModule; t++ {
+	for t := TNil; t <= TRecord; t++ {
 		if t.String() == s {
 			return true
 		}
@@ -443,6 +448,20 @@ func Equal(a, b Value) bool {
 		case String:
 			return string(a) == string(b)
 		}
+	case *Record:
+		// Same declaration and equal fields. Two records of different types are
+		// never equal, however their fields line up — that is what having a
+		// type identity is for.
+		bb, ok := b.(*Record)
+		if !ok || a.Def != bb.Def {
+			return false
+		}
+		for i := range a.values {
+			if !Equal(a.values[i], bb.values[i]) {
+				return false
+			}
+		}
+		return true
 	case *Array:
 		bb, ok := b.(*Array)
 		if !ok || a.Len() != bb.Len() {
@@ -504,4 +523,89 @@ func SortedKeys(d *Dict) []Value {
 		return keys[i].Inspect() < keys[j].Inspect()
 	})
 	return keys
+}
+
+// ---------------------------------------------------------------------------
+// Records
+// ---------------------------------------------------------------------------
+
+// A RecordType is a declared record: a name and a fixed list of field names.
+// One of these is shared by every instance, so identity is pointer equality and
+// a field lookup is a small scan rather than a hash.
+type RecordType struct {
+	Name   string
+	Fields []string
+}
+
+// Index returns where a field sits, or -1.
+func (t *RecordType) Index(name string) int {
+	for i, f := range t.Fields {
+		if f == name {
+			return i
+		}
+	}
+	return -1
+}
+
+// Record is an instance. Fields are positional, in declaration order, because
+// the shape is fixed at declaration and a map would cost a hash per access to
+// store what the type already knows.
+//
+// Immutable like every other collection: With returns a new record.
+type Record struct {
+	Def    *RecordType
+	values []Value
+}
+
+// NewRecord takes ownership of values, which must match the type's field count.
+func NewRecord(def *RecordType, values []Value) *Record {
+	return &Record{Def: def, values: values}
+}
+
+func (*Record) Type() Type { return TRecord }
+
+func (r *Record) String() string {
+	parts := make([]string, 0, len(r.values))
+	for i, f := range r.Def.Fields {
+		parts = append(parts, f+": "+r.values[i].Inspect())
+	}
+	return r.Def.Name + "(" + strings.Join(parts, ", ") + ")"
+}
+
+func (r *Record) Inspect() string { return r.String() }
+
+// Values returns the fields in declaration order, for reading.
+func (r *Record) Values() []Value { return r.values }
+
+func (r *Record) Get(name string) (Value, bool) {
+	at := r.Def.Index(name)
+	if at < 0 {
+		return nil, false
+	}
+	return r.values[at], true
+}
+
+// With returns a new record with one field replaced. The receiver is untouched,
+// for the reason every other collection copies: an update that wrote in place
+// could change a value computed earlier.
+func (r *Record) With(name string, v Value) (*Record, bool) {
+	at := r.Def.Index(name)
+	if at < 0 {
+		return nil, false
+	}
+	out := make([]Value, len(r.values))
+	copy(out, r.values)
+	out[at] = v
+	return &Record{Def: r.Def, values: out}, true
+}
+
+// TypeName is what `typeof` reports and what `is` tests against.
+//
+// A record answers its own name rather than "Record", which is the whole point
+// of the feature: without it a record is a dictionary with extra steps.
+func TypeName(v Value) string {
+	if r, ok := v.(*Record); ok {
+		return r.Def.Name
+	}
+	return v.Type().String()
 }

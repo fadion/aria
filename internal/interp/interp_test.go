@@ -2223,3 +2223,118 @@ func TestImportIsTopLevelOnly(t *testing.T) {
 		t.Errorf("got %v", err)
 	}
 }
+
+// Structured data had no home: a module holds only `let` and cannot be
+// instantiated, and a dictionary carries data but no identity.
+func TestRecords(t *testing.T) {
+	const decl = `record Point
+  x: Int
+  y: Int
+end
+`
+	tests := []struct{ src, want string }{
+		// A record's fields are a parameter list, so construction is a call.
+		{decl + `println(Point(1, 2))`, "Point(x: 1, y: 2)"},
+		{decl + `println(Point(1, 2).x)`, "1"},
+		// Identity is the point.
+		{decl + `println(typeof(Point(1, 2)))`, "Point"},
+		{decl + `println(Point(1, 2) is Point)`, "true"},
+		{decl + `println(Point(1, 2) is Dictionary)`, "false"},
+		{decl + `println(Point(1, 2) is Any)`, "true"},
+		{decl + `println(Point(1, 2) == Point(1, 2))`, "true"},
+		{decl + `println(Point(1, 2) == Point(1, 3))`, "false"},
+		{decl + `println(typeof(Point))`, "Record"},
+		// Same fields, different type.
+		{decl + `record Size
+  x: Int
+  y: Int
+end
+println(Point(1, 2) == Size(1, 2))`, "false"},
+		// A hint names a record like any other type, and a case matches it.
+		{decl + `let f = func (p: Point) -> Int do p.x end
+println(f(Point(7, 0)))`, "7"},
+		{decl + `println(switch Point(1, 2) do case is Point then "yes" default then "no" end)`, "yes"},
+		{decl + `println(switch [:x => 1] do case is Point then "yes" default then "no" end)`, "no"},
+		// Defaults fill in omitted trailing fields.
+		{`record Config
+  host: String
+  port: Int = 8080
+end
+println(Config("localhost"))`, `Config(host: "localhost", port: 8080)`},
+		// An unhinted field takes anything.
+		{`record Box
+  contents
+end
+println(Box([1, 2]))`, "Box(contents: [1, 2])"},
+	}
+	for _, test := range tests {
+		if got := withStdlib(t, test.src); got != test.want {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+
+	fails(t, decl+`println(Point(1))`, "expects at least 2 field(s), got 1")
+	fails(t, decl+`println(Point(1, 2, 3))`, "expects at most 2 field(s), got 3")
+	fails(t, decl+`println(Point(1, "two"))`, "field 'y' expects Int, got String")
+	fails(t, decl+`println(Point(1, 2).nope)`, "Point has no field 'nope'")
+	fails(t, decl+decl, "record 'Point' is already declared")
+	fails(t, `record Point
+  x: Int
+  x: Int
+end`, "declares 'x' twice")
+}
+
+// Records are immutable like everything else, so a field write rebinds the name
+// — the reading `a[0] = v` already had under the frozen-collections rule.
+func TestRecordUpdateReturnsNew(t *testing.T) {
+	if got := output(t, `record Point
+  x: Int
+  y: Int
+end
+var p = Point(1, 2)
+let before = p
+p.x = 5
+println(p)
+println(before)`); got != "Point(x: 5, y: 2)\nPoint(x: 1, y: 2)\n" {
+		t.Errorf("got %q", got)
+	}
+
+	// It nests, through records and dictionaries alike.
+	if got := output(t, `record Point
+  x: Int
+  y: Int
+end
+record Line
+  from: Point
+  to: Point
+end
+var l = Line(Point(0, 0), Point(1, 1))
+l.to.x = 9
+println(l)`); got != "Line(from: Point(x: 0, y: 0), to: Point(x: 9, y: 1))\n" {
+		t.Errorf("got %q", got)
+	}
+
+	if got := output(t, `var cfg = [:db => [:host => "old"]]
+cfg.db.host = "new"
+println(cfg)`); got != `[:db => [:host => "new"]]`+"\n" {
+		t.Errorf("got %q", got)
+	}
+
+	// A let-bound record cannot be written through, for the reason a let-bound
+	// array cannot.
+	fails(t, `record Point
+  x: Int
+end
+let p = Point(1)
+p.x = 2`, "cannot modify 'p'")
+
+	// And the reassignment type lock tells two records apart.
+	fails(t, `record Point
+  x: Int
+end
+record Size
+  x: Int
+end
+var v = Point(1)
+v = Size(1)`, "holds Point, so it cannot be assigned Size")
+}

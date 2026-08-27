@@ -1,0 +1,4 @@
+errors.ari:5:21: error: Point has no field 'nope'
+  println(Point(1, 2).nope)
+                      ^^^^
+--- exit: 1

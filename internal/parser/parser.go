@@ -286,7 +286,7 @@ func startsConstruct(kind token.Kind) bool {
 	switch kind {
 	case token.Let, token.Var, token.Func, token.If, token.Switch, token.For,
 		token.While, token.Until, token.Try,
-		token.Module, token.Import, token.Return, token.Break, token.Continue,
+		token.Module, token.Record, token.Import, token.Return, token.Break, token.Continue,
 		token.Case, token.Default, token.End:
 		return true
 	}
@@ -403,6 +403,8 @@ func (p *Parser) parsePrefix() ast.Node {
 		return p.parseIf()
 	case token.Switch:
 		return p.parseSwitch()
+	case token.Record:
+		return p.parseRecord()
 	case token.Try:
 		return p.parseTry()
 	case token.While:
@@ -817,21 +819,29 @@ func (p *Parser) parseAssign(left ast.Node) ast.Node {
 	op := p.tok
 	operator := p.text(op)
 
-	switch target := left.(type) {
+	// Indexing and field access can nest, as in `a[0].x`, so walk down to the
+	// name being written through rather than checking one level. Under the
+	// frozen-collections rule every one of these is a rebinding of that name,
+	// which is what makes them the same shape.
+	switch left.(type) {
 	case *ast.Identifier:
-	case *ast.Subscript:
-		// Indexing can nest, as in a[0][1], so walk down to the name being
-		// written through rather than only checking one level.
-		base := ast.Node(target)
+	case *ast.Subscript, *ast.Access:
+		base := left
 		for {
-			sub, ok := base.(*ast.Subscript)
-			if !ok {
+			switch t := base.(type) {
+			case *ast.Subscript:
+				base = t.Left
+			case *ast.Access:
+				base = t.Left
+			default:
+				if _, ok := base.(*ast.Identifier); !ok {
+					return p.bad(left.Span(), "assignment expects a name on the left")
+				}
+				base = nil
+			}
+			if base == nil {
 				break
 			}
-			base = sub.Left
-		}
-		if _, ok := base.(*ast.Identifier); !ok {
-			return p.bad(left.Span(), "assignment expects a name on the left")
 		}
 	default:
 		return p.bad(left.Span(), "assignment expects a name on the left")
@@ -1458,6 +1468,77 @@ func (p *Parser) parseModule() ast.Node {
 		Name: name,
 		Body: body,
 	}
+}
+
+// parseRecord reads `record Name field... end`.
+//
+// A field is a name, an optional type hint and an optional default — the same
+// shape as a parameter, and read by the same code, because a record's
+// constructor is a call and its fields are that call's parameters.
+func (p *Parser) parseRecord() ast.Node {
+	start := p.tok.Span
+
+	if !p.expectPeek(token.Ident) {
+		return &ast.Bad{Base: ast.Base{Sp: start}, Text: "record"}
+	}
+	node := &ast.Record{
+		Base: ast.Base{Sp: start},
+		Name: &ast.Identifier{Base: ast.Base{Sp: p.tok.Span}, Value: p.text(p.tok)},
+	}
+
+	if p.atPeek(token.Do) {
+		p.advance()
+	}
+	p.advance()
+
+	for !p.at(token.End, token.EOF) {
+		if p.at(token.Newline, token.Comma) {
+			p.advance()
+			continue
+		}
+		if !p.at(token.Ident) {
+			return p.bad(p.tok.Span, "a record body takes field names, found %s", p.describe(p.tok))
+		}
+
+		field, ok := p.parseField()
+		if !ok {
+			return field
+		}
+		node.Fields = append(node.Fields, field.(*ast.FunctionParameter))
+		p.advance()
+	}
+
+	if !p.at(token.End) {
+		return p.bad(span(start, p.tok.Span), "missing 'end' to close 'record'")
+	}
+
+	node.Sp = span(start, p.tok.Span)
+	return node
+}
+
+// parseField reads one `name[: Type][= default]`. The cursor is on the name.
+func (p *Parser) parseField() (ast.Node, bool) {
+	field := &ast.FunctionParameter{
+		Base: ast.Base{Sp: p.tok.Span},
+		Name: &ast.Identifier{Base: ast.Base{Sp: p.tok.Span}, Value: p.text(p.tok)},
+	}
+
+	if p.atPeek(token.Colon) {
+		p.advance()
+		if !p.expectPeek(token.Ident) {
+			return &ast.Bad{Base: ast.Base{Sp: field.Sp}, Text: field.Name.Value}, false
+		}
+		field.Type = &ast.Identifier{Base: ast.Base{Sp: p.tok.Span}, Value: p.text(p.tok)}
+	}
+
+	if p.atPeek(token.Assign) {
+		p.advance()
+		p.advance()
+		field.Default = p.parseExpr(precAssign)
+	}
+
+	field.Sp = span(field.Sp, p.tok.Span)
+	return field, true
 }
 
 // parseFunction reads `func (params) [-> Type] body end`.

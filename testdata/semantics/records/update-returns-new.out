@@ -1,0 +1,6 @@
+Point(x: 5, y: 2)
+Point(x: 1, y: 2)
+Line(from: Point(x: 0, y: 0), to: Point(x: 9, y: 1))
+[:db => [:host => "new"]]
+[Point(x: 7, y: 1), Point(x: 2, y: 2)]
+--- exit: 0

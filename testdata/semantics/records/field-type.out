@@ -1,0 +1,4 @@
+field-type.ari:5:9: error: Point field 'y' expects Int, got String
+  println(Point(1, "two"))
+          ^^^^^^^^^^^^^^^
+--- exit: 1

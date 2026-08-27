@@ -1,0 +1,4 @@
+arity.ari:5:9: error: Point expects at least 2 field(s), got 1
+  println(Point(1))
+          ^^^^^^^^
+--- exit: 1

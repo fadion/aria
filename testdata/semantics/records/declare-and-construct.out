@@ -1,0 +1,10 @@
+Point(x: 1, y: 2)
+1
+2
+Config(host: "localhost", port: 8080, debug: false)
+Config(host: "localhost", port: 9000, debug: false)
+Config(host: "localhost", port: 9000, debug: true)
+Box(contents: 1)
+Box(contents: "anything")
+Box(contents: [1, 2])
+--- exit: 0

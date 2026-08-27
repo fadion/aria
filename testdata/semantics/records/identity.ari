@@ -1,0 +1,44 @@
+// The point of the feature: without an identity a record is a dictionary with
+// extra steps.
+record Point
+  x: Int
+  y: Int
+end
+record Size
+  x: Int
+  y: Int
+end
+
+let p = Point(1, 2)
+println(typeof(p))
+println(p is Point)
+println(p is Size)
+println(p is Dictionary)
+println(p is Any)
+
+// Two records with the same field values are still different types.
+println(Point(1, 2) == Point(1, 2))
+println(Point(1, 2) == Point(1, 3))
+println(Point(1, 2) == Size(1, 2))
+
+// A record name is a value, and the declaration itself is a Record.
+println(typeof(Point))
+println(Point)
+
+// A hint names a record like any other type.
+let distance = func (a: Point, b: Point) -> Int
+  Math.abs(a.x - b.x) + Math.abs(a.y - b.y)
+end
+println(distance(Point(0, 0), Point(3, 4)))
+
+// And a switch matches on it.
+let describe = func (v) do
+  switch v
+  case is Point then "a point"
+  case is Size then "a size"
+  case is Any then "something else"
+  end
+end
+println(describe(Point(1, 2)))
+println(describe(Size(1, 2)))
+println(describe([:x => 1]))
