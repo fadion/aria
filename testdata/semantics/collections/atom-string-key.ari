@@ -1,0 +1,22 @@
+// `:a == "a"` is true, so the two have to be interchangeable as dictionary
+// keys. They were not: KeyOf tagged an Atom TAtom and a String TString, so
+// d["a"] missed an entry written as :a while claiming the keys were equal.
+// An Atom now keys as the String of its text; the dictionary keeps the key it
+// was given, so the atom spelling survives to display.
+let d = [:a => 1, :b => 2]
+println(d[:a])
+println(d["a"])
+println(d)
+
+let e = ["a" => 1]
+println(e[:a])
+println(e)
+
+// One entry, not two. The last value wins and the first spelling stays, which
+// is what [1 => x, 1.0 => y] already did.
+println([:a => 1, "a" => 2])
+
+// Distinct types still key apart. Only Atom and String were ever claimed equal.
+let f = [1 => "int one", "1" => "string one"]
+println(f[1])
+println(f["1"])

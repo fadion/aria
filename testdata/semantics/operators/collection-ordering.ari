@@ -1,0 +1,5 @@
+// `<` and `>` on Arrays and Dictionaries used to compare lengths, while `<=`
+// and `>=` were not defined on them at all — so four comparison operators meant
+// two different things on one type. And the meaning they had is not the one
+// they read as: `[1, 2, 3] < [9]` was false, because it asked whether 3 < 1.
+println([1, 2, 3] < [9])

@@ -1,0 +1,4 @@
+collection-ordering.ari:5:9: error: Arrays have no order; to compare lengths write Enum.size(a) < Enum.size(b)
+  println([1, 2, 3] < [9])
+          ^^^^^^^^^^^^^^^
+--- exit: 1

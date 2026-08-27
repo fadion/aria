@@ -315,3 +315,38 @@ func TestTypeNames(t *testing.T) {
 		}
 	}
 }
+
+// Equality and keying may not contradict each other. Equal said an Atom and the
+// String of the same text were equal while KeyOf tagged them apart, so d[:a]
+// and d["a"] reached different entries in a dictionary whose keys the language
+// claimed were equal.
+func TestAtomAndStringKeyAlike(t *testing.T) {
+	ka, ok := KeyOf(Atom("a"))
+	if !ok {
+		t.Fatal("an Atom cannot be a key")
+	}
+	ks, ok := KeyOf(String("a"))
+	if !ok {
+		t.Fatal("a String cannot be a key")
+	}
+	if ka != ks {
+		t.Errorf("KeyOf(:a) = %+v, KeyOf(\"a\") = %+v; equal values must key alike", ka, ks)
+	}
+
+	d := NewDict([]Pair{{Key: Atom("a"), Value: Int(1)}})
+	if v, found := d.Get(String("a")); !found || !Equal(v, Int(1)) {
+		t.Errorf(`d["a"] on [:a => 1] = %v, %v; want 1, true`, v, found)
+	}
+
+	// The key keeps the spelling it was given.
+	if got := d.Inspect(); got != "[:a => 1]" {
+		t.Errorf("got %s, want [:a => 1]", got)
+	}
+
+	// Types that were never claimed equal still key apart.
+	ki, _ := KeyOf(Int(1))
+	k1, _ := KeyOf(String("1"))
+	if ki == k1 {
+		t.Error("1 and \"1\" key alike")
+	}
+}

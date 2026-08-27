@@ -969,14 +969,19 @@ func (i *Interp) textOp(op string, l string, right value.Value, span source.Span
 	return value.NilValue
 }
 
+// arrayOp implements the operators defined on two Arrays.
+//
+// Ordering is not among them. `<` and `>` used to compare lengths while `<=`
+// and `>=` were not defined at all, so the four comparison operators meant two
+// different things on one type — and the one they did mean is not what they
+// read as: `[1, 2, 3] < [9]` was false, because it asked whether 3 < 1. Length
+// has a spelling that says so.
 func (i *Interp) arrayOp(op string, l, r *value.Array, span source.Span) value.Value {
 	switch op {
 	case "+":
 		return l.Concat(r)
-	case "<":
-		return value.Of(l.Len() < r.Len())
-	case ">":
-		return value.Of(l.Len() > r.Len())
+	case "<", "<=", ">", ">=":
+		i.fail(span, "Arrays have no order; to compare lengths write Enum.size(a) %s Enum.size(b)", op)
 	}
 	i.fail(span, "unknown Array operator '%s'", op)
 	return value.NilValue
@@ -988,10 +993,9 @@ func (i *Interp) dictOp(op string, l, r *value.Dict, span source.Span) value.Val
 		// Returns a new dictionary. The original folded the left operand into
 		// the right and returned it, silently modifying an operand.
 		return l.Merge(r)
-	case "<":
-		return value.Of(l.Len() < r.Len())
-	case ">":
-		return value.Of(l.Len() > r.Len())
+	case "<", "<=", ">", ">=":
+		// Same ruling as arrayOp: a dictionary has no order to compare.
+		i.fail(span, "Dictionaries have no order; to compare sizes write Dict.size(a) %s Dict.size(b)", op)
 	}
 	i.fail(span, "unknown Dictionary operator '%s'", op)
 	return value.NilValue

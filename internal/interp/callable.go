@@ -222,9 +222,8 @@ func (i *Interp) evalModuleAccess(n *ast.ModuleAccess, e *env) value.Value {
 	// keeps `config.host` working for plain data.
 	if v, ok := e.lookup(n.Object.Value); ok {
 		if d, isDict := v.(*value.Dict); isDict {
-			if member, found := d.Get(value.Atom(n.Parameter.Value)); found {
-				return member
-			}
+			// One lookup covers both spellings: an Atom keys as the String of
+			// its text, so `config.host` finds :host and "host" alike.
 			if member, found := d.Get(value.String(n.Parameter.Value)); found {
 				return member
 			}
