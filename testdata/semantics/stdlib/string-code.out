@@ -1,0 +1,14 @@
+65
+A
+233
+é
+128512
+😀
+97
+λ
+true
+nil
+runtime_from_code() expects a Unicode codepoint, got -1
+runtime_from_code() expects a Unicode codepoint, got 1114112
+runtime_from_code() expects a Unicode codepoint, got 55296
+--- exit: 0

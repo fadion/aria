@@ -943,6 +943,44 @@ The reassignment type lock deliberately does not go through it. That check compa
 values' names directly, because a `var` holding a `Point` must still refuse a `Size` even
 though both satisfy `Record`.
 
+### An alias cannot carry a module or a record
+
+`import "file" as Name` works by resolving the unit into a scope of its own and turning that
+scope into a module, which is why aliasing needed no machinery the language did not already
+have. The catch is that a module body holds only `let`: modules do not nest and a record
+cannot live in one, enforced everywhere a module is written by hand.
+
+So a `module` or `record` declared in an aliased file has nowhere to go, and it used to go
+nowhere quietly. Both halves of the implementation collected members from `ast.Let` and
+`ast.Var` only, so the declaration was dropped by the resolver and by `defineModule` alike.
+Neither `Lib.Shapes` nor a bare `Shapes` resolved, and the diagnostic named the alias, which
+reads as a typo in the caller rather than as a problem with the import.
+
+Making it work would mean modules that nest and records inside modules, reachable only
+through an aliased import and never writable by hand, which is a language change to serve
+one corner. The other direction is cheap and honest: a file that declares a module already
+namespaces itself, which is the whole job of the alias, so the two are redundant. It is now
+an error saying exactly that, reported against the declaration in the file that made it.
+
+### A codepoint and a character, in both directions
+
+Strings index by rune and a literal can name a codepoint with `\u{...}`, but nothing went
+between an `Int` and a character, so a computed character was unreachable: ciphers, base
+conversion, and any interpreter with an output instruction. `examples/brainfuck.ari` carried
+95 characters of printable ASCII as a lookup table to print anything at all.
+
+`String.code` answers the first rune's codepoint, and `nil` for an empty string, the way
+`String.first` does. There is no codepoint to give, and an empty string is ordinary data.
+`String.fromCode` raises for a number that is not a codepoint, a surrogate included, because
+that is the caller's arithmetic being wrong rather than an outcome to handle. Go answers
+U+FFFD for both, which would turn the mistake into a replacement character that travels
+instead of an error where it happened.
+
+The two builtin lists, `resolver.Builtins` and the evaluator's `def` calls, had nothing
+tying them together, and adding these to the evaluator alone made the standard library fail
+to resolve with no hint that a list elsewhere was short. `TestBuiltinListsAgree` compares
+them now.
+
 ## What a release promises
 
 [compatibility.md](compatibility.md) is the user-facing half of this file: what a version

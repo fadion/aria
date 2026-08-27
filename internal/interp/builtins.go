@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/fadion/aria/internal/source"
@@ -327,6 +328,38 @@ func (i *Interp) installBuiltins() {
 			ip.fail(span, "runtime_repeat() expects a non-negative count")
 		}
 		return value.String(strings.Repeat(string(str), int(times)))
+	})
+
+	// A codepoint and a character, in both directions. Strings index by rune and
+	// a literal can name a codepoint with \u{...}, but neither direction was
+	// reachable from a value, so a computed character was out of reach --
+	// ciphers, base conversion, and any interpreter with an output instruction.
+	def("runtime_from_code", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		ip.wantArgs("runtime_from_code", args, 1, span)
+		code, ok := args[0].(value.Int)
+		if !ok {
+			ip.fail(span, "runtime_from_code() expects an Int, got %s", args[0].Type())
+		}
+		// Go answers U+FFFD for anything that is not a codepoint, which would
+		// turn a caller's arithmetic mistake into a replacement character that
+		// travels instead of an error where it happened. Surrogates go the same
+		// way: they are not characters, and encoding one also yields U+FFFD.
+		if code < 0 || code > unicode.MaxRune || (code >= 0xD800 && code <= 0xDFFF) {
+			ip.fail(span, "runtime_from_code() expects a Unicode codepoint, got %d", int64(code))
+		}
+		return value.String(string(rune(code)))
+	})
+
+	def("runtime_code", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		str := ip.wantString("runtime_code", args, span)
+		// Nil for an empty string, the way a subscript past the end answers nil
+		// and String.first answers nil. There is no codepoint to give, and an
+		// empty string is ordinary data rather than a caller's mistake.
+		if str == "" {
+			return value.NilValue
+		}
+		r, _ := utf8.DecodeRuneInString(str)
+		return value.Int(r)
 	})
 
 	def("runtime_reverse", func(ip *Interp, args []value.Value, span source.Span) value.Value {

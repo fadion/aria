@@ -1,0 +1,5 @@
+// A module or a record in a file imported under an alias cannot be reached:
+// an alias works by making the unit's scope a module, and a module body holds
+// only `let`. Reported against the declaration, in the file that made it.
+import "_aliased" as Lib
+println(Lib.plain)

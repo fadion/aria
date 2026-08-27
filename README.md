@@ -1438,6 +1438,8 @@ println(Geo.area(3, 4))
 
 An alias is a module, so it's checked like any other one and a member that isn't there gets you a diagnostic instead of a surprise at runtime. Import cycles are fine, as a file that's already been pulled in won't be pulled in twice.
 
+Because an alias is a module, and a module body holds only `let`, a file that declares its own `module` or `record` can't be aliased. It doesn't need to be either, since it already namespaces itself, so import it without the `as` and use the name it gave you.
+
 A more useful pattern would be to wrap imported files into a module. That would make for a more intuitive system and prevent scope leakage. The cat case above could be written simply into:
 
 ```swift
@@ -1577,7 +1579,7 @@ The Standard Library is fully written in Aria with the help of a few essential f
 
 Nine modules come with it:
 
-**`String`**: `count`, `isEmpty?`, `first`, `last`, `lower`, `upper`, `capitalize`, `reverse`, `slice`, `repeat`, `padLeft`, `padRight`, `trim`, `trimLeft`, `trimRight`, `join`, `split`, `lines`, `words`, `indexOf`, `lastIndexOf`, `starts?`, `ends?`, `contains?`, `replace`, `match?`.
+**`String`**: `count`, `isEmpty?`, `first`, `last`, `code`, `fromCode`, `lower`, `upper`, `capitalize`, `reverse`, `slice`, `repeat`, `padLeft`, `padRight`, `trim`, `trimLeft`, `trimRight`, `join`, `split`, `lines`, `words`, `indexOf`, `lastIndexOf`, `starts?`, `ends?`, `contains?`, `replace`, `match?`.
 
 `trim` and its two halves strip whitespace, unless you hand them a set of characters to strip instead, and they strip every leading or trailing occurrence of it:
 
@@ -1587,6 +1589,17 @@ String.trimLeft("xxhi", "x") // "hi"
 ```
 
 `indexOf` and `lastIndexOf` answer with `-1` when there's nothing to find, so "not found" doesn't get confused with "found at 0".
+
+`code` and `fromCode` go between a character and its codepoint, which is what you need whenever a character is computed rather than written down. Codepoints and not bytes, like everything else about strings here:
+
+```swift
+println(String.code("A"))       // 65
+println(String.fromCode(233))   // "é"
+println(String.code("😀"))      // 128512
+println(String.code(""))        // nil, like String.first
+```
+
+A number that isn't a codepoint raises, since that's the caller's arithmetic being wrong rather than an outcome to handle.
 
 **`Math`**: `pi`, `e`, `infinity`, `nan`, `floor`, `ceil`, `round`, `trunc`, `max`, `min`, `clamp`, `random`, `abs`, `sign`, `pow`, `sqrt`, `cbrt`, `exp`, `log`, `log2`, `log10`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `isNaN?`, `isInfinite?`.
 

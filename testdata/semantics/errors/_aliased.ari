@@ -1,0 +1,7 @@
+module Shapes
+  let area = func (r) do r * r end
+end
+record Point
+  x: Int
+end
+let plain = 42
