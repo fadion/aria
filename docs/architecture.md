@@ -921,6 +921,28 @@ go test ./internal/scanner/ -run=Fuzz -fuzz=FuzzScan -fuzztime=30s
 go test ./internal/parser/  -run=Fuzz -fuzz=FuzzParse -fuzztime=30s
 ```
 
+### `Record` names any record
+
+`Record` was in the accepted set of type names and satisfied by nothing. `TypeName` answers
+a record's own name — identity being the point of having records rather than dictionaries —
+and every type check compared against that, so `Record` could only ever match a record
+literally called `Record`. A hint written with it resolved cleanly and then rejected every
+argument it was given.
+
+It now means "any record", which is what `Module` already meant for free, nothing having
+overridden its type name. `Point(1) is Record` is true, `Point(1) is Point` is still true,
+and `Point(1) is Size` is still false: the category is added without blurring the identities
+underneath it.
+
+The three rules live in `value.Satisfies` rather than at each site that asks. There are five
+— parameter hints, return hints, `is`, `case is`, and a record field — and every one of them
+was special-casing `Any` on its own, so `Record` would have been a second special case in
+five places.
+
+The reassignment type lock deliberately does not go through it. That check compares two
+values' names directly, because a `var` holding a `Point` must still refuse a `Size` even
+though both satisfy `Record`.
+
 ## What a release promises
 
 [compatibility.md](compatibility.md) is the user-facing half of this file: what a version

@@ -1,0 +1,44 @@
+// `Record` names any record, the way `Any` names anything. A record still
+// answers its own name to typeof and still satisfies only itself among records,
+// so `Record` adds a category without blurring the identities under it.
+record Point
+  x: Int
+end
+record Size
+  x: Int
+end
+
+println(Point(1) is Record)
+println(Point(1) is Point)
+println(Point(1) is Size)
+println(typeof(Point(1)))
+
+// Not a record, and a record is not a dictionary either.
+println([1] is Record)
+println([=>] is Record)
+println(42 is Record)
+println(Point(1) is Dictionary)
+
+// As a hint, in every position that takes one.
+let widen = func (r: Record) -> Record
+  r
+end
+println(widen(Point(1)))
+println(widen(Size(1)))
+
+record Boxed
+  inner: Record
+end
+println(Boxed(Point(1)))
+
+// In case position, specific before general.
+let describe = func (v)
+  switch v
+  case is Point then "a Point"
+  case is Record then "some other record"
+  default then "not a record"
+  end
+end
+println(describe(Point(1)))
+println(describe(Size(1)))
+println(describe("text"))

@@ -350,3 +350,42 @@ func TestAtomAndStringKeyAlike(t *testing.T) {
 		t.Error("1 and \"1\" key alike")
 	}
 }
+
+// `Record` names any record, the way `Any` names anything and `Module` already
+// named any module. TypeName answers a record's own name, so before this rule
+// `Record` was in the accepted set of type names and satisfied by nothing: a
+// hint written with it resolved and then rejected every argument.
+//
+// What must not follow is one record satisfying another. That is what keeps a
+// Point out of a var declared holding a Size.
+func TestSatisfies(t *testing.T) {
+	point := NewRecord(&RecordType{Name: "Point", Fields: []string{"x"}}, []Value{Int(1)})
+	size := NewRecord(&RecordType{Name: "Size", Fields: []string{"x"}}, []Value{Int(1)})
+
+	tests := []struct {
+		name string
+		v    Value
+		typ  string
+		want bool
+	}{
+		{"record is Record", point, "Record", true},
+		{"other record is Record", size, "Record", true},
+		{"record is its own name", point, "Point", true},
+		{"record is not another record", point, "Size", false},
+		{"array is not Record", NewArray(nil), "Record", false},
+		{"dictionary is not Record", NewDict(nil), "Record", false},
+		{"int is not Record", Int(1), "Record", false},
+		{"record is Any", point, Any, true},
+		{"int is Any", Int(1), Any, true},
+		{"nil is Any", NilValue, Any, true},
+		{"int is Int", Int(1), "Int", true},
+		{"int is not String", Int(1), "String", false},
+		{"record is not Dictionary", point, "Dictionary", false},
+	}
+	for _, test := range tests {
+		if got := Satisfies(test.v, test.typ); got != test.want {
+			t.Errorf("%s: Satisfies(%s, %q) = %v, want %v",
+				test.name, TypeName(test.v), test.typ, got, test.want)
+		}
+	}
+}

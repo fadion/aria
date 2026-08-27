@@ -104,7 +104,7 @@ person at a terminal, not for a script to drive.
 Most projects cannot make a compatibility promise honestly, because they have no way to
 notice breaking it. Aria can:
 
-- **222 characterization cases** recording exactly what the interpreter prints and the code
+- **223 characterization cases** recording exactly what the interpreter prints and the code
   it exits with, run seven times each to catch anything that varies.
 - **140 README code blocks**, executed, because the documentation is where the promise is
   written down and an example that stopped working is a broken promise.

@@ -609,3 +609,31 @@ func TypeName(v Value) string {
 	}
 	return v.Type().String()
 }
+
+// Satisfies reports whether v answers to a declared type name.
+//
+// Three rules, in one place because five sites ask the question -- parameter
+// hints, return hints, `is`, a `case is`, and a record field -- and each of them
+// was special-casing Any on its own.
+//
+// Any matches everything, which is how a hint says "anything" out loud rather
+// than by being left off.
+//
+// Record matches any record. TypeName answers a record's own name, because
+// identity is the whole point of having records rather than dictionaries, so
+// without this rule `Record` would be satisfied only by a record literally
+// named Record -- and it is in the accepted set, so a hint could resolve and
+// then reject every argument. Module already reads this way for free, since
+// nothing overrides its type name.
+//
+// Everything else matches its own name exactly. In particular one record does
+// not satisfy another, which is what keeps a Point out of a var holding a Size.
+func Satisfies(v Value, typeName string) bool {
+	switch typeName {
+	case Any:
+		return true
+	case TRecord.String():
+		return v.Type() == TRecord
+	}
+	return TypeName(v) == typeName
+}

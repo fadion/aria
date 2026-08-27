@@ -666,7 +666,7 @@ println(add(5, "two"))
 
 Aria is not a strong typed language, so type hinting is completely optional. Generally, it's a good idea to use it as a validation measure. Once you enforce a certain type, you'll be sure of how the function executes.
 
-A hint names one of `Nil`, `Bool`, `Int`, `Float`, `String`, `Atom`, `Array`, `Dictionary`, `Function`, `Module` or `Any`. Anything else is an error before the program runs, and the same goes for `is` and `as`. `Any` accepts everything, which is how you say "anything" out loud instead of by leaving the hint off:
+A hint names one of `Nil`, `Bool`, `Int`, `Float`, `String`, `Atom`, `Array`, `Dictionary`, `Function`, `Module`, `Record` or `Any`. A record's own name works too, so `Point` accepts that record and `Record` accepts any of them. Anything else is an error before the program runs, and the same goes for `is` and `as`. `Any` accepts everything, which is how you say "anything" out loud instead of by leaving the hint off:
 
 ```swift
 let identity = func (v: Any) -> Any

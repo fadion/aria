@@ -315,14 +315,11 @@ func (i *Interp) eval(n ast.Node, e *env) value.Value {
 	case *ast.Pipe:
 		return i.evalPipe(n, e)
 	case *ast.Is:
-		// `Any` is a name a hint may use, and everything is one.
-		if n.Right.Value == value.Any {
-			i.eval(n.Left, e)
-			return value.True
-		}
-		// TypeName, not Type().String(): a record answers its own name, which
-		// is the whole point of it having one.
-		return value.Of(value.TypeName(i.eval(n.Left, e)) == n.Right.Value)
+		// Evaluated whatever the name is: `x is Any` is true, but x may still
+		// have an effect worth having. Satisfies knows the three rules --
+		// `Any` matches everything, `Record` matches any record, and every
+		// other name matches exactly, so `x is Point` means that Point.
+		return value.Of(value.Satisfies(i.eval(n.Left, e), n.Right.Value))
 	case *ast.As:
 		return i.convert(i.eval(n.Left, e), n.Right.Value, n.Span())
 
@@ -839,12 +836,9 @@ func (i *Interp) caseValueMatches(el ast.Node, control value.Value, e *env) bool
 		return true
 
 	case *ast.TypeCase:
-		if el.Name.Value == value.Any {
-			return true
-		}
-		// TypeName, so `case is Point` matches a Point rather than every
-		// record.
-		return value.TypeName(control) == el.Name.Value
+		// `case is Point` matches a Point rather than every record, while
+		// `case is Record` matches any of them. See value.Satisfies.
+		return value.Satisfies(control, el.Name.Value)
 
 	case *ast.Array:
 		// An array literal in case position pattern-matches element by element,
