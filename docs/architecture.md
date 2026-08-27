@@ -242,6 +242,31 @@ Real division needs a `Float` operand: `10 / 4.0`.
 visibly a `Float`: `1.5`, `3.0`, `1e-05`. The old `%f` turned `1.5` into `1.500000` and
 `1e-5` into `0.000010`, losing the value entirely.
 
+**Integer arithmetic fails rather than wraps.** `+`, `-`, `*`, `**`, `<<`, `/` and unary
+`-` raise a runtime error when the result does not fit in an `Int`, instead of silently
+landing on a wrapped value.
+
+Aria's `Int` is one fixed-width signed integer. There is no unsigned counterpart, no way to
+name the width, and no operator that means "wrap deliberately" — so a program has no way to
+observe or intend a wrap, and a wrapped result is simply a wrong answer that looks like a
+computed one. That is the failure mode this codebase keeps removing: a plausible value that
+surfaces a long way from its cause. The cost is one comparison per operation, which a
+tree-walking interpreter does not notice.
+
+`**` follows from the same rule as `/`: it is computed in integer arithmetic, by squaring.
+Routing it through `math.Pow` lost precision above 2^53 and then converted out of range,
+which on amd64 produced `MinInt64` — so `3 ** 40` was a negative number.
+
+**A shift count of 64 or more is an error**, rather than Go's answer of shifting every bit
+out and yielding `0`. `1 << 100` is not `0`; it is a question about a 64-bit integer that
+has no answer.
+
+**Floats follow IEEE 754** and are left alone: overflow reaches `Inf`, which is a value the
+format defines. The one exception is `Float % 0.0`, which returned `NaN` while `Int / 0`,
+`Int % 0` and `Float / 0.0` all raised. A `NaN` propagates through arithmetic and compares
+false against everything including itself, so it is the same "surfaces far from its cause"
+shape. It raises now, like its siblings.
+
 ## Strings index by rune
 
 `"héllo"[1]` is `é`. The old runtime was inconsistent about this: anything built on
@@ -299,7 +324,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 139 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 143 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash

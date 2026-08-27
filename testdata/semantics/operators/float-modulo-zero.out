@@ -1,0 +1,5 @@
+1.0
+float-modulo-zero.ari:6:9: error: division by zero
+  println(5.0 % 0.0)
+          ^^^^^^^^^
+--- exit: 1

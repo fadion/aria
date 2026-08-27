@@ -778,6 +778,12 @@ func (i *Interp) evalPrefix(n *ast.Prefix, e *env) value.Value {
 	case "-":
 		switch v := v.(type) {
 		case value.Int:
+			// MinInt64 has no positive counterpart; Go negates it back to
+			// itself, which is the same silent wrong answer as any other
+			// overflow.
+			if int64(v) == math.MinInt64 {
+				i.fail(n.Span(), "Int overflow: -(%d) does not fit in an Int", int64(v))
+			}
 			return -v
 		case value.Float:
 			return -v
@@ -860,27 +866,62 @@ func (i *Interp) evalInfix(n *ast.Infix, e *env) value.Value {
 // result TYPE depended on the runtime values and a declared `-> Int` could fail
 // for inputs the author never tried.
 func (i *Interp) intOp(op string, l, r value.Int, span source.Span) value.Value {
+	a, b := int64(l), int64(r)
+
+	// check turns an overflow-reporting result into a value or a diagnostic.
+	check := func(n int64, ok bool) value.Value {
+		if !ok {
+			i.overflow(op, a, b, span)
+		}
+		return value.Int(n)
+	}
+
 	switch op {
 	case "+":
-		return l + r
+		return check(addInt(a, b))
 	case "-":
-		return l - r
+		return check(subInt(a, b))
 	case "*":
-		return l * r
+		return check(mulInt(a, b))
 	case "/":
-		if r == 0 {
+		if b == 0 {
 			i.fail(span, "division by zero")
 		}
-		return l / r
+		// The one division that overflows: MinInt64 / -1 has no positive
+		// counterpart to land on, and Go wraps it back to MinInt64.
+		if a == math.MinInt64 && b == -1 {
+			i.overflow(op, a, b, span)
+		}
+		return value.Int(a / b)
 	case "%":
-		if r == 0 {
+		if b == 0 {
 			i.fail(span, "division by zero")
 		}
-		return l % r
+		if a == math.MinInt64 && b == -1 {
+			return value.Int(0)
+		}
+		return value.Int(a % b)
 	case "**":
 		// Int ** Int stays an Int, so a negative exponent truncates to 0 the
-		// same way 1 / 2 does.
-		return value.Int(int64(math.Pow(float64(l), float64(r))))
+		// same way 1 / 2 does. It is computed in integer arithmetic: routed
+		// through float64 it lost precision above 2^53 and then converted out
+		// of range, which on amd64 produced MinInt64 — a plausible-looking
+		// negative number with nothing attached to say it was wrong.
+		if b < 0 {
+			switch a {
+			case 0:
+				i.fail(span, "division by zero")
+			case 1:
+				return value.Int(1)
+			case -1:
+				if b%2 == 0 {
+					return value.Int(1)
+				}
+				return value.Int(-1)
+			}
+			return value.Int(0)
+		}
+		return check(powInt(a, b))
 	case "<":
 		return value.Of(l < r)
 	case "<=":
@@ -894,15 +935,23 @@ func (i *Interp) intOp(op string, l, r value.Int, span source.Span) value.Value 
 	case "|":
 		return l | r
 	case "<<", ">>":
-		if l < 0 || r < 0 {
+		if a < 0 || b < 0 {
 			i.fail(span, "bitwise shift needs two non-negative Ints")
 		}
-		if op == "<<" {
-			return value.Int(uint64(l) << uint64(r))
+		// Go shifts a count of 64 or more all the way out, so `1 << 100` was
+		// 0 — an answer that looks computed and is not.
+		if b >= 64 {
+			i.fail(span, "bitwise shift count must be less than 64, got %d", b)
 		}
-		return value.Int(uint64(l) >> uint64(r))
+		if op == ">>" {
+			return value.Int(a >> uint(b))
+		}
+		if shifted := a << uint(b); shifted>>uint(b) == a {
+			return value.Int(shifted)
+		}
+		i.overflow(op, a, b, span)
 	case "..":
-		return intRange(int64(l), int64(r))
+		return intRange(a, b)
 	}
 	i.fail(span, "unknown Int operator '%s'", op)
 	return value.NilValue
@@ -922,6 +971,13 @@ func (i *Interp) floatOp(op string, l, r value.Float, span source.Span) value.Va
 		}
 		return l / r
 	case "%":
+		// Every other divide-by-zero in the language is an error; falling
+		// through to math.Mod made this one a NaN, which then propagated
+		// through arithmetic and compared false against everything including
+		// itself, so the mistake surfaced a long way from its cause.
+		if r == 0 {
+			i.fail(span, "division by zero")
+		}
 		return value.Float(math.Mod(float64(l), float64(r)))
 	case "**":
 		return value.Float(math.Pow(float64(l), float64(r)))
@@ -999,6 +1055,71 @@ func (i *Interp) dictOp(op string, l, r *value.Dict, span source.Span) value.Val
 	}
 	i.fail(span, "unknown Dictionary operator '%s'", op)
 	return value.NilValue
+}
+
+func (i *Interp) overflow(op string, a, b int64, span source.Span) {
+	i.fail(span, "Int overflow: %d %s %d does not fit in an Int", a, op, b)
+}
+
+// addInt, subInt and mulInt report whether the result is representable.
+//
+// Aria's Int is one fixed-width signed integer with no unsigned counterpart and
+// no way for a program to observe or intend a wrap, so a wrapped result is a
+// wrong answer that looks like a computed one. See docs/architecture.md.
+func addInt(a, b int64) (int64, bool) {
+	s := a + b
+	if (a > 0 && b > 0 && s < 0) || (a < 0 && b < 0 && s >= 0) {
+		return 0, false
+	}
+	return s, true
+}
+
+func subInt(a, b int64) (int64, bool) {
+	d := a - b
+	if (b < 0 && d < a) || (b > 0 && d > a) {
+		return 0, false
+	}
+	return d, true
+}
+
+func mulInt(a, b int64) (int64, bool) {
+	if a == 0 || b == 0 {
+		return 0, true
+	}
+	// MinInt64 has no positive counterpart, so p/b == a cannot distinguish an
+	// overflow from a correct product where it is involved.
+	if a == math.MinInt64 || b == math.MinInt64 {
+		if a == 1 || b == 1 {
+			return a * b, true
+		}
+		return 0, false
+	}
+	p := a * b
+	if p/b != a {
+		return 0, false
+	}
+	return p, true
+}
+
+// powInt is exponentiation by squaring, exact within int64. exp must not be
+// negative; intOp handles that case before calling.
+func powInt(base, exp int64) (int64, bool) {
+	result, b, ok := int64(1), base, true
+	for exp > 0 {
+		if exp&1 == 1 {
+			if result, ok = mulInt(result, b); !ok {
+				return 0, false
+			}
+		}
+		exp >>= 1
+		if exp == 0 {
+			break // the last squaring is never used, and can overflow
+		}
+		if b, ok = mulInt(b, b); !ok {
+			return 0, false
+		}
+	}
+	return result, true
 }
 
 func intRange(from, to int64) value.Value {
