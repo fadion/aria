@@ -1381,3 +1381,74 @@ func TestPrintIsVariadic(t *testing.T) {
 		}
 	}
 }
+
+// `a[1..3]` was an error, because a subscript index had to be an Int. The range
+// is inclusive, negative endpoints count from the end, a descending range keeps
+// its order, and anything outside the collection clamps.
+func TestSlicing(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`println([1, 2, 3, 4, 5][1..3])`, "[2, 3, 4]"},
+		{`println([1, 2, 3, 4, 5][0..0])`, "[1]"},
+		{`println([1, 2, 3, 4, 5][-2..-1])`, "[4, 5]"},
+		{`println([1, 2, 3, 4, 5][3..1])`, "[4, 3, 2]"},
+		{`println([1, 2, 3, 4, 5][0..99])`, "[1, 2, 3, 4, 5]"},
+		{`println([1, 2, 3, 4, 5][-10..1])`, "[1, 2]"},
+		{`println([1, 2, 3, 4, 5][10..20])`, "[]"},
+		{`println([][0..2])`, "[]"},
+		// Rune-indexed, like the scalar subscript.
+		{`println("héllo"[1..3])`, "éll"},
+		{`println("héllo"[-2..-1])`, "lo"},
+		{`println("héllo"[3..1])`, "llé"},
+		{`println("héllo"[9..12])`, ""},
+		{`println(""[0..2])`, ""},
+	}
+	for _, test := range tests {
+		if got := output(t, test.src); got != test.want+"\n" {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+
+	fails(t, `println([1, 2][1.."a"])`, "cannot apply '..'")
+}
+
+// A range in the enumerable position counts rather than materialising, and the
+// endpoints are evaluated exactly once either way.
+func TestForRangeCountsLazily(t *testing.T) {
+	if got := output(t, `var total = 0
+for i in 1..1000000
+  total += i
+end
+println(total)`); got != "500000500000\n" {
+		t.Errorf("got %q", got)
+	}
+
+	if got := output(t, `var down = []
+for i in 3..1
+  down[] = i
+end
+println(down)`); got != "[3, 2, 1]\n" {
+		t.Errorf("got %q", got)
+	}
+
+	// A range that is not two Ints is still the ordinary value.
+	if got := output(t, `for c in "a".."c"
+  print(c)
+end
+println()`); got != "abc\n" {
+		t.Errorf("got %q", got)
+	}
+
+	// The endpoints run once, not once per use.
+	if got := output(t, `var calls = 0
+let bump = func () do
+  calls += 1
+  2
+end
+for i in 1..bump()
+  print(i)
+end
+println()
+println(calls)`); got != "12\n1\n" {
+		t.Errorf("got %q", got)
+	}
+}

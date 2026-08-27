@@ -534,8 +534,27 @@ func (i *Interp) evalSubscript(n *ast.Subscript, e *env) value.Value {
 	if _, isPlaceholder := n.Index.(*ast.Placeholder); isPlaceholder {
 		i.fail(n.Span(), "an empty index can only be used on the left of an assignment")
 	}
-	idx := i.eval(n.Index, e)
 
+	// `a[1..3]` slices. The range is inclusive, because `..` is inclusive
+	// everywhere else in Aria, and it is never materialised: the endpoints are
+	// bounds, not an array of indices. A range whose ends are not both Ints
+	// falls through to being an ordinary index, built from what was already
+	// evaluated rather than by evaluating the operands again.
+	if r, ok := n.Index.(*ast.Infix); ok && r.Operator == ".." {
+		from, to := i.eval(r.Left, e), i.eval(r.Right, e)
+		if a, isInt := from.(value.Int); isInt {
+			if b, isInt := to.(value.Int); isInt {
+				return i.slice(left, int64(a), int64(b), n)
+			}
+		}
+		return i.index(left, i.applyInfix("..", from, to, r.Span()), n)
+	}
+
+	return i.index(left, i.eval(n.Index, e), n)
+}
+
+// index reads one element of a collection.
+func (i *Interp) index(left, idx value.Value, n *ast.Subscript) value.Value {
 	switch c := left.(type) {
 	case *value.Array:
 		nIdx, ok := idx.(value.Int)
@@ -571,6 +590,83 @@ func (i *Interp) evalSubscript(n *ast.Subscript, e *env) value.Value {
 	return value.NilValue
 }
 
+// slice reads a range of a collection.
+//
+// It clamps rather than failing, because reading a scalar index out of bounds
+// already yields nil rather than raising — a slice that half-overlaps the
+// collection gives the overlapping part. A descending range gives the elements
+// in that order, since that is what the range itself would have held.
+func (i *Interp) slice(left value.Value, from, to int64, n *ast.Subscript) value.Value {
+	switch c := left.(type) {
+	case *value.Array:
+		lo, hi, desc, empty := sliceBounds(c.Len(), from, to)
+		if empty {
+			return value.NewArray(nil)
+		}
+		out := make([]value.Value, 0, hi-lo+1)
+		if desc {
+			for at := hi; at >= lo; at-- {
+				out = append(out, c.At(at))
+			}
+		} else {
+			for at := lo; at <= hi; at++ {
+				out = append(out, c.At(at))
+			}
+		}
+		return value.NewArray(out)
+
+	case value.String:
+		runes := c.Runes()
+		lo, hi, desc, empty := sliceBounds(len(runes), from, to)
+		if empty {
+			return value.String("")
+		}
+		out := make([]rune, 0, hi-lo+1)
+		if desc {
+			for at := hi; at >= lo; at-- {
+				out = append(out, runes[at])
+			}
+		} else {
+			out = append(out, runes[lo:hi+1]...)
+		}
+		return value.String(string(out))
+	}
+
+	i.fail(n.Span(), "cannot slice %s", left.Type())
+	return value.NilValue
+}
+
+// sliceBounds normalises a possibly-negative, possibly-descending, possibly
+// out-of-range pair of endpoints into indices inside the collection.
+func sliceBounds(length int, from, to int64) (lo, hi int, desc, empty bool) {
+	if length == 0 {
+		return 0, 0, false, true
+	}
+
+	a, b := int(from), int(to)
+	if a < 0 {
+		a += length
+	}
+	if b < 0 {
+		b += length
+	}
+
+	desc = a > b
+	lo, hi = a, b
+	if desc {
+		lo, hi = b, a
+	}
+	if hi < 0 || lo > length-1 {
+		return 0, 0, desc, true
+	}
+	if lo < 0 {
+		lo = 0
+	}
+	if hi > length-1 {
+		hi = length - 1
+	}
+	return lo, hi, desc, false
+}
 func (i *Interp) evalPipe(n *ast.Pipe, e *env) value.Value {
 	piped := i.eval(n.Left, e)
 
@@ -655,10 +751,31 @@ func (i *Interp) caseMatches(c *ast.SwitchCase, control value.Value, e *env) boo
 
 func (i *Interp) evalFor(n *ast.For, e *env) value.Value {
 	if n.Enumerable == nil {
-		return i.loop(n, e, nil)
+		return i.loop(n, e, forever())
 	}
 
-	enum := i.eval(n.Enumerable, e)
+	// A range written directly in the enumerable position counts rather than
+	// materialising. `for i in 1..10000000` built ten million value.Int boxes
+	// before the first iteration ran, for a loop that needs one at a time.
+	//
+	// The endpoints are evaluated once either way: a range whose ends are not
+	// both Ints falls through to the ordinary value, built from what was
+	// already evaluated rather than by evaluating the operands again.
+	if r, ok := n.Enumerable.(*ast.Infix); ok && r.Operator == ".." {
+		from, to := i.eval(r.Left, e), i.eval(r.Right, e)
+		if a, isInt := from.(value.Int); isInt {
+			if b, isInt := to.(value.Int); isInt {
+				return i.loop(n, e, counting(int64(a), int64(b)))
+			}
+		}
+		return i.loopOver(n, e, i.applyInfix("..", from, to, r.Span()), r.Span())
+	}
+
+	return i.loopOver(n, e, i.eval(n.Enumerable, e), n.Enumerable.Span())
+}
+
+// loopOver iterates a value that is already in hand.
+func (i *Interp) loopOver(n *ast.For, e *env, enum value.Value, span source.Span) value.Value {
 	switch c := enum.(type) {
 	case *value.Array:
 		return i.loop(n, e, arrayItems(c))
@@ -670,45 +787,93 @@ func (i *Interp) evalFor(n *ast.For, e *env) value.Value {
 		return i.loop(n, e, dictItems(c))
 	}
 
-	i.fail(n.Enumerable.Span(), "cannot loop over %s", enum.Type())
+	i.fail(span, "cannot loop over %s", enum.Type())
 	return value.NilValue
 }
 
 // item is one iteration's key and value.
 type item struct{ key, val value.Value }
 
-func arrayItems(a *value.Array) []item {
-	out := make([]item, 0, a.Len())
-	for idx, v := range a.Elems() {
-		out = append(out, item{key: value.Int(idx), val: v})
+// iter yields items one at a time, reporting false when there are no more.
+//
+// A function rather than a []item so a range does not have to exist as an array
+// to be looped over. Everything else builds its items up front anyway — the
+// collection is already in memory — but the shape is the same for all of them.
+type iter func() (item, bool)
+
+func arrayItems(a *value.Array) iter {
+	idx := 0
+	return func() (item, bool) {
+		if idx >= a.Len() {
+			return item{}, false
+		}
+		it := item{key: value.Int(idx), val: a.At(idx)}
+		idx++
+		return it, true
 	}
-	return out
 }
 
-func stringItems(s value.String) []item {
+func stringItems(s value.String) iter {
 	runes := s.Runes()
-	out := make([]item, 0, len(runes))
-	for idx, r := range runes {
-		out = append(out, item{key: value.Int(idx), val: value.String(string(r))})
+	idx := 0
+	return func() (item, bool) {
+		if idx >= len(runes) {
+			return item{}, false
+		}
+		it := item{key: value.Int(idx), val: value.String(string(runes[idx]))}
+		idx++
+		return it, true
 	}
-	return out
 }
 
-func dictItems(d *value.Dict) []item {
-	out := make([]item, 0, d.Len())
-	for _, p := range d.Pairs() {
-		out = append(out, item{key: p.Key, val: p.Value})
+func dictItems(d *value.Dict) iter {
+	pairs := d.Pairs()
+	idx := 0
+	return func() (item, bool) {
+		if idx >= len(pairs) {
+			return item{}, false
+		}
+		it := item{key: pairs[idx].Key, val: pairs[idx].Value}
+		idx++
+		return it, true
 	}
-	return out
 }
 
-// loop runs the body once per item, or forever when items is nil. It collects
-// each iteration's value, which is what a `for` evaluates to.
+// counting yields the integers from..to inclusive, in either direction, without
+// building the range.
+func counting(from, to int64) iter {
+	step := int64(1)
+	if from > to {
+		step = -1
+	}
+	n, done := from, false
+	idx := 0
+	return func() (item, bool) {
+		if done {
+			return item{}, false
+		}
+		it := item{key: value.Int(idx), val: value.Int(n)}
+		if n == to {
+			done = true
+		}
+		n += step
+		idx++
+		return it, true
+	}
+}
+
+// forever yields nothing but keeps going, for the `for` with no enumerable.
+func forever() iter {
+	return func() (item, bool) { return item{key: value.NilValue, val: value.NilValue}, true }
+}
+
+// loop runs the body once per item next yields. It collects each iteration's
+// value, which is what a `for` evaluates to.
 //
 // Loop variables are defined in a scope created per iteration, inside the loop's
 // own scope. The original wrote them into the ENCLOSING scope, so they outlived
 // the loop.
-func (i *Interp) loop(n *ast.For, e *env, items []item) value.Value {
+func (i *Interp) loop(n *ast.For, e *env, next iter) value.Value {
 	results := []value.Value{}
 	names := []string{}
 	if n.Arguments != nil {
@@ -753,17 +918,10 @@ func (i *Interp) loop(n *ast.For, e *env, items []item) value.Value {
 		return true
 	}
 
-	if items == nil {
-		for {
-			if !run(item{key: value.NilValue, val: value.NilValue}) {
-				break
-			}
-		}
-	} else {
-		for _, it := range items {
-			if !run(it) {
-				break
-			}
+	for {
+		it, ok := next()
+		if !ok || !run(it) {
+			break
 		}
 	}
 
@@ -868,11 +1026,15 @@ func (i *Interp) evalInfix(n *ast.Infix, e *env) value.Value {
 		return value.Of(value.Truthy(i.eval(n.Right, e)))
 	}
 
-	left := i.eval(n.Left, e)
-	right := i.eval(n.Right, e)
-	span := n.Span()
+	return i.applyInfix(n.Operator, i.eval(n.Left, e), i.eval(n.Right, e), n.Span())
+}
 
-	switch n.Operator {
+// applyInfix is the operator dispatch, over operands already evaluated.
+//
+// Separate from evalInfix so `for i in 1..n` can build the range from endpoints
+// it evaluated itself, without evaluating them a second time.
+func (i *Interp) applyInfix(op string, left, right value.Value, span source.Span) value.Value {
+	switch op {
 	case "==":
 		return value.Of(value.Equal(left, right))
 	case "!=":
@@ -883,32 +1045,32 @@ func (i *Interp) evalInfix(n *ast.Infix, e *env) value.Value {
 	case value.Int:
 		switch r := right.(type) {
 		case value.Int:
-			return i.intOp(n.Operator, l, r, span)
+			return i.intOp(op, l, r, span)
 		case value.Float:
-			return i.floatOp(n.Operator, value.Float(l), r, span)
+			return i.floatOp(op, value.Float(l), r, span)
 		}
 	case value.Float:
 		switch r := right.(type) {
 		case value.Int:
-			return i.floatOp(n.Operator, l, value.Float(r), span)
+			return i.floatOp(op, l, value.Float(r), span)
 		case value.Float:
-			return i.floatOp(n.Operator, l, r, span)
+			return i.floatOp(op, l, r, span)
 		}
 	case value.String:
-		return i.textOp(n.Operator, string(l), right, span)
+		return i.textOp(op, string(l), right, span)
 	case value.Atom:
-		return i.textOp(n.Operator, string(l), right, span)
+		return i.textOp(op, string(l), right, span)
 	case *value.Array:
 		if r, ok := right.(*value.Array); ok {
-			return i.arrayOp(n.Operator, l, r, span)
+			return i.arrayOp(op, l, r, span)
 		}
 	case *value.Dict:
 		if r, ok := right.(*value.Dict); ok {
-			return i.dictOp(n.Operator, l, r, span)
+			return i.dictOp(op, l, r, span)
 		}
 	}
 
-	i.fail(span, "cannot apply '%s' to %s and %s", n.Operator, left.Type(), right.Type())
+	i.fail(span, "cannot apply '%s' to %s and %s", op, left.Type(), right.Type())
 	return value.NilValue
 }
 

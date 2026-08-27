@@ -1,0 +1,22 @@
+// `..` built an array eagerly, so a counting loop allocated the whole range
+// before the first iteration ran — a million value.Int boxes for a loop that
+// needs one integer at a time. A range written directly in the enumerable
+// position counts instead.
+var total = 0
+for i in 1..1000000
+  total += i
+end
+println(total)
+
+// Descending and single-element ranges count too.
+var down = []
+for i in 3..1
+  down[] = i
+end
+println(down)
+
+// A range that is not two Ints is still the ordinary value.
+for c in "a".."c"
+  print(c)
+end
+println()
