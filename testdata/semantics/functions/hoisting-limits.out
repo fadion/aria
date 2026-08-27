@@ -1,0 +1,4 @@
+hoisting-limits.ari:4:22: error: 'b' is not defined
+    let a = func () do b() end
+                       ^
+--- exit: 1

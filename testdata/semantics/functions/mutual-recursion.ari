@@ -1,0 +1,20 @@
+// Top-level `let` did not hoist, so two functions that call each other could not
+// both live at the top level: the first one's body named a function the resolver
+// had not seen yet. Wrapping both in a module was the only way to write it.
+let isEven = func (n) do
+  if n == 0 then return true end
+  isOdd(n - 1)
+end
+
+let isOdd = func (n) do
+  if n == 0 then return false end
+  isEven(n - 1)
+end
+
+println(isEven(10))
+println(isOdd(10))
+
+// The evaluator hoists to match, so a hoisted function is callable before its
+// own `let` has run rather than resolving to a name that is not there yet.
+println(later())
+let later = func () do "hoisted" end

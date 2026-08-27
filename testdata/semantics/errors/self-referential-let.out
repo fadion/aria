@@ -1,0 +1,4 @@
+self-referential-let.ari:4:9: error: 'x' is used in its own definition
+  let x = x
+          ^
+--- exit: 1

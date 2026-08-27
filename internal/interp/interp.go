@@ -171,6 +171,8 @@ func (i *Interp) Run(prog *ast.Program) (result value.Value, err error) {
 		}
 	}()
 
+	i.hoistFunctions(prog.Nodes, i.globals)
+
 	result = value.Value(value.NilValue)
 	for _, n := range prog.Nodes {
 		result = i.eval(n, i.globals)
@@ -179,6 +181,29 @@ func (i *Interp) Run(prog *ast.Program) (result value.Value, err error) {
 		}
 	}
 	return result, nil
+}
+
+// hoistFunctions binds every top-level function-valued `let` before the first
+// node runs, matching what the resolver hoists.
+//
+// Both halves are needed. Hoisting only in the resolver would let a name resolve
+// and then not be there — eval's Identifier case, the one whose comment says the
+// two passes cannot disagree. A function literal is the one value that can be
+// hoisted: it closes over the scope it is written in and needs nothing evaluated
+// first, so building it early is building the same value.
+func (i *Interp) hoistFunctions(nodes []ast.Node, e *env) {
+	file := i.curFile()
+	for _, n := range nodes {
+		let, ok := n.(*ast.Let)
+		if !ok || let.Name == nil {
+			continue
+		}
+		fn, isFunc := let.Value.(*ast.Function)
+		if !isFunc {
+			continue
+		}
+		e.define(let.Name.Value, &Function{Decl: fn, Env: e, File: file})
+	}
 }
 
 // fail stops evaluation with a runtime error. Unwinding rather than returning a
@@ -776,6 +801,7 @@ func (i *Interp) evalImport(n *ast.Import, e *env) value.Value {
 		globals: e, modules: i.modules,
 		dir: filepath.Dir(path), imported: i.imported,
 	}
+	sub.hoistFunctions(prog.Nodes, e)
 	for _, node := range prog.Nodes {
 		sub.eval(node, e)
 	}

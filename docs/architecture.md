@@ -151,6 +151,25 @@ exist, and `Enum.reduce` annotated its array parameter as `Function`.
 Parameters and loop variables bind like `let`. That matters for immutability below: a
 function that could rebind its parameter could mutate a collection its caller owns.
 
+**Top-level functions hoist.** Every top-level `let` whose value is a function literal is
+declared before anything is resolved, so two functions that call each other can both live
+at the top level. Wrapping them in a module was the only way to write that, which is a
+strange thing to have to do for two free functions.
+
+The line is deliberate on both sides.
+
+*Only function literals.* A hoisted name is in scope during its own initializer by
+construction, which would defeat the `pending` check that catches `let x = x`. A function
+literal is the one value that can be built without evaluating anything first, so hoisting
+it early builds the same value — anything else would mean hoisting whatever has to run to
+produce it.
+
+*Only the top level.* A function body opens a scope of its own, and nothing in it hoists.
+
+The evaluator hoists to match, in `Interp.Run` and again for an imported file. Hoisting in
+only one of the two would let a name resolve and then not be there at runtime — `eval`'s
+Identifier case, the one whose comment says the two passes cannot disagree.
+
 **It also checks what only a tree walk can see.** Three mistakes are knowable before the
 program starts, and each was silent or late:
 
@@ -373,7 +392,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 153 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 157 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash

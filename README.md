@@ -1030,7 +1030,23 @@ let background = Color.white
 let font_color = Color.hexToRGB(Color.grey)
 ```
 
-Because modules are interpreted and cached before-hand, properties and functions have access to each other. In contrast to modules, everything else in Aria is single pass and as such, it will only recognize calls to a module that has already been declared.
+Because modules are interpreted and cached before-hand, properties and functions have access to each other. Top-level functions hoist for the same reason, so two of them can call each other without one having to be wrapped in a module:
+
+```swift
+let isEven = func (n) do
+  if n == 0 then return true end
+  isOdd(n - 1)
+end
+
+let isOdd = func (n) do
+  if n == 0 then return false end
+  isEven(n - 1)
+end
+
+println(isEven(10)) // true
+```
+
+Everything else is single pass: only a `let` at the top level whose value is a function literal hoists, and a name has to be declared before it is read.
 
 A module is an ordinary value, so its name can be bound, passed to a function and returned from one:
 

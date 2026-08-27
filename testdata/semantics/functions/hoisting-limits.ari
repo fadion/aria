@@ -1,0 +1,8 @@
+// Only the top level, and only `let` whose value is a function literal. A
+// function body opens a scope of its own, and nothing in it hoists.
+let outer = func () do
+  let a = func () do b() end
+  let b = func () do 5 end
+  a()
+end
+println(outer())
