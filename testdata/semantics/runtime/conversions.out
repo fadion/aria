@@ -8,4 +8,10 @@ true
 3.0
 [1]
 [1, 2]
+true
+false
+false
+false
+[:a => 1, :b => 2]
+[:a => 1]
 --- exit: 0

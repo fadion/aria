@@ -1306,3 +1306,32 @@ func TestStdlibDictCoverage(t *testing.T) {
 		}
 	}
 }
+
+// The small surface gaps: xor, the two missing compound assignments, codepoint
+// escapes, raw strings, and the two conversions that had a definition and no
+// way to reach it.
+func TestSmallSyntaxGaps(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`println(6 ^ 3)`, "5"},
+		// `^` binds between `|` and `&`, which is Python's ordering.
+		{`println(1 | 6 ^ 3 & 2)`, "5"},
+		{"var n = 10\nn %= 3\nprintln(n)", "1"},
+		{"var n = 2\nn **= 8\nprintln(n)", "256"},
+		{`println("\x41")`, "A"},
+		{`println("\u00e9")`, "é"},
+		{`println(String.count("\u{1F600}"))`, "1"},
+		{"println(`no \\n escape`)", `no \n escape`},
+		{"println(`one\ntwo`)", "one\ntwo"},
+		{`println(1 as Bool)`, "true"},
+		{`println("" as Bool)`, "false"},
+		{`println([[:a, 1]] as Dictionary)`, "[:a => 1]"},
+	}
+	for _, test := range tests {
+		if got := withStdlib(t, test.src); got != test.want {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+
+	fails(t, `println(1 as Dictionary)`, "cannot convert Int to Dictionary")
+	fails(t, `println([1] as Dictionary)`, "[key, value] pairs")
+}

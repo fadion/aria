@@ -1,0 +1,4 @@
+// Both halves are validated where they are written, not left to produce a
+// surprising string later.
+println("\xZZ")
+println("\u{110000}")

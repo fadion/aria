@@ -13,7 +13,8 @@ import "github.com/fadion/aria/internal/token"
 //   - `**` is right-associative, so `2 ** 3 ** 2` is 512 rather than 64.
 //   - Bitwise binds tighter than comparison, so `6 & 3 == 3` is `(6 & 3) == 3`
 //     rather than the C footgun `6 & (3 == 3)`, which was a type error. This is
-//     Python's ordering: comparison sits *looser* than `|` and `&`.
+//     Python's ordering: comparison sits *looser* than `|`, `^` and `&`, which
+//     bind in that order among themselves.
 const (
 	lowest     = iota
 	precAssign // = += -= *= /=
@@ -24,6 +25,7 @@ const (
 	precAnd        // &&
 	precComparison // == != < <= > >=
 	precBitOr      // |
+	precBitXor     // ^
 	precBitAnd     // &
 	precRange      // ..
 	precShift      // << >>
@@ -44,6 +46,8 @@ var leftBindingPower = [...]int{
 	token.AssignMinus: precAssign,
 	token.AssignMul:   precAssign,
 	token.AssignDiv:   precAssign,
+	token.AssignMod:   precAssign,
+	token.AssignPow:   precAssign,
 
 	token.Pipe:     precPipe,
 	token.Arrow:    precArrow,
@@ -53,6 +57,7 @@ var leftBindingPower = [...]int{
 	token.And: precAnd,
 
 	token.BitOr:  precBitOr,
+	token.BitXor: precBitXor,
 	token.BitAnd: precBitAnd,
 
 	token.Eq:    precComparison,

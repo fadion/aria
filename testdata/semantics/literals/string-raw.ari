@@ -1,0 +1,11 @@
+// A backtick literal spans lines and processes no escapes. One form covers both
+// gaps: there was no way to write a string over more than one line, and every
+// backslash in a regex passed to String.match? had to be doubled.
+let block = `line one
+line two`
+println(block)
+println(String.count(block))
+
+println(`no \n escape here`)
+println(String.count(``))
+println(String.match?("abc123", `\d+`))

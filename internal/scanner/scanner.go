@@ -136,6 +136,9 @@ func (s *Scanner) scanOne(start source.Pos) (token.Token, bool) {
 
 	case ch == '"':
 		return s.scanString(start), true
+
+	case ch == '`':
+		return s.scanRawString(start), true
 	}
 
 	return s.scanOperator(start)
@@ -163,7 +166,7 @@ func (s *Scanner) scanOperator(start source.Pos) (token.Token, bool) {
 		switch s.ch {
 		case '*':
 			s.advance()
-			return s.token(token.Power, start), true
+			return s.token(s.choose('=', token.AssignPow, token.Power), start), true
 		case '=':
 			s.advance()
 			return s.token(token.AssignMul, start), true
@@ -181,7 +184,7 @@ func (s *Scanner) scanOperator(start source.Pos) (token.Token, bool) {
 		}
 		return s.token(token.Slash, start), true
 	case '%':
-		return s.token(token.Percent, start), true
+		return s.token(s.choose('=', token.AssignMod, token.Percent), start), true
 	case '=':
 		switch s.ch {
 		case '=':
@@ -226,6 +229,8 @@ func (s *Scanner) scanOperator(start source.Pos) (token.Token, bool) {
 		return s.token(token.BitOr, start), true
 	case '&':
 		return s.token(s.choose('&', token.And, token.BitAnd), start), true
+	case '^':
+		return s.token(token.BitXor, start), true
 	case '~':
 		return s.token(token.BitNot, start), true
 	case '?':
@@ -400,6 +405,23 @@ func (s *Scanner) scanString(start source.Pos) token.Token {
 			switch s.ch {
 			case 'n', 't', 'r', 'a', 'b', 'f', 'v', '\\', '"', '0':
 				s.advance()
+			case 'x':
+				s.advance()
+				s.scanHexEscape(escStart, 2, 2)
+			case 'u':
+				s.advance()
+				if s.ch == '{' {
+					s.advance()
+					s.scanHexEscape(escStart, 1, 6)
+					if s.ch != '}' {
+						s.diags.Errorf(source.Span{Start: escStart, End: s.off},
+							"unterminated \\u{...} escape")
+					} else {
+						s.advance()
+					}
+				} else {
+					s.scanHexEscape(escStart, 4, 4)
+				}
 			case eof, '\n':
 				// Let the next loop turn report the unterminated string.
 			default:
@@ -408,6 +430,65 @@ func (s *Scanner) scanString(start source.Pos) token.Token {
 				s.advance()
 			}
 
+		default:
+			s.advance()
+		}
+	}
+}
+
+// scanHexEscape consumes between least and most hex digits and checks that what
+// they spell is a codepoint. It reports rather than returning a value: the
+// parser decodes the escape, and it can only be reached for input the scanner
+// already accepted.
+//
+// The value is a rune, not a byte, even for \xNN. Aria strings are UTF-8 and
+// index by rune, so writing a raw byte above 0x7F would be a way to build a
+// string the rest of the language cannot read.
+func (s *Scanner) scanHexEscape(escStart source.Pos, least, most int) {
+	var v rune
+	n := 0
+	for n < most && isHexDigit(s.ch) {
+		v = v*16 + rune(hexValue(s.ch))
+		n++
+		s.advance()
+	}
+
+	switch {
+	case n < least:
+		s.diags.Errorf(source.Span{Start: escStart, End: s.off},
+			"escape needs at least %d hex digits, found %d", least, n)
+	case v > unicode.MaxRune || (v >= 0xD800 && v <= 0xDFFF):
+		s.diags.Errorf(source.Span{Start: escStart, End: s.off},
+			"0x%X is not a codepoint", v)
+	}
+}
+
+func hexValue(ch rune) int {
+	switch {
+	case ch >= '0' && ch <= '9':
+		return int(ch - '0')
+	case ch >= 'a' && ch <= 'f':
+		return int(ch-'a') + 10
+	default:
+		return int(ch-'A') + 10
+	}
+}
+
+// scanRawString reads a `...` literal. It spans lines and processes no escapes,
+// which is one form covering both gaps: there was no way to write a string over
+// more than one line, and every backslash in a regex passed to String.match?
+// had to be doubled.
+func (s *Scanner) scanRawString(start source.Pos) token.Token {
+	s.advance() // opening backtick
+
+	for {
+		switch s.ch {
+		case eof:
+			s.diags.Errorf(source.Span{Start: start, End: s.off}, "unterminated raw string")
+			return s.token(token.Invalid, start)
+		case '`':
+			s.advance()
+			return s.token(token.String, start)
 		default:
 			s.advance()
 		}

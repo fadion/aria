@@ -657,6 +657,33 @@ func Convert(v value.Value, to string) (value.Value, string) {
 			return value.NewArray(out), ""
 		}
 		return value.NewArray([]value.Value{v}), ""
+
+	case "Bool":
+		// Truthy already defines the rule; `as Bool` was the one conversion
+		// that had a definition and no way to reach it.
+		return value.Of(value.Truthy(v)), ""
+
+	case "Dictionary":
+		// The inverse of `dict as Array`: an array of [key, value] pairs. A
+		// later pair with the same key wins, as it does in a literal.
+		switch v := v.(type) {
+		case *value.Dict:
+			return v, ""
+		case *value.Array:
+			pairs := make([]value.Pair, 0, v.Len())
+			for _, el := range v.Elems() {
+				entry, ok := el.(*value.Array)
+				if !ok || entry.Len() != 2 {
+					return nil, "converting an Array to a Dictionary needs [key, value] pairs"
+				}
+				if _, keyable := value.KeyOf(entry.At(0)); !keyable {
+					return nil, fmt.Sprintf("%s cannot be a dictionary key", entry.At(0).Type())
+				}
+				pairs = append(pairs, value.Pair{Key: entry.At(0), Value: entry.At(1)})
+			}
+			return value.NewDict(pairs), ""
+		}
+		return nil, fmt.Sprintf("cannot convert %s to Dictionary", v.Type())
 	}
 
 	return nil, fmt.Sprintf("unknown type '%s'", to)

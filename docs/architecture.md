@@ -87,7 +87,7 @@ One table, in `internal/parser/precedence.go`, loosest to tightest:
 
 | Level | Operators | Assoc |
 |-------|-----------|-------|
-| 1 | `=` `+=` `-=` `*=` `/=` | right |
+| 1 | `=` `+=` `-=` `*=` `/=` `%=` `**=` | right |
 | 2 | `\|>` | left |
 | 3 | `->` | right |
 | 4 | `? :` | right |
@@ -95,15 +95,16 @@ One table, in `internal/parser/precedence.go`, loosest to tightest:
 | 6 | `&&` | left |
 | 7 | `==` `!=` `<` `<=` `>` `>=` | left |
 | 8 | `\|` | left |
-| 9 | `&` | left |
-| 10 | `..` | left |
-| 11 | `<<` `>>` | left |
-| 12 | `+` `-` | left |
-| 13 | `*` `/` `%` | left |
-| 14 | `**` | **right** |
-| 15 | prefix `!` `~` `-` | — |
-| 16 | `(` call, `[` index, `.` access | left |
-| 17 | `is` `as` | left |
+| 9 | `^` | left |
+| 10 | `&` | left |
+| 11 | `..` | left |
+| 12 | `<<` `>>` | left |
+| 13 | `+` `-` | left |
+| 14 | `*` `/` `%` | left |
+| 15 | `**` | **right** |
+| 16 | prefix `!` `~` `-` | — |
+| 17 | `(` call, `[` index, `.` access | left |
+| 18 | `is` `as` | left |
 
 Three of these are worth explaining, because each was wrong before and each is easy to
 get wrong again.
@@ -112,7 +113,7 @@ get wrong again.
 grouped as `false && (false || true)` and evaluated to `false` where every other language
 gives `true`. A silent wrong answer with no error attached.
 
-**Bitwise binds tighter than comparison** (levels 7–9). This is Python's ordering and the
+**Bitwise binds tighter than comparison** (levels 7–10). This is Python's ordering and the
 inverse of C's, and it is easy to write down backwards. `6 & 3 == 3` groups as
 `(6 & 3) == 3`. Under C's ordering it groups as `6 & (3 == 3)`, which in Aria is a type
 error rather than a subtle bug — but a type error on valid-looking code is still bad.
@@ -376,6 +377,21 @@ so `out[] = v` inside a loop is O(n²). Every accumulate-into-an-array function 
 library has that shape. Fixing it needs a way to know an array's tail is unshared, which is
 a change to the value representation rather than to the library.
 
+## String literals
+
+Two forms. `"..."` processes escapes and may not span lines; `` `...` `` processes none and
+may. The raw form is one answer to two gaps: there was no way to write a string over more
+than one line, and every backslash in a regex passed to `String.match?` had to be doubled.
+Carriage returns are dropped from a raw literal, as Go does, so the same source means the
+same string on a checkout with CRLF line endings.
+
+`\xNN`, `\uNNNN` and `\u{N...}` write a rune by codepoint, which for a language that
+indexes strings by rune was a conspicuous thing to be missing. **`\xNN` is a codepoint, not
+a byte**, even though two hex digits can only reach 0xFF: Aria strings are UTF-8 and index
+by rune, so a raw high byte would be a way to build a string the rest of the language
+cannot read. The scanner validates the digits and the codepoint where they are written, so
+a bad escape is a diagnostic rather than a surprising string later.
+
 ## Strings index by rune
 
 `"héllo"[1]` is `é`. The old runtime was inconsistent about this: anything built on
@@ -433,7 +449,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 164 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 168 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash

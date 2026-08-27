@@ -1,0 +1,10 @@
+// For a language that indexes strings by rune, not being able to write a rune
+// by codepoint was a conspicuous gap. The value is a codepoint, not a byte,
+// even for \xNN — a raw high byte would build a string the rest of the language
+// cannot read.
+println("\x41\x42")
+println("é")
+println("\u{e9}")
+println("\u{1F600}")
+println(String.count("\u{1F600}"))
+println("\u{1F600}" == "😀")

@@ -169,6 +169,23 @@ Escape sequences are there too if you need them: `\"`, `\n`, `\t`, `\r`, `\a`, `
 let code = "if(name == \"ben\"){\n\tprint(10)\n}"
 ```
 
+A rune can be written by codepoint with `\xNN`, `\uNNNN` or `\u{N...}`. All three are codepoints, not bytes, since strings index by rune:
+
+```swift
+println("\x41")      // "A"
+println("\u{1F600}") // an emoji, one character long
+```
+
+Backticks make a raw string. It spans lines and processes no escapes, which is what you want for a block of text or a regex:
+
+```swift
+let block = `line one
+line two`
+println(block)
+
+println(String.match?("abc123", `\d+`))
+```
+
 ### Atom
 
 Atoms, or symbols as some languages refer to them, are constants where the name is their value. Although they behave a lot like strings and can generally be interchanged, internally they are treated as their own type. As the language progresses, Atoms will be put to better use.
@@ -367,14 +384,21 @@ let empty = nil
 
 ### Type Conversion
 
-Converting between types is handled in a few ways that produce exactly the same results. The `as` operator is probably the more convenient and more expressive of the bunch. Like all type conversion methods, it can convert to `String`, `Int`, `Float` and `Array`:
+Converting between types is handled in a few ways that produce exactly the same results. The `as` operator is probably the more convenient and more expressive of the bunch. It converts to `String`, `Int`, `Float`, `Bool`, `Array` and `Dictionary`:
 
 ```swift
 let nr = 10
 nr as String
 nr as Int
 nr as Float
+nr as Bool
 nr as Array
+```
+
+`as Bool` follows the same truthiness rule as a condition, and `as Dictionary` is the inverse of `as Array` on a dictionary — it takes `[key, value]` pairs:
+
+```swift
+println([[:a, 1], [:b, 2]] as Dictionary)
 ```
 
 Provided by the runtime are the appropriately named functions: `String()`, `Int()`, `Float()` and `Array()`.
@@ -429,6 +453,7 @@ By order of precedence, loosest first:
 &&                    AND
 == != < <= > >=       equality and comparison
 |                     bitwise OR
+^                     bitwise XOR
 &                     bitwise AND
 ..                    range
 << >>                 bitshift left and right

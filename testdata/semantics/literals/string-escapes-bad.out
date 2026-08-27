@@ -1,0 +1,7 @@
+string-escapes-bad.ari:3:10: error: escape needs at least 2 hex digits, found 0
+  println("\xZZ")
+           ^^
+string-escapes-bad.ari:4:10: error: 0x110000 is not a codepoint
+  println("\u{110000}")
+           ^^^^^^^^^
+--- exit: 1
