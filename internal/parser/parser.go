@@ -304,6 +304,8 @@ func (p *Parser) parsePrefix() ast.Node {
 		return p.parseFloat()
 	case token.String:
 		return p.parseString()
+	case token.StringStart:
+		return p.parseInterpolation()
 	case token.Bool:
 		return &ast.Boolean{Base: ast.Base{Sp: p.tok.Span}, Value: p.text(p.tok) == "true"}
 	case token.Nil:
@@ -517,6 +519,50 @@ func unescape(s string) string {
 		}
 	}
 	return b.String()
+}
+
+// parseInterpolation reads a string literal with `#{...}` holes. The cursor is
+// on the StringStart piece.
+//
+// The scanner hands the pieces over as ordinary tokens with the hole's own
+// tokens between them, so the expressions parse with the grammar the parser
+// already has and their spans point at where they are written — which is what a
+// diagnostic inside a hole needs.
+func (p *Parser) parseInterpolation() ast.Node {
+	start := p.tok.Span
+	parts := []ast.Node{p.stringPiece(1, 2)} // "...#{
+
+	for {
+		p.advance()
+		if p.at(token.EOF) {
+			return p.bad(span(start, p.tok.Span), "unterminated string interpolation")
+		}
+		parts = append(parts, p.parseExpr(lowest))
+		p.advance()
+
+		switch p.tok.Kind {
+		case token.StringPart:
+			parts = append(parts, p.stringPiece(1, 2)) // }...#{
+		case token.StringEnd:
+			parts = append(parts, p.stringPiece(1, 1)) // }..."
+			return &ast.Interpolation{Base: ast.Base{Sp: span(start, p.tok.Span)}, Parts: parts}
+		default:
+			return p.bad(span(start, p.tok.Span),
+				"expected the end of an interpolation, found %s", p.describe(p.tok))
+		}
+	}
+}
+
+// stringPiece turns the current string-piece token into a literal, trimming
+// head bytes from the front and tail from the back — the delimiters, which
+// differ per piece.
+func (p *Parser) stringPiece(head, tail int) ast.Node {
+	raw := p.text(p.tok)
+	inner := ""
+	if len(raw) >= head+tail {
+		inner = raw[head : len(raw)-tail]
+	}
+	return &ast.String{Base: ast.Base{Sp: p.tok.Span}, Value: unescape(inner), Text: inner}
 }
 
 // decodeHexEscape reads \xNN, \uNNNN or \u{N...} from the start of s, which

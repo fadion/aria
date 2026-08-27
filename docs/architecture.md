@@ -385,6 +385,23 @@ than one line, and every backslash in a regex passed to `String.match?` had to b
 Carriage returns are dropped from a raw literal, as Go does, so the same source means the
 same string on a checkout with CRLF line endings.
 
+`"..."` also interpolates: `#{expr}` holds a whole expression, and the value renders the
+way `println` renders it — `String`, not `Inspect` — so `"#{[1, 2]}"` is `[1, 2]` and a
+string in a hole does not come out quoted. `#` is only special before a `{`, and `\#` opts
+out. A raw literal processes nothing, interpolation included.
+
+The scanner hands an interpolated literal over as pieces — `StringStart`, the hole's own
+tokens, `StringPart`..., `StringEnd` — so the expressions parse with the grammar the
+parser already has and their spans point at where they are written, which is what a
+diagnostic inside a hole needs. Aria has no other use for braces, so a `}` while an
+interpolation is open always closes it; nesting needs a counter and nothing more.
+
+It lands in the tree as `ast.Interpolation` rather than desugaring to `+` with `String(...)`
+calls around each hole. Two reasons: `+` does not coerce and the `String` conversion
+refuses a collection, so a desugaring would make `"#{[1, 2]}"` an error where `println`
+prints it; and naming `String` in a desugaring means anything shadowing that name silently
+changes what every interpolated string in scope does.
+
 `\xNN`, `\uNNNN` and `\u{N...}` write a rune by codepoint, which for a language that
 indexes strings by rune was a conspicuous thing to be missing. **`\xNN` is a codepoint, not
 a byte**, even though two hex digits can only reach 0xFF: Aria strings are UTF-8 and index
@@ -449,7 +466,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 168 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 170 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash

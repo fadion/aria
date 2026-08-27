@@ -25,6 +25,14 @@ const (
 	Int
 	Float
 	String
+	// A string with #{...} holes in it arrives as three kinds of piece:
+	// StringStart runs from the opening quote to the first `#{`, StringPart
+	// from a `}` to the next `#{`, and StringEnd from a `}` to the closing
+	// quote. The expression tokens between them are ordinary tokens, so the
+	// parser reads an interpolated string with the grammar it already has.
+	StringStart
+	StringPart
+	StringEnd
 	Bool
 	Nil
 
@@ -108,12 +116,15 @@ var names = [...]string{
 	Newline: "newline",
 	Comment: "comment",
 
-	Ident:  "identifier",
-	Int:    "integer",
-	Float:  "float",
-	String: "string",
-	Bool:   "boolean",
-	Nil:    "nil",
+	Ident:       "identifier",
+	Int:         "integer",
+	Float:       "float",
+	String:      "string",
+	StringStart: "string",
+	StringPart:  "string",
+	StringEnd:   "string",
+	Bool:        "boolean",
+	Nil:         "nil",
 
 	Assign:      "=",
 	AssignPlus:  "+=",

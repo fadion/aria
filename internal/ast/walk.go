@@ -143,6 +143,11 @@ func Children(n Node) []Node {
 		node(n.Left)
 		ident(n.Name)
 
+	case *Interpolation:
+		for _, part := range n.Parts {
+			node(part)
+		}
+
 		// Leaves: Identifier, Integer, Float, String, Atom, Boolean, Nil,
 		// Placeholder, Break, Continue, Import, Bad, IdentifierList.
 	}

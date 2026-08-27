@@ -1,0 +1,6 @@
+count: 3
+a b c
+
+x y
+mixed 1 2.5 true nil [1, 2] :atom
+--- exit: 0

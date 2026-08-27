@@ -411,6 +411,10 @@ func (r *Resolver) node(n ast.Node) {
 		for _, c := range n.Elements {
 			r.node(c)
 		}
+	case *ast.Interpolation:
+		for _, part := range n.Parts {
+			r.node(part)
+		}
 	case *ast.Array:
 		r.node(n.List)
 	case *ast.Dictionary:

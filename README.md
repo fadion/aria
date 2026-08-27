@@ -176,7 +176,23 @@ println("\x41")      // "A"
 println("\u{1F600}") // an emoji, one character long
 ```
 
-Backticks make a raw string. It spans lines and processes no escapes, which is what you want for a block of text or a regex:
+Strings interpolate with `#{}`. A hole holds a whole expression, and the value is rendered the way `println` renders it:
+
+```swift
+let name = "Ada"
+let items = 3
+println("user #{name} has #{items} items")
+```
+
+A `#` is only special before a `{`, and `\#` opts out.
+
+`println` and `print` also take any number of arguments, joined with a space:
+
+```swift
+println("count:", 3)
+```
+
+Backticks make a raw string. It spans lines and processes no escapes — interpolation included — which is what you want for a block of text or a regex:
 
 ```swift
 let block = `line one
