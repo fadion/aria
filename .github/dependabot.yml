@@ -1,0 +1,24 @@
+# Keeps the pinned versions from silently ageing.
+#
+# Everything here is pinned deliberately -- actions to a major, golangci-lint to
+# an exact version -- which is the right default and also a way to sit on a
+# three-year-old toolchain without noticing. These open a pull request instead,
+# so an update is a thing somebody decided rather than a thing that drifted.
+#
+# Monthly, not weekly: this repo has two direct dependencies and a handful of
+# actions, and a pull request nobody reads is worse than no pull request.
+version: 2
+updates:
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "deps"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "ci"
