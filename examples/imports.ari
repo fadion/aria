@@ -1,0 +1,30 @@
+// Importing other files, and namespacing what they bring in.
+//
+// `as` puts an import behind a name, so both files below can define `round`
+// without colliding. An alias is a module like any other, which means a member
+// that is not there is caught before the program runs rather than at the call.
+
+import "lib/geometry" as Geo
+import "lib/units" as Units
+
+println(Geo.circleArea(2.0))
+println(Geo.rectangleArea(3.0, 4.0))
+
+println("")
+switch Geo.triangleArea(3.0, 4.0, 5.0)
+case [:ok, let area] then println("3-4-5 triangle: #{area}")
+case [:error, let why] then println(why)
+end
+
+switch Geo.triangleArea(1.0, 2.0, 9.0)
+case [:ok, let area] then println(area)
+case [:error, let why] then println(why)
+end
+
+println("")
+println(Units.round(3.14159, 2))
+println(Units.toInches(25.4))
+
+// An alias is a value, and typeof says so.
+println("")
+println(typeof(Geo))

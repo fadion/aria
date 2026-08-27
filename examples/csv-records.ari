@@ -1,0 +1,39 @@
+// Parse a CSV block into records, then report on them.
+//
+// A record gives the rows a type. A dictionary would hold the same fields, but
+// typeof would answer "Dictionary" for every row and `is` could not tell a
+// reading from anything else shaped like one.
+
+record Reading
+  station: String
+  year: Int
+  rainfall: Float
+end
+
+let csv = `station,year,rainfall
+Tirana,2023,1210.5
+Tirana,2024,988.0
+Shkoder,2023,1755.2
+Shkoder,2024,1602.8
+Vlore,2023,1005.9`
+
+let parse = func (line: String) -> Reading
+  let [station, year, rainfall] = String.split(line, ",")
+  Reading(station, year as Int, rainfall as Float)
+end
+
+let readings = csv
+  |> String.lines()
+  |> Enum.drop(1)          // the header
+  |> Enum.map(parse)
+
+println("#{Enum.size(readings)} readings, #{Enum.size(Enum.unique(Enum.map(readings, (r) -> r.station)))} stations")
+println("")
+
+readings
+  |> Enum.filter((r) -> r.year == 2023)
+  |> Enum.sortBy((r) -> 0.0 - r.rainfall)
+  |> Enum.each((r) -> println("#{String.padRight(r.station, 10)} #{r.rainfall}"))
+
+println("")
+println("wettest overall: #{Enum.max(Enum.map(readings, (r) -> r.rainfall))}")

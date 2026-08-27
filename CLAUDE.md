@@ -23,6 +23,7 @@ internal/interp        evaluator
 internal/stdlib        the standard library, written in Aria, go:embed'd
 internal/diag          diagnostics
 testdata/semantics     the characterization suite
+examples/              runnable example programs, with .out goldens
 scripts/               the suite's runner
 ```
 
@@ -33,6 +34,7 @@ go build ./... && go vet ./... && gofmt -l . && go test ./...
 golangci-lint run ./...
 bash scripts/characterize.sh verify
 bash scripts/check-readme.sh
+bash scripts/check-examples.sh
 ```
 
 CI runs `golangci-lint` at a pinned version, and it checks things `go vet` does not —
@@ -136,6 +138,19 @@ scripts/check-readme.sh        # -v to see each block's output
 
 Keep them runnable. A block that is prose, not code, should not be fenced as `swift` — the
 checker will try to run it.
+
+`examples/` is checked the same way, against a `.out` golden per program rather than an
+error scan, because an example can print the wrong answer without ever printing `error:`.
+
+```bash
+scripts/check-examples.sh          # diff against the goldens
+scripts/check-examples.sh record   # re-record, deliberately
+```
+
+Adding a language feature is a good reason to add an example. Keep them deterministic:
+no `Math.random`, no `Time.now`, and no walking a dictionary without sorting its keys,
+since dictionaries have no order. The runner repeats each one and reports any whose
+output varies instead of recording a lucky run.
 
 ## Pull requests
 

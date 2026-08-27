@@ -1,0 +1,70 @@
+// A brainfuck interpreter, which is a small enough language to fit in a page
+// and still exercise a real interpreter loop: a jump table, a tape, and a
+// program counter.
+//
+// Aria has no mutable-in-place arrays, so the tape is rebuilt on every write.
+// That is quadratic in the worst case and completely fine at this size.
+
+// Precompute the matching bracket for every bracket, so a jump is a lookup
+// rather than a scan back through the source.
+let jumps = func (source: String) -> Dictionary
+  let state = Enum.reduce(0..(String.count(source) - 1), [[], [=>]], func (i, acc)
+    let [open, table] = acc
+    switch source[i]
+    case "[" then [Enum.insert(open, i), table]
+    case "]" then
+      let start = open[-1]
+      [Enum.take(open, Enum.size(open) - 1), table + [start => i, i => start]]
+    default then acc
+    end
+  end)
+  state[1]
+end
+
+// The standard library has no codepoint-to-character function, so this indexes
+// a table of printable ASCII. See the note at the bottom.
+let printable = " !" + "\"" + "#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[" + "\\" + "]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+
+let char = func (code: Int) -> String
+  if code == 10 then return "\n" end
+  if code < 32 || code > 126 then return "?" end
+  printable[code - 32]
+end
+
+let run = func (source: String) -> String
+  let table = jumps(source)
+  let width = String.count(source)
+
+  var tape = Enum.map(0..29, (cell) -> 0)
+  var head = 0
+  var pc = 0
+  var out = ""
+
+  while pc < width
+    switch source[pc]
+    case ">" then head += 1
+    case "<" then head -= 1
+    case "+" then tape[head] = (tape[head] + 1) % 256
+    case "-" then tape[head] = (tape[head] + 255) % 256
+    case "." then out += char(tape[head])
+    case "[" then
+      if tape[head] == 0 then pc = table[pc] end
+    case "]" then
+      if tape[head] != 0 then pc = table[pc] end
+    default then nil   // every other byte is a comment
+    end
+    pc += 1
+  end
+
+  out
+end
+
+// The canonical program.
+println(run("++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++."))
+
+// Adding two cells: 2 + 5, printed as the character '7'.
+println(run("++>+++++[<+>-]<++++++++++++++++++++++++++++++++++++++++++++++++."))
+
+// Note: `char` exists because the standard library has no way to turn a
+// codepoint into a character. String indexing goes the other way fine. Adding
+// String.code and String.fromCode would remove the table entirely.

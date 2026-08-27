@@ -1,0 +1,32 @@
+// Edit distance between two strings, one row of the matrix at a time.
+//
+// The textbook version allocates the whole grid. Only the previous row is ever
+// read, so this keeps one row and folds a new one out of it, which suits a
+// language where every array operation returns a new array regardless.
+
+let distance = func (a: String, b: String) -> Int
+  let awidth = String.count(a)
+  let bwidth = String.count(b)
+
+  if awidth == 0 then return bwidth end
+  if bwidth == 0 then return awidth end
+
+  Enum.reduce(1..awidth, 0..bwidth, func (i, previous)
+    let ac = a[i - 1]
+
+    // Fold across b, growing the current row from its own left neighbour and
+    // the row above.
+    Enum.reduce(1..bwidth, [i], func (j, row)
+      let cost = if ac == b[j - 1] then 0 else 1 end
+      let deletion = previous[j] + 1
+      let insertion = row[j - 1] + 1
+      let substitution = previous[j - 1] + cost
+      Enum.insert(row, Math.min(deletion, insertion, substitution))
+    end)
+  end)[bwidth]
+end
+
+for pair in [["kitten", "sitting"], ["flaw", "lawn"], ["aria", "aria"], ["", "abc"]]
+  let [from, to] = pair
+  println("#{from} -> #{to}: #{distance(from, to)}")
+end

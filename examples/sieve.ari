@@ -1,0 +1,22 @@
+// The Sieve of Eratosthenes, minus the mutable array of flags the classic
+// formulation uses. Each pass filters out one prime's multiples, and the fold
+// carries the survivors forward.
+
+let primes = func (limit: Int) -> Array
+  if limit < 2 then return [] end
+
+  Enum.reduce(2..limit, [], func (n, found)
+    // n is prime if nothing already found divides it. Only divisors up to the
+    // square root can matter, and the found list is ascending, so the search
+    // stops as soon as it passes that.
+    let divisors = Enum.takeWhile(found, (p) -> p * p <= n)
+    if Enum.any?(divisors, (p) -> n % p == 0)
+      return found
+    end
+    Enum.insert(found, n)
+  end)
+end
+
+println(primes(50))
+println("primes below 200: #{Enum.size(primes(200))}")
+println(primes(1))

@@ -1,0 +1,6 @@
+3 4 +  =>  7
+5 1 2 + 4 * + 3 -  =>  14
+2 0 /  =>  error: division by zero
+1 2 3 +  =>  error: 2 values left on the stack
+7 %  =>  error: '%' needs two operands
+exit: 0

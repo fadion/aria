@@ -1,0 +1,18 @@
+-- tagged results --
+localhost:8080 -> localhost on 8080
+example.com:99999 -> port 99999 is out of range
+example.com:http -> 'http' is not a number
+nonsense -> expected host:port, got 'nonsense'
+
+-- the Result module --
+true
+expected host:port, got 'nope'
+fell back to localhost:8080
+
+-- try and rescue --
+caught: division by zero
+10 / 2 = 5, 10 / 0 = 0
+
+[:error, "division by zero"]
+[:ok, 42]
+exit: 0

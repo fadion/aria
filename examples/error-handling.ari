@@ -1,0 +1,78 @@
+// The two shapes Aria has for recovering from a failure, and where the line
+// between them sits.
+//
+//   [:ok, v] / [:error, why]   an expected outcome the caller should handle
+//   try / rescue               a fault, including one the runtime raised
+
+record Config
+  host: String
+  port: Int
+end
+
+// Parsing can fail in ways the caller should expect, so it answers a result.
+let parsePort = func (raw: String)
+  if !String.match?(raw, `^\d+$`)
+    return [:error, "'#{raw}' is not a number"]
+  end
+  let port = raw as Int
+  if port < 1 || port > 65535
+    return [:error, "port #{port} is out of range"]
+  end
+  [:ok, port]
+end
+
+let parse = func (line: String)
+  let parts = String.split(line, ":")
+  if Enum.size(parts) != 2
+    return [:error, "expected host:port, got '#{line}'"]
+  end
+  switch parsePort(parts[1])
+  case [:ok, let port] then [:ok, Config(parts[0], port)]
+  case [:error, let why] then [:error, why]
+  end
+end
+
+println("-- tagged results --")
+for line in ["localhost:8080", "example.com:99999", "example.com:http", "nonsense"]
+  println(switch parse(line)
+  case [:ok, let config] then "#{line} -> #{config.host} on #{config.port}"
+  case [:error, let why] then "#{line} -> #{why}"
+  end)
+end
+
+// Result gives the same shape a vocabulary, for when a switch is more than the
+// situation needs.
+println("")
+println("-- the Result module --")
+println(Result.ok?(parse("localhost:1")))
+println(Result.reason(parse("nope")))
+let fallback = Config("localhost", 8080)
+let chosen = Result.unwrap(parse("bad"), fallback)
+println("fell back to #{chosen.host}:#{chosen.port}")
+
+// A fault is different. Dividing by zero is a runtime error, and try decides
+// whether that ends the program or not.
+println("")
+println("-- try and rescue --")
+// The rescued value also carries :file, :line and :column. They are left out
+// here so this file's output does not change every time a line moves.
+println(try
+  1 / 0
+rescue e
+  "caught: #{e.message}"
+end)
+
+// try is an expression, so it can produce a value rather than a message.
+let safeDivide = func (a: Int, b: Int) -> Int
+  try
+    a / b
+  rescue
+    0
+  end
+end
+println("10 / 2 = #{safeDivide(10, 2)}, 10 / 0 = #{safeDivide(10, 0)}")
+
+// Result.attempt bridges the two, turning a fault into a tagged result.
+println("")
+println(Result.attempt(() -> 1 / 0))
+println(Result.attempt(() -> 6 * 7))

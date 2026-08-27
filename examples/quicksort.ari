@@ -1,0 +1,19 @@
+// Quicksort over immutable arrays. Every partition builds new arrays rather
+// than swapping in place, which is the only option here and reads better than
+// the in-place version anyway.
+
+let quicksort = func (xs: Array) -> Array
+  if Enum.size(xs) <= 1 then return xs end
+
+  let pivot = xs[0]
+  let rest = Enum.drop(xs, 1)
+
+  let smaller = Enum.filter(rest, (x) -> x < pivot)
+  let larger = Enum.filter(rest, (x) -> x >= pivot)
+
+  Enum.concat(Enum.concat(quicksort(smaller), [pivot]), quicksort(larger))
+end
+
+println(quicksort([5, 3, 8, 1, 9, 2, 7]))
+println(quicksort(["pear", "apple", "fig", "date"]))
+println(quicksort([]))

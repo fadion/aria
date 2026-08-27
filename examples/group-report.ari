@@ -1,0 +1,40 @@
+// Group a collection and report per group, which is the shape of most of the
+// data work anyone actually does.
+//
+// Enum.groupBy answers a dictionary, and dictionaries have no order, so the
+// report sorts the keys before walking them. Skipping that step gives a program
+// whose output changes between runs.
+
+record Sale
+  region: String
+  rep: String
+  amount: Int
+end
+
+let sales = [
+  Sale("north", "ada", 120),
+  Sale("south", "grace", 340),
+  Sale("north", "alan", 95),
+  Sale("east", "edsger", 210),
+  Sale("south", "barbara", 180),
+  Sale("north", "ada", 65)
+]
+
+let byRegion = Enum.groupBy(sales, (s) -> s.region)
+
+byRegion
+  |> Dict.keys()
+  |> Enum.sort()
+  |> Enum.each(func (region)
+    let group = byRegion[region]
+    let total = group |> Enum.map((s) -> s.amount) |> Enum.sum()
+    let best = group |> Enum.sortBy((s) -> 0 - s.amount) |> Enum.first()
+
+    println("#{String.upper(region)}")
+    println("  sales   #{Enum.size(group)}")
+    println("  total   #{total}")
+    println("  best    #{best.rep} (#{best.amount})")
+  end)
+
+println("")
+println("grand total: #{sales |> Enum.map((s) -> s.amount) |> Enum.sum()}")
