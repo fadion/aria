@@ -48,10 +48,12 @@ var workloads = []string{
 
 // The micro workloads isolate what the examples exercise but do not separate.
 const (
-	// Name lookup through a chain of scopes, which is what the resolver's unused
-	// slot indices would replace with an array index. See the Known Gaps entry
-	// in docs/architecture.md: this benchmark is what turns that from an opinion
-	// into a number.
+	// Name lookup through a chain of scopes. Paired with the shallow case below,
+	// this measures the cost of walking the chain -- and only that. Both cases
+	// pay one successful map lookup, so neither says anything about replacing
+	// that lookup with an array index, which is the other half of what slots
+	// would do. The Known Gaps entry in docs/architecture.md spells out which
+	// half is bounded and which is not.
 	srcNameLookup = `
 let outer = 1
 let level1 = func ()
