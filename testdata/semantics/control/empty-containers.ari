@@ -1,0 +1,11 @@
+// A module and a record are containers, not bodies. An empty one still names
+// something that exists, so it stays legal where an empty body does not.
+module Empty
+end
+println(typeof(Empty))
+
+record Unit
+end
+println(Unit())
+println(Unit() == Unit())
+println(typeof(Unit()))

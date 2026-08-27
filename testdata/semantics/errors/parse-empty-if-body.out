@@ -1,2 +1,4 @@
-
---- exit: 0
+parse-empty-if-body.ari:1:13: error: empty if body; write nil if it is meant to do nothing
+  if true then
+              ^
+--- exit: 1

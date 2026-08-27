@@ -739,6 +739,47 @@ that a call fails as an ordinary Aria error. Without it, runaway recursion grew 
 goroutine stack to Go's 1 GB ceiling and killed the process with a traceback, which is not
 something the author of an Aria program can act on.
 
+## An empty body is a mistake; an empty container is not
+
+The original rejected an empty body in four places, each with its own check: `if`, the
+`else` half of one, `for` and `func`. The rewrite accepted them everywhere, not as a
+decision but as a consequence of blocks becoming ordinary node lists — there was no longer
+anywhere the emptiness was noticed. `while`, `until`, `do`, `try` and `switch` arms arrived
+later and inherited the permissive reading by default.
+
+A body with nothing in it runs nothing. It is an unfinished edit or a stub, and in either
+case the program says one thing and means another. For a `for` it is worse than dead code:
+the loop collects a value per iteration, so `for i in 1..1000000 end` quietly builds a
+million-element array of nils. That is the silent-plausible-result failure this codebase
+legislates against elsewhere, and `while` already exists for the case where the array is
+not wanted, so the error has an obvious fix to point at.
+
+So every block holding code to run rejects an empty one: `if`, `else`, `for`, `while`,
+`until`, `func`, `do`, `try`, `rescue`, and a `switch` arm or `default`. Writing `nil` says
+"deliberately nothing" in one more word, and says it where a reader will see it.
+
+A `module` and a `record` are containers rather than bodies, and keep taking an empty one.
+`module M end` names a namespace not filled in yet and `record R end` is a unit type whose
+instances are all equal — both name something that exists, which an empty body does not.
+
+**A comment-only body counts as empty.** Comments are not nodes, so `if x` with nothing but
+`// handle it` in it has an empty block and is rejected. This is the rule's most visible
+consequence: it caught three of the README's own placeholder examples. The alternative
+would be tracking comment spans per block so the parser could tell "no code" from "nothing
+at all", which is machinery for a distinction that helps nobody — `nil` is checkable and a
+comment is not.
+
+The check lives in the parser, at each construct's own call to `codeBlock`, so the message
+names the construct. It reports to the bag directly rather than through `errorAt`, which
+would set `panicking`. That flag suppresses the cascade from a parser that has lost its
+place, and this one has not: it knows exactly where it is and carries on correctly, so a
+second empty body further down is a separate mistake and is reported too.
+
+Nothing is reported at end of input. A half-typed `if true` in the REPL has an empty block
+for the same reason it has no `end` yet, and turning "keep typing" into an error would
+break the one thing the incomplete-input signal exists for. The missing-`end` diagnostic is
+the one that belongs there.
+
 ## The characterization suite
 
 `testdata/semantics/` holds 219 cases. Each `.ari` file has a `.out` golden recording
@@ -885,6 +926,3 @@ go test ./internal/parser/  -run=Fuzz -fuzz=FuzzParse -fuzztime=30s
 - **Slot-based scopes.** The resolver computes slot indices and scope sizes that the
   evaluator ignores, walking a chain of name maps instead. Switching would make lookup an
   array index.
-- **Empty bodies.** `if`/`for`/`func` with an empty body are accepted and evaluate to
-  `nil`. The original rejected them. Nothing decided this either way; it fell out of
-  blocks being ordinary node lists.

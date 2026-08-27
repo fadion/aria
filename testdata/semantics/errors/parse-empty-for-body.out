@@ -1,0 +1,4 @@
+parse-empty-for-body.ari:1:14: error: empty for body; write nil if it is meant to do nothing
+  for i in 1..3
+               ^
+--- exit: 1

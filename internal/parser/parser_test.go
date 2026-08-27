@@ -400,3 +400,73 @@ func TestNodesHaveValidSpans(t *testing.T) {
 		return true
 	})
 }
+
+// An empty code block is an unfinished edit, not an intention. The original
+// rejected one in `if`, `else`, `for` and `func`; the rewrite accepted it
+// everywhere because blocks became ordinary node lists. This pins the rule down
+// across every construct, including the ones the original never had.
+//
+// `for` is the reason the rule is worth having at all: the loop collects a value
+// per iteration, so `for i in 1..1000000 end` quietly builds a million-element
+// array of nils.
+func TestEmptyCodeBodiesAreRejected(t *testing.T) {
+	for _, tt := range []struct{ name, src string }{
+		{"if", "if true\nend"},
+		{"else", "if true\n  nil\nelse\nend"},
+		{"for", "for i in 1..3\nend"},
+		{"while", "while false\nend"},
+		{"until", "until true\nend"},
+		{"func", "let f = func ()\nend"},
+		{"do", "let v = do\nend"},
+		{"try", "try\nrescue\n  nil\nend"},
+		{"rescue", "try\n  nil\nrescue\nend"},
+		{"case", "switch 1\ncase 1\ndefault\n  nil\nend"},
+		{"default", "switch 1\ncase 1\n  nil\ndefault\nend"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			_, bag := parse(t, tt.src)
+			if !bag.HasErrors() {
+				t.Fatalf("%q: expected a diagnostic for the empty %s body", tt.src, tt.name)
+			}
+			if got := bag.Render(); !strings.Contains(got, "empty "+tt.name+" body") {
+				t.Errorf("%q: diagnostic does not name the construct:\n%s", tt.src, got)
+			}
+		})
+	}
+}
+
+// A module or a record is a container, not a body. An empty one still names
+// something that exists, so it stays legal.
+func TestEmptyContainersAreAllowed(t *testing.T) {
+	for _, src := range []string{"module M\nend", "record R\nend"} {
+		parseOK(t, src)
+	}
+}
+
+// The empty-body diagnostic must not set the parser's panicking flag. That flag
+// suppresses the cascade from a parser that has lost its place, and this parser
+// has not: it knows where it is and carries on correctly, so a second empty body
+// further down is a separate mistake and has to be reported too.
+func TestEmptyBodiesDoNotSuppressLaterDiagnostics(t *testing.T) {
+	const src = "if true\nend\nfor i in 1..3\nend"
+	_, bag := parse(t, src)
+	if bag.Len() != 2 {
+		t.Fatalf("got %d diagnostics, want 2 (one per empty body):\n%s", bag.Len(), bag.Render())
+	}
+}
+
+// A construct still being typed has an empty block for the same reason it has no
+// `end` yet. Reporting an empty body there would turn the REPL's "keep typing"
+// into an error, so nothing is reported at end of input and the missing-'end'
+// diagnostic is the one that stands.
+func TestUnterminatedConstructIsIncompleteNotEmpty(t *testing.T) {
+	for _, src := range []string{"if true", "for i in 1..3", "let f = func ()"} {
+		_, bag := parse(t, src)
+		if !bag.Incomplete() {
+			t.Errorf("%q: want a single incomplete-input diagnostic, got:\n%s", src, bag.Render())
+		}
+		if strings.Contains(bag.Render(), "empty ") {
+			t.Errorf("%q: reported an empty body while still incomplete:\n%s", src, bag.Render())
+		}
+	}
+}
