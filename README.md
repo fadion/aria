@@ -976,6 +976,19 @@ for i in 0..Enum.size(numbers) - 1
 end
 ```
 
+A range written directly as a loop's enumerable counts rather than building the array first, so `for i in 1..10000000` costs nothing up front.
+
+A range used as a subscript slices, on arrays and on strings alike. The bounds are inclusive here too, negative ones count from the end, and anything outside the collection is clamped rather than being an error:
+
+```swift
+let a = [1, 2, 3, 4, 5]
+println(a[1..3])   // [2, 3, 4]
+println(a[-2..-1]) // [4, 5]
+println(a[3..1])   // [4, 3, 2]
+println(a[0..99])  // the whole thing
+println("héllo"[1..3])
+```
+
 ## Pipe Operator
 
 The pipe operator, inspired by [Elixir](https://elixir-lang.org/), is a very expressive way of chaining functions calls. Instead of ugly code like the one below, where the order of operations is from the inner function to the outers ones:

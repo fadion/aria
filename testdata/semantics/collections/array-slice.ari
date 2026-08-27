@@ -1,0 +1,21 @@
+// `a[1..3]` was an error, because a subscript index had to be an Int. The range
+// is inclusive, since `..` is inclusive everywhere else in Aria, and it is never
+// materialised: the endpoints are bounds, not an array of indices.
+let a = [1, 2, 3, 4, 5]
+println(a[1..3])
+println(a[0..0])
+
+// Negative endpoints count from the end, as a scalar index does.
+println(a[-2..-1])
+
+// A descending range gives the elements in that order, which is what the range
+// itself would have held.
+println(a[3..1])
+
+// Reading a scalar index out of bounds already yields nil rather than raising,
+// so a slice clamps: a half-overlapping range gives the overlapping part, and
+// one that misses entirely gives nothing.
+println(a[0..99])
+println(a[-10..1])
+println(a[10..20])
+println([][0..2])

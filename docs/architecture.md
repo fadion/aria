@@ -415,6 +415,35 @@ a bad escape is a diagnostic rather than a surprising string later.
 iteration decoded runes correctly while raw subscripting indexed bytes, so
 `String.reverse` produced mojibake for non-ASCII input while `String.count` was right.
 
+## Ranges and slicing
+
+`..` builds an array. It is a value like any other, so `Array(1..5)`, `Enum.map(1..5, f)`
+and `println(1..5)` all work the way they always have.
+
+**Except in the two positions where the endpoints are bounds rather than data.** A range
+written directly as a `for` enumerable counts, and one written directly as a subscript
+index slices. Neither materialises anything: `for i in 1..10000000` used to build ten
+million `value.Int` boxes before the first iteration ran, for a loop that needs one at a
+time.
+
+Doing it at those two syntactic positions, rather than by introducing a `Range` value, is
+the conservative half of the change. A `Range` type would be more elegant and would make
+`let r = 1..1000000` cheap too, but it would have to behave like an `Array` in every place
+one is accepted — `typeof`, `is`, `+`, `==`, indexing, `Enum`, `Dict`, display — and each
+one it did not reach would be a regression. Nothing here changes what `..` means.
+
+The endpoints are evaluated exactly once either way. A range whose ends are not both `Int`s
+falls through to the ordinary array value, built from the operands already evaluated rather
+than by evaluating them again.
+
+**A slice is inclusive**, because `..` is inclusive everywhere else in Aria: `a[1..3]` is
+three elements. Negative endpoints count from the end, as a scalar index does. A descending
+range gives the elements in that order, which is what the range itself would have held.
+
+**A slice clamps.** Reading a scalar index out of bounds already yields `nil` rather than
+raising, so a range that half-overlaps the collection gives the overlapping part and one
+that misses entirely gives nothing.
+
 ## Errors
 
 **Parse errors accumulate; the first runtime error halts.**
@@ -466,7 +495,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 170 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 173 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash
