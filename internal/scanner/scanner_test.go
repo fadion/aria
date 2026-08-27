@@ -456,3 +456,39 @@ func truncate(s string) string {
 	}
 	return s
 }
+
+// A rune by codepoint, which a language that indexes strings by rune had no way
+// to write. Both halves are validated where they are written.
+func TestScanHexEscapes(t *testing.T) {
+	for _, src := range []string{`"\x41"`, `"\u00e9"`, `"\u{1F600}"`, `"\u{e9}"`} {
+		toks, bag, _ := scan(t, src, 0)
+		if bag.HasErrors() {
+			t.Errorf("%s was rejected:\n%s", src, bag.Render())
+			continue
+		}
+		if kinds := kindsOf(toks); len(kinds) == 0 || kinds[0] != token.String {
+			t.Errorf("%s did not scan as a String: %v", src, kinds)
+		}
+	}
+
+	for _, src := range []string{`"\xZZ"`, `"\u00"`, `"\u{110000}"`, `"\u{D800}"`, `"\u{}"`} {
+		if _, bag, _ := scan(t, src, 0); !bag.HasErrors() {
+			t.Errorf("%s was accepted", src)
+		}
+	}
+}
+
+// A backtick literal spans lines and processes no escapes.
+func TestScanRawString(t *testing.T) {
+	toks, bag, _ := scan(t, "`line one\nline two`", 0)
+	if bag.HasErrors() {
+		t.Fatalf("a raw string was rejected:\n%s", bag.Render())
+	}
+	if kinds := kindsOf(toks); len(kinds) == 0 || kinds[0] != token.String {
+		t.Errorf("did not scan as a String: %v", kinds)
+	}
+
+	if _, bag, _ := scan(t, "`never closed", 0); !bag.HasErrors() {
+		t.Error("an unterminated raw string was accepted")
+	}
+}

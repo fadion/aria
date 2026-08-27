@@ -351,7 +351,8 @@ func (p *Parser) parsePrefix() ast.Node {
 // operator.
 func (p *Parser) parseInfix(left ast.Node) ast.Node {
 	switch p.tok.Kind {
-	case token.Assign, token.AssignPlus, token.AssignMinus, token.AssignMul, token.AssignDiv:
+	case token.Assign, token.AssignPlus, token.AssignMinus, token.AssignMul,
+		token.AssignDiv, token.AssignMod, token.AssignPow:
 		return p.parseAssign(left)
 	case token.LParen:
 		return p.parseCall(left)
@@ -449,11 +450,22 @@ func (p *Parser) parseFloat() ast.Node {
 
 func (p *Parser) parseString() ast.Node {
 	raw := p.text(p.tok)
-	// The scanner validated the quotes and escapes; strip the quotes here.
+	// The scanner validated the delimiters and escapes; strip the delimiters
+	// here.
 	inner := raw
 	if len(inner) >= 2 {
 		inner = inner[1 : len(inner)-1]
 	}
+
+	// A backtick literal is raw: it spans lines and processes no escapes, so a
+	// regex can be written the way the regex engine reads it. Carriage returns
+	// are dropped, as Go does, so the same source means the same string on a
+	// checkout with CRLF line endings.
+	if strings.HasPrefix(raw, "`") {
+		text := strings.ReplaceAll(inner, "\r", "")
+		return &ast.String{Base: ast.Base{Sp: p.tok.Span}, Value: text, Text: text}
+	}
+
 	return &ast.String{
 		Base:  ast.Base{Sp: p.tok.Span},
 		Value: unescape(inner),
@@ -491,12 +503,55 @@ func unescape(s string) string {
 			b.WriteByte('\v')
 		case '0':
 			b.WriteByte(0)
+		case 'x', 'u':
+			// A codepoint, not a byte, even for \xNN: Aria strings are UTF-8
+			// and index by rune, so a raw high byte would build a string the
+			// rest of the language cannot read. The scanner has already proved
+			// the digits are there and spell something legal.
+			r, width := decodeHexEscape(s[i:])
+			b.WriteRune(r)
+			i += width - 1
 		default:
 			// Covers \\ and \" ; anything else was rejected by the scanner.
 			b.WriteByte(s[i])
 		}
 	}
 	return b.String()
+}
+
+// decodeHexEscape reads \xNN, \uNNNN or \u{N...} from the start of s, which
+// begins at the x or the u. It returns the rune and how much of s it consumed.
+func decodeHexEscape(s string) (rune, int) {
+	i := 1
+	braced := s[0] == 'u' && i < len(s) && s[i] == '{'
+	if braced {
+		i++
+	}
+
+	var v rune
+	for i < len(s) && isHexDigit(s[i]) {
+		v = v*16 + rune(hexValue(s[i]))
+		i++
+	}
+	if braced && i < len(s) && s[i] == '}' {
+		i++
+	}
+	return v, i
+}
+
+func isHexDigit(c byte) bool {
+	return c >= '0' && c <= '9' || c >= 'a' && c <= 'f' || c >= 'A' && c <= 'F'
+}
+
+func hexValue(c byte) int {
+	switch {
+	case c >= '0' && c <= '9':
+		return int(c - '0')
+	case c >= 'a' && c <= 'f':
+		return int(c-'a') + 10
+	default:
+		return int(c-'A') + 10
+	}
 }
 
 // parseAtom reads `:name`. The cursor is on the colon.

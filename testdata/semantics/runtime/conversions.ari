@@ -8,3 +8,11 @@ println(Float("1.5"))
 println(Float(3))
 println(Array(1))
 println(Array([1, 2]))
+// Bool and Dictionary had definitions with no way to reach them: `as Bool` and
+// `as Dictionary` both reported "unknown type".
+println(1 as Bool)
+println(0 as Bool)
+println("" as Bool)
+println(nil as Bool)
+println([[:a, 1], [:b, 2]] as Dictionary)
+println([:a => 1] as Dictionary)

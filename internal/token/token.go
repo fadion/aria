@@ -34,6 +34,8 @@ const (
 	AssignMinus // -=
 	AssignMul   // *=
 	AssignDiv   // /=
+	AssignMod   // %=
+	AssignPow   // **=
 	Eq          // ==
 	NotEq       // !=
 	Lt          // <
@@ -48,6 +50,7 @@ const (
 	Percent     // %
 	BitOr       // |
 	BitAnd      // &
+	BitXor      // ^
 	BitNot      // ~
 	ShiftLeft   // <<
 	ShiftRight  // >>
@@ -129,8 +132,11 @@ var names = [...]string{
 	Power:       "**",
 	Slash:       "/",
 	Percent:     "%",
+	AssignMod:   "%=",
+	AssignPow:   "**=",
 	BitOr:       "|",
 	BitAnd:      "&",
+	BitXor:      "^",
 	BitNot:      "~",
 	ShiftLeft:   "<<",
 	ShiftRight:  ">>",

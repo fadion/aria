@@ -977,6 +977,8 @@ func (i *Interp) intOp(op string, l, r value.Int, span source.Span) value.Value 
 		return l & r
 	case "|":
 		return l | r
+	case "^":
+		return l ^ r
 	case "<<", ">>":
 		if a < 0 || b < 0 {
 			i.fail(span, "bitwise shift needs two non-negative Ints")

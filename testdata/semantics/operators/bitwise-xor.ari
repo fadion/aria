@@ -1,0 +1,9 @@
+// `~`, `&`, `|`, `<<` and `>>` all existed; `^` scanned as an unexpected
+// character. It binds between `|` and `&`, which is Python's ordering.
+println(6 ^ 3)
+println(0 ^ 0)
+println(6 ^ 3 == 5)
+println(1 | 6 ^ 3 & 2)
+// The bitwise operators have no compound assignment form, and `^` does not
+// gain one on its own.
+println(12 ^ 10)
