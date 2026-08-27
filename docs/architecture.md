@@ -335,6 +335,34 @@ format defines. The one exception is `Float % 0.0`, which returned `NaN` while `
 false against everything including itself, so it is the same "surfaces far from its cause"
 shape. It raises now, like its siblings.
 
+## What the standard library asks the runtime for
+
+The library is written in Aria, and that is the point — but a function whose answer the
+runtime already has should ask for it rather than compute it again in interpreted code.
+
+`String.count` and `Enum.size` were interpreted loops over data whose length the runtime
+knows. `String.slice` walked the whole string to take a window out of it. Both were then
+called from inside per-character loops in `split`, `replace`, `contains?`, `starts?`,
+`ends?` and `trim` — `replace` called `slice` twice per character — so each of those was
+quadratic or worse. On 7 KB of text, `String.split` took 11 seconds; doubling the input to
+14 KB took 40.
+
+So `runtime_len`, `runtime_slice`, `runtime_index_of`, `runtime_last_index_of`,
+`runtime_split`, `runtime_replace`, `runtime_join`, `runtime_repeat` and `runtime_reverse`
+are builtins, and the library functions are one call each. Everything stays rune-indexed,
+matching the subscript rule. Same input: 11 seconds becomes 20 milliseconds, and 144 KB —
+which did not finish in ten minutes — takes 84.
+
+Accumulation was the other half of it. `sliced += v` on an immutable string allocates a
+whole new string per character, so building a result a character at a time is quadratic on
+its own. `join`, `repeat` and `reverse` build in Go now.
+
+**Still quadratic: appending to an array in a loop.** `Array.Append` copies, deliberately —
+growing in place is what let a later append write into an earlier result's spare capacity —
+so `out[] = v` inside a loop is O(n²). Every accumulate-into-an-array function in the
+library has that shape. Fixing it needs a way to know an array's tail is unshared, which is
+a change to the value representation rather than to the library.
+
 ## Strings index by rune
 
 `"héllo"[1]` is `é`. The old runtime was inconsistent about this: anything built on
@@ -392,7 +420,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 157 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 159 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash

@@ -36,6 +36,9 @@ var Builtins = []string{
 	"runtime_sin", "runtime_cos", "runtime_tan",
 	"runtime_asin", "runtime_acos", "runtime_atan",
 	"runtime_inf", "runtime_nan", "runtime_is_nan", "runtime_is_inf",
+	"runtime_len", "runtime_slice", "runtime_index_of", "runtime_last_index_of",
+	"runtime_split", "runtime_replace",
+	"runtime_join", "runtime_repeat", "runtime_reverse",
 }
 
 // Kind is what introduced a binding.

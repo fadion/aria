@@ -1,10 +1,6 @@
 module Dict
   let size = func (dict: Dictionary) -> Int
-    var count = 0
-    for v in dict
-      count += 1
-    end
-    count
+    runtime_len(dict)
   end
 
   let contains? = func (dict: Dictionary, key) -> Bool

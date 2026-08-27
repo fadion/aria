@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/fadion/aria/internal/source"
 	"github.com/fadion/aria/internal/value"
@@ -156,6 +157,178 @@ func (i *Interp) installBuiltins() {
 		return value.Of(math.IsInf(ip.wantNumber("runtime_is_inf", args, span), 0))
 	})
 
+	// ---------------------------------------------------------------------
+	// Primitives the standard library was reimplementing in Aria
+	// ---------------------------------------------------------------------
+	//
+	// String.count and Enum.size were interpreted loops over data whose length
+	// the runtime already knows, and String.slice walked the whole string to
+	// take a window out of it. Both were then called from inside per-character
+	// loops in split, replace, contains?, starts?, ends? and trim, so each of
+	// those was quadratic or worse in its input.
+	//
+	// Everything here is rune-indexed, matching the subscript rule: "héllo"[1]
+	// is é, not a byte of it.
+	def("runtime_len", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		ip.wantArgs("runtime_len", args, 1, span)
+		switch v := args[0].(type) {
+		case value.String:
+			return value.Int(utf8.RuneCountInString(string(v)))
+		case *value.Array:
+			return value.Int(v.Len())
+		case *value.Dict:
+			return value.Int(v.Len())
+		}
+		ip.fail(span, "runtime_len() expects a String, Array or Dictionary, got %s", args[0].Type())
+		return value.NilValue
+	})
+
+	// runtime_slice clamps rather than failing, which is what the interpreted
+	// version did by construction: it walked the string and took what it found.
+	def("runtime_slice", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		ip.wantArgs("runtime_slice", args, 3, span)
+		start, ok1 := args[1].(value.Int)
+		length, ok2 := args[2].(value.Int)
+		if !ok1 || !ok2 {
+			ip.fail(span, "runtime_slice() expects two Ints for start and length")
+		}
+		switch v := args[0].(type) {
+		case value.String:
+			if isASCII(string(v)) {
+				lo, hi := clampRange(len(v), int(start), int(length))
+				return value.String(string(v)[lo:hi])
+			}
+			runes := v.Runes()
+			lo, hi := clampRange(len(runes), int(start), int(length))
+			return value.String(string(runes[lo:hi]))
+		case *value.Array:
+			lo, hi := clampRange(v.Len(), int(start), int(length))
+			out := make([]value.Value, hi-lo)
+			copy(out, v.Elems()[lo:hi])
+			return value.NewArray(out)
+		}
+		ip.fail(span, "runtime_slice() expects a String or Array, got %s", args[0].Type())
+		return value.NilValue
+	})
+
+	// runtime_index_of and runtime_last_index_of search by rune index, so a
+	// scan for every match jumps between them instead of testing every
+	// position with a slice and a comparison.
+	def("runtime_index_of", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		str, search, from := ip.wantSearch("runtime_index_of", args, span)
+		return value.Int(int64(runeIndex(str, search, from)))
+	})
+
+	def("runtime_last_index_of", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		ip.wantArgs("runtime_last_index_of", args, 2, span)
+		str, ok1 := args[0].(value.String)
+		search, ok2 := args[1].(value.String)
+		if !ok1 || !ok2 {
+			ip.fail(span, "runtime_last_index_of() expects two Strings")
+		}
+		runes, needle := []rune(string(str)), []rune(string(search))
+		for i := len(runes) - len(needle); i >= 0; i-- {
+			if string(runes[i:i+len(needle)]) == string(needle) {
+				return value.Int(int64(i))
+			}
+		}
+		return value.Int(-1)
+	})
+
+	// split and replace are the two functions the whole quadratic problem came
+	// to a head in: each walked the string character by character and called
+	// String.slice — itself a walk of the whole string — from inside that loop,
+	// so replace was O(n^2) at best. Done once over the runes here, both are
+	// linear, and neither can hit the negative-length slice that overlapping
+	// separators used to panic on.
+	def("runtime_split", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		ip.wantArgs("runtime_split", args, 2, span)
+		str, ok1 := args[0].(value.String)
+		sep, ok2 := args[1].(value.String)
+		if !ok1 || !ok2 {
+			ip.fail(span, "runtime_split() expects two Strings")
+		}
+
+		runes, needle := []rune(string(str)), []rune(string(sep))
+		out := []value.Value{}
+		last := 0
+		for i := runeIndexIn(runes, needle, 0); i >= 0 && i < len(runes); i = runeIndexIn(runes, needle, i+step(len(needle))) {
+			// An empty piece between two separators is dropped, which is what
+			// the interpreted version did; the final piece is kept either way.
+			if i > last {
+				out = append(out, value.String(string(runes[last:i])))
+			}
+			last = i + len(needle)
+		}
+		out = append(out, value.String(string(runes[last:])))
+		return value.NewArray(out)
+	})
+
+	def("runtime_replace", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		ip.wantArgs("runtime_replace", args, 3, span)
+		str, ok1 := args[0].(value.String)
+		search, ok2 := args[1].(value.String)
+		with, ok3 := args[2].(value.String)
+		if !ok1 || !ok2 || !ok3 {
+			ip.fail(span, "runtime_replace() expects three Strings")
+		}
+
+		runes, needle := []rune(string(str)), []rune(string(search))
+		var b strings.Builder
+		last := 0
+		for i := runeIndexIn(runes, needle, 0); i >= 0 && i < len(runes); i = runeIndexIn(runes, needle, i+step(len(needle))) {
+			b.WriteString(string(runes[last:i]))
+			b.WriteString(string(with))
+			last = i + len(needle)
+		}
+		b.WriteString(string(runes[last:]))
+		return value.String(b.String())
+	})
+
+	// Accumulating a string a character at a time allocates a whole new string
+	// per character, so the accumulation is itself quadratic. join, repeat and
+	// reverse are where the library did that.
+	def("runtime_join", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		ip.wantArgs("runtime_join", args, 2, span)
+		arr, ok1 := args[0].(*value.Array)
+		glue, ok2 := args[1].(value.String)
+		if !ok1 || !ok2 {
+			ip.fail(span, "runtime_join() expects an Array and a String")
+		}
+		// Elements are rendered with the String conversion, not with their
+		// display form: the interpreted version built its result with String(v),
+		// and those differ for an Atom — :b converts to "b" and displays as ":b".
+		var b strings.Builder
+		for i, el := range arr.Elems() {
+			if i > 0 {
+				b.WriteString(string(glue))
+			}
+			b.WriteString(string(ip.convert(el, "String", span).(value.String)))
+		}
+		return value.String(b.String())
+	})
+
+	def("runtime_repeat", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		ip.wantArgs("runtime_repeat", args, 2, span)
+		str, ok1 := args[0].(value.String)
+		times, ok2 := args[1].(value.Int)
+		if !ok1 || !ok2 {
+			ip.fail(span, "runtime_repeat() expects a String and an Int")
+		}
+		if times < 0 {
+			ip.fail(span, "runtime_repeat() expects a non-negative count")
+		}
+		return value.String(strings.Repeat(string(str), int(times)))
+	})
+
+	def("runtime_reverse", func(ip *Interp, args []value.Value, span source.Span) value.Value {
+		runes := []rune(ip.wantString("runtime_reverse", args, span))
+		for l, r := 0, len(runes)-1; l < r; l, r = l+1, r-1 {
+			runes[l], runes[r] = runes[r], runes[l]
+		}
+		return value.String(string(runes))
+	})
+
 	def("runtime_tolower", func(ip *Interp, args []value.Value, span source.Span) value.Value {
 		return value.String(strings.ToLower(ip.wantString("runtime_tolower", args, span)))
 	})
@@ -176,6 +349,89 @@ func (i *Interp) installBuiltins() {
 		}
 		return value.Of(re.MatchString(string(subject)))
 	})
+}
+
+// step is how far a scan advances past a match. An empty needle matches at every
+// position, so it advances by one rather than standing still.
+func step(needleLen int) int {
+	if needleLen == 0 {
+		return 1
+	}
+	return needleLen
+}
+
+// runeIndexIn finds needle in runes at or after from, by rune index, or -1.
+func runeIndexIn(runes, needle []rune, from int) int {
+	if from < 0 {
+		from = 0
+	}
+	for i := from; i+len(needle) <= len(runes); i++ {
+		if string(runes[i:i+len(needle)]) == string(needle) {
+			return i
+		}
+	}
+	return -1
+}
+
+// runeIndex is runeIndexIn over strings, with a fast path for input that has no
+// multi-byte sequence in it: there, a byte offset is a rune index, so the search
+// costs no conversion at all.
+func runeIndex(str, search string, from int) int {
+	if isASCII(str) && isASCII(search) {
+		if from < 0 {
+			from = 0
+		}
+		if from > len(str) {
+			return -1
+		}
+		at := strings.Index(str[from:], search)
+		if at < 0 {
+			return -1
+		}
+		return from + at
+	}
+	return runeIndexIn([]rune(str), []rune(search), from)
+}
+
+// isASCII reports whether byte offsets and rune indices coincide, which they do
+// for any string with no multi-byte sequence in it.
+func isASCII(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] >= utf8.RuneSelf {
+			return false
+		}
+	}
+	return true
+}
+
+func (i *Interp) wantSearch(name string, args []value.Value, span source.Span) (string, string, int) {
+	i.wantArgs(name, args, 3, span)
+	str, ok1 := args[0].(value.String)
+	search, ok2 := args[1].(value.String)
+	from, ok3 := args[2].(value.Int)
+	if !ok1 || !ok2 || !ok3 {
+		i.fail(span, "%s() expects two Strings and an Int", name)
+	}
+	return string(str), string(search), int(from)
+}
+
+// clampRange turns a start and a length into bounds inside [0, size], the way
+// walking the collection and taking what was there did.
+func clampRange(size, start, length int) (int, int) {
+	if start < 0 {
+		start = 0
+	}
+	if start > size {
+		start = size
+	}
+	if length < 0 {
+		length = 0
+	}
+	end := start + length
+	if end > size || end < start {
+		end = size
+	}
+	return start, end
 }
 
 func (i *Interp) wantArgs(name string, args []value.Value, n int, span source.Span) {
