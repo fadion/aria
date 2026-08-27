@@ -1,0 +1,10 @@
+// The recognised conditions get fixed text rather than the operating system's,
+// which differs per platform and would otherwise leak into anything comparing
+// output — these goldens included.
+println(File.read("_no_such_file.txt"))
+println(File.exists?("_no_such_file.txt"))
+println(Result.unwrap(File.read("_no_such_file.txt"), "a default"))
+println(switch File.read("_no_such_file.txt") do
+  case [:ok, let contents] then contents
+  case [:error, let why] then "could not read: #{why}"
+end)

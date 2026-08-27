@@ -1,0 +1,24 @@
+// OS is what the program was told and what it was started in.
+module OS
+
+  // args is everything after the source file. The CLI keeps its own flags, so a
+  // program sees only what was meant for it.
+  let args = func () -> Array
+    runtime_args()
+  end
+
+  // env answers the fallback for a variable that is not set, which `dict[key]`
+  // could not express: an empty variable IS set, and answers "".
+  let env = func (name: String, fallback = nil)
+    let found = runtime_env(name)
+    if found == nil
+      return fallback
+    end
+    found
+  end
+
+  let env? = func (name: String) -> Bool
+    runtime_env_set(name)
+  end
+
+end

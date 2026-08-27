@@ -200,9 +200,16 @@ module String
     runtime_last_index_of(str, search)
   end
 
+  // A trailing newline ends the last line rather than starting an empty one,
+  // which is what makes this usable on a file that ends the way files do.
   let lines = func (str: String) -> Array
-    String.split(String.replace(str, "\r\n", "\n"), "\n")
+    let split = String.split(String.replace(str, "\r\n", "\n"), "\n")
+    let size = Enum.size(split)
+    if size > 0 && split[size - 1] == ""
+      return Enum.take(split, size - 1)
     end
+    split
+  end
 
   // words splits on runs of whitespace, so repeated separators do not produce
   // empty entries the way split on a single space would.

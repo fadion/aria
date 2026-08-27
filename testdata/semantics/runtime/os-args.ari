@@ -1,0 +1,11 @@
+// The arguments after the source file. The CLI keeps its own flags, so a program
+// sees only what was meant for it — which here is nothing, since the runner
+// passes none.
+println(OS.args())
+println(Enum.size(OS.args()))
+
+// env answers the fallback for a variable that is not set, which a dictionary
+// lookup could not express: an empty variable IS set, and answers "".
+println(OS.env("ARIA_DEFINITELY_NOT_SET_XYZ", "fallback"))
+println(OS.env("ARIA_DEFINITELY_NOT_SET_XYZ"))
+println(OS.env?("ARIA_DEFINITELY_NOT_SET_XYZ"))

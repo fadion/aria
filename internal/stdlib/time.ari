@@ -1,0 +1,33 @@
+// Time has two clocks, because they answer different questions.
+//
+// `now` is a stamp: milliseconds since the Unix epoch, which is what you write
+// down. `monotonic` is a duration source: nanoseconds from an arbitrary origin,
+// which is what you subtract. Only the second one is safe to subtract, since a
+// wall clock can move backwards.
+//
+// Both are Ints. A Float would start losing nanoseconds somewhere around 1970
+// plus a decade.
+module Time
+
+  let now = func () -> Int
+    runtime_now_ms()
+  end
+
+  let monotonic = func () -> Int
+    runtime_monotonic_ns()
+  end
+
+  // since answers the nanoseconds elapsed since a monotonic reading.
+  let since = func (start: Int) -> Int
+    runtime_monotonic_ns() - start
+  end
+
+  let milliseconds = func (nanoseconds: Int) -> Int
+    nanoseconds / 1000000
+  end
+
+  let seconds = func (nanoseconds: Int) -> Float
+    Float(nanoseconds) / 1000000000.0
+  end
+
+end

@@ -39,7 +39,7 @@ func main() {
 	// Without a -e, the default help is what an argument-less invocation wants.
 	app.Action = func(c *cli.Context) error {
 		if src := c.String("eval"); src != "" {
-			runSource(source.NewFile("-e", []byte(src)))
+			runSource(source.NewFile("-e", []byte(src)), c.Args())
 			return nil
 		}
 		return cli.ShowAppHelp(c)
@@ -76,25 +76,25 @@ func main() {
 	}
 }
 
-// readSource reads one argument as a source file. `-` is standard input, so
-// aria can sit in a pipeline.
-func readSource(c *cli.Context, command string) *source.File {
+// readSource reads the first argument as a source file, and returns the rest for
+// the program itself. `-` is standard input, so aria can sit in a pipeline.
+func readSource(c *cli.Context, command string) (*source.File, []string) {
 	args := c.Args()
-	if len(args) != 1 {
+	if len(args) == 0 {
 		// The original printed this and then indexed the empty argument list,
 		// panicking with an index-out-of-range.
-		color.Red("%s expects exactly one source file.", command)
+		color.Red("%s expects a source file.", command)
 		os.Exit(2)
 	}
 
-	path := args[0]
+	path, rest := args[0], []string(args[1:])
 	if path == "-" {
 		src, err := io.ReadAll(os.Stdin)
 		if err != nil {
 			color.Red("Couldn't read standard input")
 			os.Exit(1)
 		}
-		return source.NewFile("<stdin>", src)
+		return source.NewFile("<stdin>", src), rest
 	}
 
 	src, err := os.ReadFile(path)
@@ -102,7 +102,7 @@ func readSource(c *cli.Context, command string) *source.File {
 		color.Red("Couldn't read '%s'", path)
 		os.Exit(1)
 	}
-	return source.NewFile(path, src)
+	return source.NewFile(path, src), rest
 }
 
 func runFile(c *cli.Context) error {
@@ -110,11 +110,13 @@ func runFile(c *cli.Context) error {
 	return nil
 }
 
-func runSource(file *source.File) {
+// runSource evaluates a file with the arguments meant for the program.
+func runSource(file *source.File, args []string) {
 	if !interp.Run(file, interp.Options{
-		Out: os.Stdout,
-		Err: os.Stderr,
-		In:  os.Stdin,
+		Out:  os.Stdout,
+		Err:  os.Stderr,
+		In:   os.Stdin,
+		Args: args,
 	}) {
 		// A failed run exits non-zero, so a script or CI can tell. The original
 		// exited 0 on every parse and runtime error alike.
@@ -123,7 +125,8 @@ func runSource(file *source.File) {
 }
 
 func checkFile(c *cli.Context) error {
-	if !interp.Check(readSource(c, "Check"), interp.Options{Err: os.Stderr}) {
+	file, _ := readSource(c, "Check")
+	if !interp.Check(file, interp.Options{Err: os.Stderr}) {
 		os.Exit(1)
 	}
 	return nil

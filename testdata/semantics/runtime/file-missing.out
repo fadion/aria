@@ -1,0 +1,5 @@
+[:error, "_no_such_file.txt: no such file"]
+false
+a default
+could not read: _no_such_file.txt: no such file
+--- exit: 0

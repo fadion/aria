@@ -109,6 +109,8 @@ type Interp struct {
 	dir string
 	// imported guards against re-importing, matching the original's cache.
 	imported map[string]bool
+	// args is what the program was told, everything after the source file.
+	args []string
 
 	signal signal
 	retval value.Value

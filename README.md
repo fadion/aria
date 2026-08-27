@@ -1420,6 +1420,44 @@ println(Result.attempt(() -> 1 / 0))
 
 The library draws the line at data versus misuse. `Dict.insert`, `Dict.update` and `Dict.delete` answer tagged results, because a key that is or isn't there is an ordinary outcome. Passing the wrong kind of thing — `Math.max("a", 1)` — still raises, because that's a mistake in the caller.
 
+## Files, Arguments, Environment and Time
+
+`prompt` used to be the only way an Aria program could reach the outside world. `File`, `OS` and `Time` are the rest of it.
+
+Everything that can fail answers a tagged result, so a file that isn't there is something you handle rather than something that ends the program:
+
+```swift
+let path = "config.txt"
+println(switch File.read(path)
+case [:ok, let contents] then "read #{String.count(contents)} characters"
+case [:error, let why] then "could not read: #{why}"
+end)
+```
+
+`File` has `read`, `lines`, `write`, `append`, `remove` and `exists?`. `OS.args()` is everything after the source file on the command line, and `OS.env(name, fallback)` reads the environment:
+
+```
+aria run script.ari one two
+```
+
+```swift
+println(OS.args())
+println(OS.env("HOME", "unknown"))
+```
+
+`Time` has two clocks, because they answer different questions. `Time.now()` is milliseconds since the Unix epoch, which is what you write down. `Time.monotonic()` is nanoseconds from an arbitrary origin, which is what you subtract — a wall clock can move backwards:
+
+```swift
+let start = Time.monotonic()
+var total = 0
+for i in 1..1000
+  total += i
+end
+println(Time.since(start) > 0)
+```
+
+There is no sandbox. A program reads and writes any path the process can, and running untrusted Aria source is running untrusted code.
+
 ## Standard Library
 
 The Standard Library is fully written in Aria with the help of a few essential functions provided by the runtime. That is currently the best source to check out some "production" Aria code and see what it's capable of. [Read the documentation](https://github.com/fadion/aria/wiki/Standard-Library).
@@ -1466,6 +1504,8 @@ println(Dict.get(user, :city, "unknown"))
 ```
 
 **`Result`** — `ok`, `error`, `ok?`, `error?`, `unwrap`, `expect`, `reason`, `attempt`. See [Errors](#errors).
+
+**`File`** — `read`, `lines`, `write`, `append`, `remove`, `exists?`. **`OS`** — `args`, `env`, `env?`. **`Time`** — `now`, `monotonic`, `since`, `milliseconds`, `seconds`.
 
 **`Type`** covers type inspection and conversion.
 
