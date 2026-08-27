@@ -1,0 +1,19 @@
+// `is` in case position matches on the control's type. Aria already had `is` as
+// an operator; this is it where there is no left-hand side to write, which was
+// the most common reason to reach for a chain of typeof comparisons.
+let classify = func (v) do
+  switch v
+  case is Int when v > 100 then "large int"
+  case is Int then "int"
+  case is String then "string"
+  case is Array then "array"
+  case is Nil then "nothing"
+  case is Any then "something else"
+  end
+end
+println(classify(500))
+println(classify(5))
+println(classify("x"))
+println(classify([1]))
+println(classify(nil))
+println(classify(1.5))

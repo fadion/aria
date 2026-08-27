@@ -102,6 +102,7 @@ const (
 	Then
 	Switch
 	Case
+	When
 	Default
 	Break
 	Continue
@@ -190,6 +191,7 @@ var names = [...]string{
 	Then:     "then",
 	Switch:   "switch",
 	Case:     "case",
+	When:     "when",
 	Default:  "default",
 	Break:    "break",
 	Continue: "continue",
@@ -227,6 +229,7 @@ var keywords = map[string]Kind{
 	"then":     Then,
 	"switch":   Switch,
 	"case":     Case,
+	"when":     When,
 	"default":  Default,
 	"break":    Break,
 	"continue": Continue,

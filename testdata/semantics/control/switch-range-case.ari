@@ -1,0 +1,26 @@
+// A range in case position tests membership rather than equality. An Int range
+// is tested by comparison, so `case 1..1000000` costs nothing.
+let size = func (n) do
+  switch n
+  case 1..9 then "digit"
+  case 10..99 then "two digits"
+  case 100..1000000 then "big"
+  default then "out of range"
+  end
+end
+println(size(5))
+println(size(42))
+println(size(5000))
+println(size(0))
+
+// A descending range covers the same span.
+println(switch 5 do
+  case 9..1 then "in range"
+  default then "out"
+end)
+
+// A character range materialises, which is what `..` does outside a case.
+println(switch "d" do
+  case "a".."f" then "hex letter"
+  default then "other"
+end)

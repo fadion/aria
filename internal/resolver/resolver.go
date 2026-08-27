@@ -469,16 +469,15 @@ func (r *Resolver) node(n ast.Node) {
 	case *ast.Switch:
 		r.node(n.Control)
 		for _, c := range n.Cases {
-			// A case value may be `_`, the wildcard. Walk the elements rather
-			// than the list so the placeholder is not reported as one out of
-			// position.
+			// A case value may be `_`, the wildcard, and an array pattern may
+			// hold them too. Walk the elements rather than the list so a
+			// placeholder is not reported as one out of position.
 			if c.Values != nil {
 				for _, el := range c.Values.Elements {
-					if _, wild := el.(*ast.Placeholder); !wild {
-						r.node(el)
-					}
+					r.caseValue(el)
 				}
 			}
+			r.node(c.Guard)
 			r.node(c.Body)
 		}
 		if n.Default != nil {
@@ -543,6 +542,24 @@ func (r *Resolver) node(n ast.Node) {
 		*ast.Integer, *ast.Float, *ast.String, *ast.Atom,
 		*ast.Boolean, *ast.Nil:
 		// Nothing to resolve.
+	}
+}
+
+// caseValue resolves one value of a case arm, where `_` is a wildcard rather
+// than a name and `is Type` names a type rather than a value.
+func (r *Resolver) caseValue(el ast.Node) {
+	switch el := el.(type) {
+	case *ast.Placeholder:
+	case *ast.TypeCase:
+		r.typeName(el.Name)
+	case *ast.Array:
+		if el.List != nil {
+			for _, item := range el.List.Elements {
+				r.caseValue(item)
+			}
+		}
+	default:
+		r.node(el)
 	}
 }
 

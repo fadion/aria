@@ -421,11 +421,24 @@ func TestSwitch(t *testing.T) {
 	}
 }
 
+// A comma-separated case list is always a list of alternatives. It used to mean
+// that for a scalar control and "the array [1, 2]" for an array control, chosen
+// by the runtime type of the subject. A pattern is an array literal now.
 func TestSwitchPatternMatching(t *testing.T) {
 	tests := []struct{ src, want string }{
-		{"switch [1, 2] do case 1, 2 then 10 default then 20 end", "10"},
-		{"switch [1, 9] do case 1, _ then 10 default then 20 end", "10"},
-		{"switch [1, 9] do case 2, _ then 10 default then 20 end", "20"},
+		// Alternatives, so an array control equals neither.
+		{"switch [1, 2] do case 1, 2 then 10 default then 20 end", "20"},
+		{"switch 2 do case 1, 2 then 10 default then 20 end", "10"},
+
+		// The pattern spelling, with `_` as a wildcard inside it.
+		{"switch [1, 2] do case [1, 2] then 10 default then 20 end", "10"},
+		{"switch [1, 9] do case [1, _] then 10 default then 20 end", "10"},
+		{"switch [1, 9] do case [2, _] then 10 default then 20 end", "20"},
+		// A pattern of a different arity is simply a different array.
+		{"switch [1, 9] do case [1] then 10 default then 20 end", "20"},
+
+		// A bare `_` among alternatives is still the match-anything wildcard.
+		{"switch [1, 9] do case 2, _ then 10 default then 20 end", "10"},
 	}
 	for _, test := range tests {
 		if got := str(t, test.src); got != test.want {
@@ -1772,5 +1785,65 @@ func TestMultilineParameters(t *testing.T) {
 	// The bare form still works on one line.
 	if got := output(t, "let times = func a, b do a * b end\nprintln(times(3, 4))"); got != "12\n" {
 		t.Errorf("got %q", got)
+	}
+}
+
+// A `when` clause is tested only once one of the arm's values has matched, so
+// the control-less form replaces an else-if chain without repeating the subject.
+func TestSwitchGuards(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{"switch 4 do case 1..9 when 4 % 2 == 0 then 10 default then 20 end", "10"},
+		{"switch 5 do case 1..9 when 5 % 2 == 0 then 10 default then 20 end", "20"},
+		// A guard that fails falls through to the next arm, not to default.
+		{"switch 5 do case 5 when false then 10 case 5 then 30 default then 20 end", "30"},
+		// And on the control-less form.
+		{"switch\ncase true when false then 10\ncase true then 30\nend", "30"},
+	}
+	for _, test := range tests {
+		if got := str(t, test.src); got != test.want {
+			t.Errorf("%s: got %s, want %s", test.src, got, test.want)
+		}
+	}
+}
+
+// `is` in case position matches on the control's type, which was the most
+// common reason to reach for a chain of typeof comparisons.
+func TestSwitchTypeCases(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`switch 1 do case is Int then "int" default then "no" end`, "int"},
+		{`switch "x" do case is String then "string" default then "no" end`, "string"},
+		{`switch [1] do case is Array then "array" default then "no" end`, "array"},
+		{`switch nil do case is Nil then "nil" default then "no" end`, "nil"},
+		{`switch 1.5 do case is Int then "int" case is Any then "any" end`, "any"},
+	}
+	for _, test := range tests {
+		if got := str(t, test.src); got != test.want {
+			t.Errorf("%s: got %s, want %s", test.src, got, test.want)
+		}
+	}
+
+	// The type name is checked, so a typo is a diagnostic rather than an arm
+	// that never matches.
+	fails(t, `println(switch 1 do case is Banana then 1 end)`, "'Banana' is not a type")
+}
+
+// A range in case position tests membership rather than equality.
+func TestSwitchRangeCases(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`switch 5 do case 1..9 then "digit" default then "no" end`, "digit"},
+		{`switch 42 do case 1..9 then "digit" case 10..99 then "two" default then "no" end`, "two"},
+		{`switch 0 do case 1..9 then "digit" default then "no" end`, "no"},
+		// A descending range covers the same span.
+		{`switch 5 do case 9..1 then "in" default then "out" end`, "in"},
+		// A character range materialises, which is what `..` does anyway.
+		{`switch "d" do case "a".."f" then "hex" default then "no" end`, "hex"},
+		{`switch "z" do case "a".."f" then "hex" default then "no" end`, "no"},
+		// An Int range is tested by comparison, so a huge one costs nothing.
+		{`switch 999999 do case 1..100000000 then "in" default then "out" end`, "in"},
+	}
+	for _, test := range tests {
+		if got := str(t, test.src); got != test.want {
+			t.Errorf("%s: got %s, want %s", test.src, got, test.want)
+		}
 	}
 }

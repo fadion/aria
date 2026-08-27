@@ -108,7 +108,10 @@ func Children(n Node) []Node {
 		block(n.Default)
 	case *SwitchCase:
 		list(n.Values)
+		node(n.Guard)
 		block(n.Body)
+	case *TypeCase:
+		ident(n.Name)
 	case *For:
 		if n.Arguments != nil {
 			for _, e := range n.Arguments.Elements {

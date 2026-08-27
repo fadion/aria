@@ -339,12 +339,30 @@ func (n *If) Inspect() string {
 type SwitchCase struct {
 	Base
 	Values *ExpressionList
-	Body   *Block
+	// Guard is a `when` clause, tested only once a value has already matched.
+	// It is what lets the control-less form replace an else-if chain without
+	// repeating the subject.
+	Guard Node
+	Body  *Block
 }
 
 func (n *SwitchCase) Inspect() string {
-	return "case " + n.Values.Inspect() + " then " + n.Body.Inspect()
+	out := "case " + n.Values.Inspect()
+	if n.Guard != nil {
+		out += " when " + n.Guard.Inspect()
+	}
+	return out + " then " + n.Body.Inspect()
 }
+
+// TypeCase is `case is Type`, which matches on the control's type rather than
+// its value. Aria already has `is` as an operator; this is it in case position,
+// where there is no left-hand side to write.
+type TypeCase struct {
+	Base
+	Name *Identifier
+}
+
+func (n *TypeCase) Inspect() string { return "is " + n.Name.Inspect() }
 
 // Switch is a multi-way branch. Control is nil for the control-less form, which
 // behaves as `switch true`.
