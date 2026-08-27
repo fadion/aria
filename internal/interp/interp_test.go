@@ -1201,3 +1201,32 @@ end`, "'b' is not defined")
 	fails(t, `let f = func () do 1 end
 let f = func () do 2 end`, "already declared")
 }
+
+// Moving String.count, slice, split, replace, join, repeat and reverse onto
+// runtime primitives had to keep every answer, including the empty-string edges
+// that fell out of walking the subject's characters.
+func TestStdlibStringPrimitiveEdges(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`println(String.split("a,,b", ","))`, `["a", "b"]`},
+		{`println(String.split("a,b,", ","))`, `["a", "b", ""]`},
+		{`println(String.split("", ","))`, `[""]`},
+		{`println(String.split("abc", ""))`, `["a", "b", "c"]`},
+		{`println(String.contains?("", ""))`, "false"},
+		{`println(String.contains?("abc", ""))`, "true"},
+		{`println(String.replace("abc", "", "-"))`, "-a-b-c"},
+		{`println(String.indexOf("", ""))`, "-1"},
+		{`println(String.join(["a", 1, :b, nil], "-"))`, "a-1-b-nil"},
+		// Overlapping separators used to compute a negative slice length and
+		// panic. Matches are non-overlapping now.
+		{`println(String.replace("aaa", "aa", "b"))`, "ba"},
+		// Everything stays rune-indexed.
+		{`println(String.slice("héllo", 1, 3))`, "éll"},
+		{`println(String.indexOf("héllo", "llo"))`, "2"},
+		{`println(String.reverse("héllo"))`, "olléh"},
+	}
+	for _, test := range tests {
+		if got := withStdlib(t, test.src); got != test.want {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+}

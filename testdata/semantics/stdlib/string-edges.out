@@ -1,0 +1,16 @@
+["a", "b"]
+["a", "b", ""]
+["a"]
+[""]
+["a", "b", "c"]
+false
+true
+-a-b-c
+0
+-1
+a-1-b-true-nil
+éll
+5
+olléh
+2
+--- exit: 0

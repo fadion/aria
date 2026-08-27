@@ -1,11 +1,11 @@
 module String
 
+  // count, slice, reverse, join, repeat, split and replace are one call into
+  // the runtime each. They were interpreted loops over data the runtime already
+  // knows the shape of, and they were called from inside other loops, so
+  // everything built on them was quadratic. See docs/architecture.md.
   let count = func (str: String) -> Int
-    var cnt = 0
-    for v in str
-      cnt += 1
-    end
-    cnt
+    runtime_len(str)
   end
 
   let first = func (str: String) -> String
@@ -35,11 +35,7 @@ module String
   end
 
   let reverse = func (str: String) -> String
-    var reversed = ""
-    for i in String.count(str)-1..0
-      reversed += str[i]
-    end
-    reversed
+    runtime_reverse(str)
   end
 
   let slice = func (str: String, start: Int, length: Int) -> String
@@ -47,15 +43,7 @@ module String
       panic("String.slice() expects positive start and length parameters")
     end
 
-    var sliced = ""
-    var chars = 0
-    for i, v in str
-      if i >= start && chars < length
-        sliced += v
-        chars += 1
-      end
-    end
-    sliced
+    runtime_slice(str, start, length)
   end
 
   // trim, trimLeft and trimRight strip whitespace unless given a set of
@@ -102,36 +90,11 @@ module String
   end
 
   let join = func (array: Array, glue: String) -> String
-    var glued = ""
-    for v in array
-      glued += String(v) + glue
-    end
-
-    if String.count(glued) > String.count(glue)
-      return String.slice(glued, 0, String.count(glued) - String.count(glue))
-    end
-
-    glued
+    runtime_join(array, glue)
   end
 
   let split  = func (str: String, separator: String) -> Array
-    let count_sep = String.count(separator)
-    var array = []
-    var last_index = 0
-
-    for i, v in str
-        if String.slice(str, i, count_sep) == separator
-          var curr = String.slice(str, last_index, i - last_index)
-          if curr != ""
-            array[] = curr
-          end
-          last_index = i + count_sep
-        end
-    end
-
-    array[] = String.slice(str, last_index, String.count(str))
-
-    array
+    runtime_split(str, separator)
   end
 
   let starts? = func (str: String, prefix: String) -> Bool
@@ -158,28 +121,18 @@ module String
     false
   end
 
+  // The empty-string answer is kept: this scanned the characters of str, so an
+  // empty string contains nothing, not even the empty string.
   let contains? = func (str: String, search: String) -> Bool
-    for i, v in str
-      if String.slice(str, i, String.count(search)) == search
-        return true
-      end
+    if String.count(str) == 0
+      return false
     end
-    false
+
+    runtime_index_of(str, search, 0) >= 0
   end
 
   let replace = func (str: String, search: String, replace: String) -> String
-    let count_search = String.count(search)
-    var rpl = ""
-    var last_index = 0
-
-    for i, v in str
-      if String.slice(str, i, count_search) == search
-        rpl = rpl + String.slice(str, last_index, i - last_index) + replace
-        last_index = i + count_search
-      end
-    end
-
-    rpl + String.slice(str, last_index, String.count(str))
+    runtime_replace(str, search, replace)
   end
 
   let match? = func (str: String, regex: String) -> Bool
@@ -195,15 +148,7 @@ module String
       panic("String.repeat() expects a non-negative count")
     end
 
-    if times == 0
-      return ""
-    end
-
-    var out = ""
-    for i in 1..times
-      out += str
-    end
-    out
+    runtime_repeat(str, times)
   end
 
   // padLeft and padRight grow a string to at least size, using pad as the
@@ -240,24 +185,19 @@ module String
   // indexOf and lastIndexOf answer -1 when the search is absent, so a caller
   // can tell "not found" from "found at 0".
   let indexOf = func (str: String, search: String) -> Int
-    let size = String.count(search)
-    for i, v in str
-      if String.slice(str, i, size) == search
-        return i
-      end
+    if String.count(str) == 0
+      return -1
     end
-    -1
+
+    runtime_index_of(str, search, 0)
   end
 
   let lastIndexOf = func (str: String, search: String) -> Int
-    let size = String.count(search)
-    var found = -1
-    for i, v in str
-      if String.slice(str, i, size) == search
-        found = i
-      end
+    if String.count(str) == 0
+      return -1
     end
-    found
+
+    runtime_last_index_of(str, search)
   end
 
   let lines = func (str: String) -> Array
@@ -267,22 +207,16 @@ module String
   // words splits on runs of whitespace, so repeated separators do not produce
   // empty entries the way split on a single space would.
   let words = func (str: String) -> Array
-    var out = []
-    var current = ""
-
-    for v in str
-      if String.contains?(String.whitespace, v)
-        if current != ""
-          out[] = current
-        end
-        current = ""
-      else
-        current += v
-      end
+    var normalized = str
+    for v in String.whitespace
+      normalized = String.replace(normalized, v, " ")
     end
 
-    if current != ""
-      out[] = current
+    var out = []
+    for w in String.split(normalized, " ")
+      if w != ""
+        out[] = w
+      end
     end
     out
   end

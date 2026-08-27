@@ -1,0 +1,8 @@
+// split and replace scanned every position and computed the piece before each
+// match as slice(last, i - last). With an overlapping separator the second match
+// arrives before last, so the length went negative and String.slice panicked:
+// String.split("aaaa", "aa") was a runtime error. Matches are non-overlapping
+// now, which is the answer the loop was reaching for.
+println(String.split("aaaa", "aa"))
+println(String.replace("aaa", "aa", "b"))
+println(String.replace("aaaa", "aa", "-"))

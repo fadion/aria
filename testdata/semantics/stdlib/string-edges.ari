@@ -1,0 +1,17 @@
+// The empty-string answers, which the move to runtime primitives had to keep:
+// each of these was defined by walking the characters of the subject.
+println(String.split("a,,b", ","))
+println(String.split("a,b,", ","))
+println(String.split(",a", ","))
+println(String.split("", ","))
+println(String.split("abc", ""))
+println(String.contains?("", ""))
+println(String.contains?("abc", ""))
+println(String.replace("abc", "", "-"))
+println(String.indexOf("abc", ""))
+println(String.indexOf("", ""))
+println(String.join(["a", 1, :b, true, nil], "-"))
+println(String.slice("héllo", 1, 3))
+println(String.count("héllo"))
+println(String.reverse("héllo"))
+println(String.indexOf("héllo", "llo"))

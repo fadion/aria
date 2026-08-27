@@ -1,11 +1,7 @@
 module Enum
 
   let size = func (array: Array) -> Int
-    var count = 0
-    for v in array
-      count += 1
-    end
-    count
+    runtime_len(array)
   end
 
   let empty? = func (array: Array) -> Bool
