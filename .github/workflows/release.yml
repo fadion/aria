@@ -51,11 +51,16 @@ jobs:
           fi
           echo "version $version"
 
+      # The same correctness suites the CI workflow's `language` job runs, so a
+      # tag cannot publish something master would have rejected. These two lists
+      # have to agree: check-examples.sh was added to CI and not here, and went
+      # missing from every release until somebody thought to compare them.
       - run: go build -o aria .
       - run: go vet ./...
       - run: go test ./...
       - run: bash scripts/characterize.sh verify
       - run: bash scripts/check-readme.sh
+      - run: bash scripts/check-examples.sh
 
   build:
     name: ${{ matrix.name }}
