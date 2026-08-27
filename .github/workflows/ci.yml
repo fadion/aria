@@ -219,3 +219,35 @@ jobs:
           name: fuzz-corpus
           path: internal/*/testdata/fuzz/
           if-no-files-found: ignore
+
+  # One check for branch protection to require, instead of seven.
+  #
+  # Requiring the job names directly has two problems. A skipped matrix job
+  # reports its name unexpanded -- literally "test (${{ matrix.os }})" rather
+  # than the three real ones -- so a required "test (ubuntu-latest)" waits
+  # forever on a documentation change, which is the deadlock the job-level
+  # filtering was meant to avoid in the first place. And every required name is
+  # coupled to a job name: rename a job, and protection silently stops enforcing
+  # it with nothing anywhere to notice.
+  #
+  # This job always runs, so it always reports, and it fails if anything it
+  # gates on failed or was cancelled. Skipped is fine: that is the filtering
+  # working. Require this and nothing else.
+  ci:
+    name: ci
+    if: always()
+    needs: [changes, test, lint, language, fuzz]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check what the other jobs did
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: $RESULTS"
+          case " $RESULTS " in
+            *" failure "*|*" cancelled "*)
+              echo "::error::a job this gates on did not pass"
+              exit 1
+              ;;
+          esac
+          echo "all clear"
