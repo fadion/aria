@@ -200,7 +200,9 @@ func TestModules(t *testing.T) {
 	// Members may refer to each other in any order, since modules are hoisted.
 	resolveOK(t, "module M\n  let a = b\n  let b = 1\nend\nM.a")
 
-	resolveErr(t, "Nope.thing", "module 'Nope' is not defined")
+	// A module name is an ordinary binding now, so an undefined one is an
+	// undefined name — `.` knows nothing about modules.
+	resolveErr(t, "Nope.thing", "'Nope' is not defined")
 }
 
 func TestPredeclaredModules(t *testing.T) {
@@ -274,8 +276,8 @@ b = f(1, 2)`
 			skip[n.Right] = true
 		case *ast.As:
 			skip[n.Right] = true
-		case *ast.ModuleAccess:
-			skip[n.Object], skip[n.Parameter] = true, true
+		case *ast.Access:
+			skip[n.Name] = true
 		case *ast.FunctionParameter:
 			skip[n.Name], skip[n.Type] = true, true
 		case *ast.Function:

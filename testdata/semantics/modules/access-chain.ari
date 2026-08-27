@@ -1,0 +1,14 @@
+// `.` is an operator over expressions, not a special form over two identifiers,
+// so it chains over calls and subscripts. Each of these was a parse error
+// reading "'...' cannot be used as a module name".
+module M
+  let inner = [:k => "deep"]
+  let get = func () do [:a => "from a call"] end
+end
+
+println(M.inner.k)
+println(M.get().a)
+
+let rows = [[:name => "first"], [:name => "second"]]
+println(rows[0].name)
+println(rows[1].name)

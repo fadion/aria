@@ -358,7 +358,7 @@ func (p *Parser) parseInfix(left ast.Node) ast.Node {
 	case token.LBracket:
 		return p.parseSubscript(left)
 	case token.Dot:
-		return p.parseModuleAccess(left)
+		return p.parseAccess(left)
 	case token.Pipe:
 		return p.parsePipe(left)
 	case token.Arrow:
@@ -778,23 +778,21 @@ func (p *Parser) parseSubscript(left ast.Node) ast.Node {
 	}
 }
 
-// parseModuleAccess reads `Object.member`. The cursor is on the dot.
-func (p *Parser) parseModuleAccess(left ast.Node) ast.Node {
-	object, ok := left.(*ast.Identifier)
-	if !ok {
-		// The old parser called TokenLexeme on left here without checking for
-		// nil, which is the crash a fuzzer found in under a second.
-		return p.bad(left.Span(), "'%s' cannot be used as a module name", left.Inspect())
-	}
-
+// parseAccess reads `left.member`. The cursor is on the dot.
+//
+// Left is whatever expression preceded the dot. It used to have to be a bare
+// identifier, which is what stopped `.` from chaining; the old parser also
+// called TokenLexeme on it without checking for nil, which is the crash a
+// fuzzer found in under a second.
+func (p *Parser) parseAccess(left ast.Node) ast.Node {
 	if !p.expectPeek(token.Ident) {
 		return &ast.Bad{Base: ast.Base{Sp: span(left.Span(), p.tok.Span)}, Text: "."}
 	}
 
-	return &ast.ModuleAccess{
-		Base:      ast.Base{Sp: span(left.Span(), p.tok.Span)},
-		Object:    object,
-		Parameter: &ast.Identifier{Base: ast.Base{Sp: p.tok.Span}, Value: p.text(p.tok)},
+	return &ast.Access{
+		Base: ast.Base{Sp: span(left.Span(), p.tok.Span)},
+		Left: left,
+		Name: &ast.Identifier{Base: ast.Base{Sp: p.tok.Span}, Value: p.text(p.tok)},
 	}
 }
 

@@ -51,10 +51,20 @@ func (b *Builtin) String() string  { return "builtin " + b.Name }
 func (b *Builtin) Inspect() string { return b.String() }
 
 // Module is a named container of values.
+//
+// A module is an ordinary value: it lives in the environment under its name, so
+// it can be bound, passed and returned like anything else.
+//
+// That exposed a collision the two-namespace design used to hide. `String` is
+// both a conversion builtin and a standard library module, and as a value the
+// name has to mean one thing. It means both: a module that shadows a builtin of
+// its own name carries it, so `String("x")` converts and `String.join(...)`
+// reads a member, and `let S = String` gets a value that still does both.
 type Module struct {
 	Name    string
 	members map[string]value.Value
 	order   []string
+	call    *Builtin
 }
 
 func (*Module) Type() value.Type  { return value.TModule }
@@ -88,6 +98,10 @@ func (i *Interp) apply(callee value.Value, args []value.Value, span source.Span,
 		return fn.Fn(i, args, span)
 	case *Function:
 		return i.callFunction(fn, args, span)
+	case *Module:
+		if fn.call != nil {
+			return fn.call.Fn(i, args, span)
+		}
 	}
 	i.fail(span, "cannot call %s", callee.Type())
 	return value.NilValue
@@ -192,7 +206,20 @@ func (i *Interp) evalModule(n *ast.Module, e *env) {
 	m := &Module{Name: n.Name.Value, members: map[string]value.Value{}}
 	// Register before evaluating, so a member closing over the module can name
 	// it, and so a self-referential member resolves.
+	//
+	// The name is bound in the enclosing scope as well as in the module
+	// registry, because a module IS a value: it can be bound, passed and
+	// returned. The registry survives for the redeclaration check and for
+	// carrying a separately-evaluated standard library into a later run.
 	i.modules[n.Name.Value] = m
+	// A builtin of the same name is carried rather than shadowed: `String` is
+	// both a conversion and a module, and as a value it has to be one thing.
+	if prev, ok := e.lookup(n.Name.Value); ok {
+		if b, isBuiltin := prev.(*Builtin); isBuiltin {
+			m.call = b
+		}
+	}
+	e.define(n.Name.Value, m)
 
 	for _, node := range n.Body.Nodes {
 		let, ok := node.(*ast.Let)
@@ -208,29 +235,35 @@ func (i *Interp) evalModule(n *ast.Module, e *env) {
 	}
 }
 
-func (i *Interp) evalModuleAccess(n *ast.ModuleAccess, e *env) value.Value {
-	if m, ok := i.modules[n.Object.Value]; ok {
-		v, found := m.Member(n.Parameter.Value)
+// evalAccess reads a named member of whatever is on the left.
+//
+// It used to be two branches keyed off a bare identifier — look the name up in
+// i.modules, else look for a dictionary bound to it in scope — which is why `.`
+// only worked one level deep and only over a name. Now that a module is an
+// ordinary value in the environment, there is one rule: evaluate the left side
+// and dispatch on what it is. That is what lets `cfg.db.host`, `f().a` and
+// `rows[0].name` work, and it removes a special case rather than adding a
+// feature.
+func (i *Interp) evalAccess(n *ast.Access, e *env) value.Value {
+	left := i.eval(n.Left, e)
+
+	switch v := left.(type) {
+	case *Module:
+		member, found := v.Member(n.Name.Value)
 		if !found {
-			i.fail(n.Parameter.Span(), "module '%s' has no member '%s'",
-				n.Object.Value, n.Parameter.Value)
+			i.fail(n.Name.Span(), "module '%s' has no member '%s'", v.Name, n.Name.Value)
 		}
-		return v
+		return member
+
+	case *value.Dict:
+		// One lookup covers both spellings: an Atom keys as the String of its
+		// text, so `config.host` finds :host and "host" alike.
+		if member, found := v.Get(value.String(n.Name.Value)); found {
+			return member
+		}
+		i.fail(n.Name.Span(), "no key '%s' in the dictionary", n.Name.Value)
 	}
 
-	// A dictionary bound to a name supports dotted access to its keys, which
-	// keeps `config.host` working for plain data.
-	if v, ok := e.lookup(n.Object.Value); ok {
-		if d, isDict := v.(*value.Dict); isDict {
-			// One lookup covers both spellings: an Atom keys as the String of
-			// its text, so `config.host` finds :host and "host" alike.
-			if member, found := d.Get(value.String(n.Parameter.Value)); found {
-				return member
-			}
-			i.fail(n.Parameter.Span(), "no key '%s' in the dictionary", n.Parameter.Value)
-		}
-	}
-
-	i.fail(n.Object.Span(), "module '%s' is not defined", n.Object.Value)
+	i.fail(n.Span(), "cannot read '.%s' from %s", n.Name.Value, left.Type())
 	return value.NilValue
 }
