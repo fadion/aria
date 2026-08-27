@@ -1054,3 +1054,77 @@ println(rows[0].name)`, "first"},
 
 	fails(t, `println(1 .foo)`, "cannot read '.foo' from Int")
 }
+
+// trim required an explicit character set and stripped exactly one character
+// per side, so trim("  hi  ", " ") was " hi ".
+func TestStdlibStringTrim(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`println(String.trim("  hi  "))`, "hi"},
+		{`println(String.trim("  hi  ", " "))`, "hi"},
+		{`println(String.trimLeft("xxxhi", "x"))`, "hi"},
+		{`println(String.trimRight("hixxx", "x"))`, "hi"},
+		{`println(String.trim("\t\n hi \r\n"))`, "hi"},
+		{`println(String.trim(""))`, ""},
+		{`println(String.trim("     "))`, ""},
+	}
+	for _, test := range tests {
+		if got := withStdlib(t, test.src); got != test.want {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+}
+
+func TestStdlibStringCoverage(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`println(String.isEmpty?(""))`, "true"},
+		{`println(String.repeat("ab", 3))`, "ababab"},
+		{`println(String.repeat("ab", 0))`, ""},
+		{`println(String.padLeft("7", 4, "0"))`, "0007"},
+		{`println(String.padRight("7", 4))`, "7   "},
+		{`println(String.padLeft("abcd", 2))`, "abcd"},
+		{`println(String.indexOf("hello", "l"))`, "2"},
+		{`println(String.lastIndexOf("hello", "l"))`, "3"},
+		{`println(String.indexOf("hello", "z"))`, "-1"},
+		{`println(String.lines("a\nb"))`, `["a", "b"]`},
+		{`println(String.words("  a  b\tc "))`, `["a", "b", "c"]`},
+	}
+	for _, test := range tests {
+		if got := withStdlib(t, test.src); got != test.want {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+}
+
+func TestStdlibMathCoverage(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`println(Math.round(2.5))`, "3"},
+		{`println(Math.round(-2.5))`, "-3"},
+		{`println(Math.trunc(-2.9))`, "-2"},
+		{`println(Math.sign(-3.2))`, "-1"},
+		{`println(Math.sign(0))`, "0"},
+		{`println(Math.max(3, 7, 1))`, "7"},
+		{`println(Math.min(3, 7, 1))`, "1"},
+		{`println(Math.clamp(15, 0, 10))`, "10"},
+		{`println(Math.sqrt(9))`, "3.0"},
+		{`println(Math.log2(8))`, "3.0"},
+		{`println(Math.isNaN?(Math.nan))`, "true"},
+		{`println(Math.isInfinite?(Math.infinity))`, "true"},
+		{`println(Math.isNaN?(1))`, "false"},
+	}
+	for _, test := range tests {
+		if got := withStdlib(t, test.src); got != test.want {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+
+	// An Int answer that does not exist raises, rather than converting out of
+	// range and landing on MinInt64.
+	var out, errOut strings.Builder
+	if _, err := interp.Eval("test.ari", `println(Math.floor(1.0e300))`, interp.Options{
+		Out: &out, Err: &errOut, In: strings.NewReader(""),
+	}); err == nil {
+		t.Error("Math.floor(1e300) succeeded, expected an overflow")
+	} else if !strings.Contains(err.Error(), "Int overflow") {
+		t.Errorf("failure did not mention an Int overflow: %v", err)
+	}
+}

@@ -1,0 +1,4 @@
+<stdlib>/math.ari:18:5: error: Int overflow: 1e+300 does not fit in an Int
+      runtime_floor(nr)
+      ^^^^^^^^^^^^^^^^^
+--- exit: 1

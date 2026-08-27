@@ -30,7 +30,12 @@ var Builtins = []string{
 	"println", "print", "prompt", "panic", "typeof",
 	"String", "Int", "Float", "Array",
 	"runtime_rand", "runtime_tolower", "runtime_toupper", "runtime_regex_match",
-	"runtime_floor", "runtime_ceil",
+	"runtime_floor", "runtime_ceil", "runtime_round", "runtime_trunc",
+	"runtime_sqrt", "runtime_cbrt", "runtime_exp",
+	"runtime_log", "runtime_log2", "runtime_log10",
+	"runtime_sin", "runtime_cos", "runtime_tan",
+	"runtime_asin", "runtime_acos", "runtime_atan",
+	"runtime_inf", "runtime_nan", "runtime_is_nan", "runtime_is_inf",
 }
 
 // Kind is what introduced a binding.

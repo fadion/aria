@@ -1109,6 +1109,31 @@ Nothing ground breaking in here. You can write either single line or multi line 
 
 The Standard Library is fully written in Aria with the help of a few essential functions provided by the runtime. That is currently the best source to check out some "production" Aria code and see what it's capable of. [Read the documentation](https://github.com/fadion/aria/wiki/Standard-Library).
 
+Five modules:
+
+**`String`** — `count`, `isEmpty?`, `first`, `last`, `lower`, `upper`, `capitalize`, `reverse`, `slice`, `repeat`, `padLeft`, `padRight`, `trim`, `trimLeft`, `trimRight`, `join`, `split`, `lines`, `words`, `indexOf`, `lastIndexOf`, `starts?`, `ends?`, `contains?`, `replace`, `match?`.
+
+`trim` and its two halves strip whitespace unless given a set of characters to strip, and strip every leading or trailing occurrence:
+
+```swift
+String.trim("  hi  ")        // "hi"
+String.trimLeft("xxhi", "x") // "hi"
+```
+
+`indexOf` and `lastIndexOf` answer `-1` when the search is absent, so "not found" is distinguishable from "found at 0".
+
+**`Math`** — `pi`, `e`, `infinity`, `nan`, `floor`, `ceil`, `round`, `trunc`, `max`, `min`, `clamp`, `random`, `abs`, `sign`, `pow`, `sqrt`, `cbrt`, `exp`, `log`, `log2`, `log10`, `sin`, `cos`, `tan`, `asin`, `acos`, `atan`, `isNaN?`, `isInfinite?`.
+
+`floor`, `ceil`, `round` and `trunc` answer with an Integer, and raise rather than convert out of range. `max` and `min` are variadic:
+
+```swift
+Math.round(-2.5)     // -3, halves round away from zero
+Math.max(3, 7, 1)    // 7
+Math.clamp(15, 0, 10) // 10
+```
+
+**`Enum`**, **`Dict`** and **`Type`** cover collections and type conversion.
+
 ## Future Plans
 
 Although this is a language made purely for fun and experimentation, it doesn't mean I will abandon it in it's first release. Adding other features means I'll learn even more!

@@ -2,12 +2,19 @@ module Math
 
   let pi = 3.14159265359
   let e = 2.718281828459
+  let infinity = runtime_inf()
+  let nan = runtime_nan()
 
+  // floor, ceil, round and trunc return an Int, and raise rather than convert
+  // out of range. See the numeric rules in docs/architecture.md.
   let floor = func (nr) -> Int
     if !Type.isNumber?(nr)
       panic("Math.floor() expects a Float or Int")
     end
 
+    if nr is Int
+      return nr
+    end
     runtime_floor(nr)
   end
 
@@ -16,23 +23,85 @@ module Math
       panic("Math.ceil() expects a Float or Int")
     end
 
+    if nr is Int
+      return nr
+    end
     runtime_ceil(nr)
   end
 
-  let max = func (nr1, nr2)
-    if !Type.isNumber?(nr1) || !Type.isNumber?(nr2)
-      panic("Math.max() expects a Float or Int")
+  // Halves round away from zero, so round(-2.5) is -3.
+  let round = func (nr) -> Int
+    if !Type.isNumber?(nr)
+      panic("Math.round() expects a Float or Int")
     end
 
-    return nr1 > nr2 ? nr1 : nr2
+    if nr is Int
+      return nr
+    end
+    runtime_round(nr)
   end
 
-  let min = func (nr1, nr2)
-    if !Type.isNumber?(nr1) || !Type.isNumber?(nr2)
-      panic("Math.min() expects a Float or Int")
+  // trunc drops the fraction, which is toward zero rather than toward -infinity.
+  let trunc = func (nr) -> Int
+    if !Type.isNumber?(nr)
+      panic("Math.trunc() expects a Float or Int")
     end
 
-    return nr1 > nr2 ? nr2 : nr1
+    if nr is Int
+      return nr
+    end
+    runtime_trunc(nr)
+  end
+
+  let max = func (...numbers)
+    if Enum.size(numbers) == 0
+      panic("Math.max() expects at least one number")
+    end
+
+    var largest = nil
+    for nr in numbers
+      if !Type.isNumber?(nr)
+        panic("Math.max() expects a Float or Int")
+      end
+      if largest == nil || nr > largest
+        largest = nr
+      end
+    end
+    largest
+  end
+
+  let min = func (...numbers)
+    if Enum.size(numbers) == 0
+      panic("Math.min() expects at least one number")
+    end
+
+    var smallest = nil
+    for nr in numbers
+      if !Type.isNumber?(nr)
+        panic("Math.min() expects a Float or Int")
+      end
+      if smallest == nil || nr < smallest
+        smallest = nr
+      end
+    end
+    smallest
+  end
+
+  let clamp = func (nr, low, high)
+    if !Type.isNumber?(nr) || !Type.isNumber?(low) || !Type.isNumber?(high)
+      panic("Math.clamp() expects a Float or Int")
+    end
+    if low > high
+      panic("Math.clamp() expects low to be at most high")
+    end
+
+    if nr < low
+      return low
+    end
+    if nr > high
+      return high
+    end
+    nr
   end
 
   let random = func (min: Int, max: Int) -> Int
@@ -50,12 +119,143 @@ module Math
     nr
   end
 
+  // sign answers which side of zero a number is on, which is a three-valued
+  // answer rather than a magnitude, so it is an Int for Float input too.
+  let sign = func (nr) -> Int
+    if !Type.isNumber?(nr)
+      panic("Math.sign() expects a Float or Int")
+    end
+
+    if nr < 0
+      return -1
+    end
+    if nr > 0
+      return 1
+    end
+    0
+  end
+
   let pow = func (nr, exp)
     if !Type.isNumber?(nr) || !Type.isNumber?(exp)
       panic("Math.pow() expects a Float or Int")
     end
 
     nr ** exp
+  end
+
+  // Everything below returns a Float: none of them has an integer answer in
+  // general, and a type that depended on the value is the rule this language
+  // does not have.
+  let sqrt = func (nr) -> Float
+    if !Type.isNumber?(nr)
+      panic("Math.sqrt() expects a Float or Int")
+    end
+
+    runtime_sqrt(nr)
+  end
+
+  let cbrt = func (nr) -> Float
+    if !Type.isNumber?(nr)
+      panic("Math.cbrt() expects a Float or Int")
+    end
+
+    runtime_cbrt(nr)
+  end
+
+  let exp = func (nr) -> Float
+    if !Type.isNumber?(nr)
+      panic("Math.exp() expects a Float or Int")
+    end
+
+    runtime_exp(nr)
+  end
+
+  let log = func (nr) -> Float
+    if !Type.isNumber?(nr)
+      panic("Math.log() expects a Float or Int")
+    end
+
+    runtime_log(nr)
+  end
+
+  let log2 = func (nr) -> Float
+    if !Type.isNumber?(nr)
+      panic("Math.log2() expects a Float or Int")
+    end
+
+    runtime_log2(nr)
+  end
+
+  let log10 = func (nr) -> Float
+    if !Type.isNumber?(nr)
+      panic("Math.log10() expects a Float or Int")
+    end
+
+    runtime_log10(nr)
+  end
+
+  let sin = func (nr) -> Float
+    if !Type.isNumber?(nr)
+      panic("Math.sin() expects a Float or Int")
+    end
+
+    runtime_sin(nr)
+  end
+
+  let cos = func (nr) -> Float
+    if !Type.isNumber?(nr)
+      panic("Math.cos() expects a Float or Int")
+    end
+
+    runtime_cos(nr)
+  end
+
+  let tan = func (nr) -> Float
+    if !Type.isNumber?(nr)
+      panic("Math.tan() expects a Float or Int")
+    end
+
+    runtime_tan(nr)
+  end
+
+  let asin = func (nr) -> Float
+    if !Type.isNumber?(nr)
+      panic("Math.asin() expects a Float or Int")
+    end
+
+    runtime_asin(nr)
+  end
+
+  let acos = func (nr) -> Float
+    if !Type.isNumber?(nr)
+      panic("Math.acos() expects a Float or Int")
+    end
+
+    runtime_acos(nr)
+  end
+
+  let atan = func (nr) -> Float
+    if !Type.isNumber?(nr)
+      panic("Math.atan() expects a Float or Int")
+    end
+
+    runtime_atan(nr)
+  end
+
+  let isNaN? = func (nr) -> Bool
+    if !Type.isNumber?(nr)
+      return false
+    end
+
+    runtime_is_nan(nr)
+  end
+
+  let isInfinite? = func (nr) -> Bool
+    if !Type.isNumber?(nr)
+      return false
+    end
+
+    runtime_is_inf(nr)
   end
 
 end

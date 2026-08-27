@@ -1,0 +1,20 @@
+println(String.isEmpty?(""))
+println(String.isEmpty?("x"))
+
+println(String.repeat("ab", 3))
+println("[" + String.repeat("ab", 0) + "]")
+
+println("[" + String.padLeft("7", 4, "0") + "]")
+println("[" + String.padRight("7", 4) + "]")
+println("[" + String.padLeft("7", 5, "ab") + "]")
+println("[" + String.padLeft("abcd", 2) + "]")
+
+// -1 rather than nil, so "not found" is distinguishable from "found at 0".
+println(String.indexOf("hello", "l"))
+println(String.lastIndexOf("hello", "l"))
+println(String.indexOf("hello", "h"))
+println(String.indexOf("hello", "z"))
+
+println(String.lines("a\nb\nc"))
+println(String.words("  a  b\tc  "))
+println(String.words(""))

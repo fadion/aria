@@ -279,6 +279,17 @@ tree-walking interpreter does not notice.
 Routing it through `math.Pow` lost precision above 2^53 and then converted out of range,
 which on amd64 produced `MinInt64` — so `3 ** 40` was a negative number.
 
+**`floor`, `ceil`, `round` and `trunc` answer with an `Int`, and raise when the exact
+answer does not fit in one.** The result type comes from what the function is for, not from
+the operand's value, which is the division rule again: `Math.floor(2.5)` is `2`, an `Int`,
+because an index or a count is what a floor is usually wanted for. What can depend on the
+value is whether the answer exists — `Math.floor(1e300)` has no `Int` answer, exactly as
+`9223372036854775807 + 1` has none, and both raise rather than land on `MinInt64`.
+
+Returning a `Float` instead, as Go's `math.Floor` does, would also have been representable
+everywhere; it was not taken because it makes the common use — `a[Math.floor(x)]` — need a
+conversion at every call site to avoid a type the caller never wanted.
+
 **A shift count of 64 or more is an error**, rather than Go's answer of shifting every bit
 out and yielding `0`. `1 << 100` is not `0`; it is a question about a 64-bit integer that
 has no answer.
@@ -346,7 +357,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 146 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 150 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash

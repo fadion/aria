@@ -58,52 +58,47 @@ module String
     sliced
   end
 
-  let trim = func (str: String, subset: String) -> String
-    var trimmed = str
-    var left = false
-    var right = false
+  // trim, trimLeft and trimRight strip whitespace unless given a set of
+  // characters to strip, and strip every leading or trailing occurrence.
+  //
+  // They used to require an explicit subset — there was no way to ask for
+  // whitespace, which is the overwhelmingly common case — and removed exactly
+  // one character per side: trim("  hi  ", " ") was " hi ".
+  let whitespace = " \t\n\r"
 
-    for i, v in subset
-      if trimmed[0] == v && !left
-        trimmed = String.slice(trimmed, 1, String.count(trimmed))
-        left = true
-      end
+  let trimLeft = func (str: String, subset: String = String.whitespace) -> String
+    let size = String.count(str)
+    var start = 0
 
-      if String.last(trimmed) == v && !right
-        trimmed = String.slice(trimmed, 0, String.count(trimmed) - 1)
-        right = true
-      end
-
-      if left && right
+    for i, v in str
+      if !String.contains?(subset, v)
         break
       end
+      start = i + 1
     end
 
-    trimmed
+    String.slice(str, start, size - start)
   end
 
-  let trimLeft = func (str: String, subset: String) -> String
-    var trimmed = str
-    for v in subset
-      if trimmed[0] == v
-        trimmed = String.slice(trimmed, 1, String.count(trimmed))
-        break
-      end
+  let trimRight = func (str: String, subset: String = String.whitespace) -> String
+    let size = String.count(str)
+    if size == 0
+      return str
     end
 
-    trimmed
+    var stop = size
+    for i in size - 1..0
+      if !String.contains?(subset, str[i])
+        break
+      end
+      stop = i
+    end
+
+    String.slice(str, 0, stop)
   end
 
-  let trimRight = func (str: String, subset: String) -> String
-    var trimmed = str
-    for v in subset
-      if String.last(trimmed) == v
-        trimmed = String.slice(trimmed, 0, String.count(trimmed) - 1)
-        break
-      end
-    end
-
-    trimmed
+  let trim = func (str: String, subset: String = String.whitespace) -> String
+    String.trimRight(String.trimLeft(str, subset), subset)
   end
 
   let join = func (array: Array, glue: String) -> String
@@ -189,6 +184,107 @@ module String
 
   let match? = func (str: String, regex: String) -> Bool
     runtime_regex_match(str, regex)
+  end
+
+  let isEmpty? = func (str: String) -> Bool
+    String.count(str) == 0
+  end
+
+  let repeat = func (str: String, times: Int) -> String
+    if times < 0
+      panic("String.repeat() expects a non-negative count")
+    end
+
+    if times == 0
+      return ""
+    end
+
+    var out = ""
+    for i in 1..times
+      out += str
+    end
+    out
+  end
+
+  // padLeft and padRight grow a string to at least size, using pad as the
+  // filler. A pad longer than the gap is cut to fit, so the result is exactly
+  // size characters when it grows at all.
+  let padLeft = func (str: String, size: Int, pad: String = " ") -> String
+    if String.count(pad) == 0
+      panic("String.padLeft() expects a non-empty pad")
+    end
+
+    let gap = size - String.count(str)
+    if gap <= 0
+      return str
+    end
+
+    let filler = String.repeat(pad, gap)
+    String.slice(filler, 0, gap) + str
+  end
+
+  let padRight = func (str: String, size: Int, pad: String = " ") -> String
+    if String.count(pad) == 0
+      panic("String.padRight() expects a non-empty pad")
+    end
+
+    let gap = size - String.count(str)
+    if gap <= 0
+      return str
+    end
+
+    let filler = String.repeat(pad, gap)
+    str + String.slice(filler, 0, gap)
+  end
+
+  // indexOf and lastIndexOf answer -1 when the search is absent, so a caller
+  // can tell "not found" from "found at 0".
+  let indexOf = func (str: String, search: String) -> Int
+    let size = String.count(search)
+    for i, v in str
+      if String.slice(str, i, size) == search
+        return i
+      end
+    end
+    -1
+  end
+
+  let lastIndexOf = func (str: String, search: String) -> Int
+    let size = String.count(search)
+    var found = -1
+    for i, v in str
+      if String.slice(str, i, size) == search
+        found = i
+      end
+    end
+    found
+  end
+
+  let lines = func (str: String) -> Array
+    String.split(String.replace(str, "\r\n", "\n"), "\n")
+    end
+
+  // words splits on runs of whitespace, so repeated separators do not produce
+  // empty entries the way split on a single space would.
+  let words = func (str: String) -> Array
+    var out = []
+    var current = ""
+
+    for v in str
+      if String.contains?(String.whitespace, v)
+        if current != ""
+          out[] = current
+        end
+        current = ""
+      else
+        current += v
+      end
+    end
+
+    if current != ""
+      out[] = current
+    end
+    out
   end
 
 end
