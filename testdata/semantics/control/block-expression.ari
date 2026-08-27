@@ -16,10 +16,10 @@ end
 println(y)
 println(outer)
 
-// It nests, and an empty one is nil like any other empty body.
+// It nests. An empty one is rejected, like any other empty body; see
+// errors/parse-empty-do-body.ari.
 println(do
   do
     "inner"
   end
 end)
-println(do end)

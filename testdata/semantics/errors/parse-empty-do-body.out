@@ -1,0 +1,4 @@
+parse-empty-do-body.ari:1:12: error: empty do body; write nil if it is meant to do nothing
+  println(do end)
+             ^^^
+--- exit: 1

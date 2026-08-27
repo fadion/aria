@@ -371,6 +371,7 @@ In the same style, an index can be used to check if it exists. It will return `n
 ```swift
 if names[10]
   // handle it
+  nil
 end
 ```
 
@@ -436,6 +437,7 @@ To check for a key's existence, you can access it as normal and check if it's `n
 ```swift
 if user["location"] == nil
   // do smth
+  nil
 end
 ```
 
@@ -930,6 +932,17 @@ end
 println(area) // 42
 ```
 
+A body has to hold something. An empty `if`, `else`, `for`, `while`, `until`, `func`, `do`, `try`, `rescue` or `switch` arm is an error, because a block that runs nothing is almost always an unfinished edit rather than an intention. Comments don't count, so a body holding only a `// todo` is empty as far as the parser is concerned:
+
+```swift
+let stub = func x
+  // work this out later
+  nil
+end
+```
+
+Writing `nil` is how you say "deliberately nothing", and it says it where a reader will notice. A `module` and a `record` are containers rather than bodies, so an empty one of those is fine.
+
 ## Conditionals
 
 Aria provides two types of conditional statements. The `if/else` is limited to just an `if` and/or `else` block, without support for multiple `else if` blocks. That's because it advocates the use of the much better looking and flexible `switch` statement.
@@ -1285,6 +1298,7 @@ module Color
   let grey = "#666"
   let hexToRGB = func hex
     // some calculations
+    nil
   end
 end
 

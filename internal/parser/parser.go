@@ -1228,13 +1228,13 @@ func (p *Parser) parseIf() ast.Node {
 		p.advance()
 	}
 
-	then := p.parseBlock(token.Else, token.End)
+	then := p.codeBlock("if", token.Else, token.End)
 
 	node := &ast.If{Base: ast.Base{Sp: start}, Condition: cond, Then: then}
 
 	if p.at(token.Else) {
 		p.advance()
-		node.Else = p.parseBlock(token.End)
+		node.Else = p.codeBlock("else", token.End)
 	}
 
 	if !p.at(token.End) {
@@ -1277,6 +1277,34 @@ func (p *Parser) parseBlock(terminators ...token.Kind) *ast.Block {
 	return block
 }
 
+// codeBlock reads a block that holds code to run, and reports an empty one.
+//
+// A body with nothing in it runs nothing and is an unfinished edit rather than
+// an intention. For a `for` it is worse than dead code: the loop collects a
+// value per iteration, so `for i in 1..1000000 end` quietly builds a
+// million-element array of nils. Writing `nil` says "deliberately nothing" in
+// one more word.
+//
+// `module` and `record` keep using parseBlock directly. They are containers
+// rather than bodies, and an empty one still names something that exists.
+//
+// The diagnostic goes to the bag rather than through errorAt, which would set
+// panicking. That flag exists to suppress the cascade from a confused parser,
+// and this parser is not confused: it knows exactly where it is and carries on
+// correctly, so every later diagnostic in the file should still be reported,
+// including a second empty body.
+//
+// Nothing is reported at end of input. A half-typed `if true` in the REPL has
+// an empty block for the same reason it has no `end` yet, and the caller's
+// missing-'end' error is the one that belongs there.
+func (p *Parser) codeBlock(what string, terminators ...token.Kind) *ast.Block {
+	block := p.parseBlock(terminators...)
+	if len(block.Nodes) == 0 && !p.at(token.EOF) {
+		p.diags.Errorf(block.Sp, "empty %s body; write nil if it is meant to do nothing", what)
+	}
+	return block
+}
+
 // markDiscarded flags every `for` in nodes but the last as producing a value
 // nobody reads, so the evaluator can skip collecting one.
 //
@@ -1301,7 +1329,7 @@ func (p *Parser) parseBlockExpression() ast.Node {
 	start := p.tok.Span
 	p.advance()
 
-	block := p.parseBlock(token.End)
+	block := p.codeBlock("do", token.End)
 	if !p.at(token.End) {
 		return p.bad(span(start, p.tok.Span), "missing 'end' to close 'do'")
 	}
@@ -1337,7 +1365,7 @@ func (p *Parser) parseTry() ast.Node {
 		p.advance()
 	}
 
-	node.Body = p.parseBlock(token.Rescue, token.End)
+	node.Body = p.codeBlock("try", token.Rescue, token.End)
 	if !p.at(token.Rescue) {
 		return p.bad(span(start, p.tok.Span), "missing 'rescue' in 'try'")
 	}
@@ -1349,7 +1377,7 @@ func (p *Parser) parseTry() ast.Node {
 	}
 
 	p.advance()
-	node.Rescue = p.parseBlock(token.End)
+	node.Rescue = p.codeBlock("rescue", token.End)
 	if !p.at(token.End) {
 		return p.bad(span(start, p.tok.Span), "missing 'end' to close 'try'")
 	}
@@ -1372,7 +1400,7 @@ func (p *Parser) parseWhile(until bool) ast.Node {
 		p.advance()
 	}
 
-	node.Body = p.parseBlock(token.End)
+	node.Body = p.codeBlock(keywordOf(until), token.End)
 	if !p.at(token.End) {
 		return p.bad(span(start, p.tok.Span), "missing 'end' to close '%s'", keywordOf(until))
 	}
@@ -1430,7 +1458,7 @@ func (p *Parser) parseFor() ast.Node {
 		p.advance()
 	}
 
-	node.Body = p.parseBlock(token.End)
+	node.Body = p.codeBlock("for", token.End)
 
 	if !p.at(token.End) {
 		return p.bad(span(start, p.tok.Span), "missing 'end' to close 'for'")
@@ -1611,7 +1639,7 @@ func (p *Parser) parseFunction() ast.Node {
 		p.advance()
 	}
 
-	node.Body = p.parseBlock(token.End)
+	node.Body = p.codeBlock("func", token.End)
 
 	if !p.at(token.End) {
 		return p.bad(span(start, p.tok.Span), "missing 'end' to close 'func'")
@@ -1769,7 +1797,7 @@ func (p *Parser) parseSwitch() ast.Node {
 			if p.at(token.Then) {
 				p.advance()
 			}
-			c.Body = p.parseBlock(token.Case, token.Default, token.End)
+			c.Body = p.codeBlock("case", token.Case, token.Default, token.End)
 			c.Sp = span(c.Sp, p.tok.Span)
 			node.Cases = append(node.Cases, c)
 			continue
@@ -1779,7 +1807,7 @@ func (p *Parser) parseSwitch() ast.Node {
 			if p.at(token.Then) {
 				p.advance()
 			}
-			node.Default = p.parseBlock(token.Case, token.Default, token.End)
+			node.Default = p.codeBlock("default", token.Case, token.Default, token.End)
 			continue
 
 		case token.Newline:
