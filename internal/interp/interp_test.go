@@ -1128,3 +1128,35 @@ func TestStdlibMathCoverage(t *testing.T) {
 		t.Errorf("failure did not mention an Int overflow: %v", err)
 	}
 }
+
+// The right side of a pipe had to be a call, and the piped value could only
+// land first.
+func TestPipeTargets(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`let double = func (x) do x * 2 end
+println(4 |> double)`, "8"},
+		{`let double = func (x) do x * 2 end
+println(4 |> double())`, "8"},
+		{`let sub = func (a, b) do a - b end
+println(3 |> sub(10, _))`, "7"},
+		{`let sub = func (a, b) do a - b end
+println(3 |> sub(_, 10))`, "-7"},
+	}
+	for _, test := range tests {
+		if got := output(t, test.src); got != test.want+"\n" {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+
+	fails(t, `let f = func (a, b) do a end
+println(1 |> f(_, _))`, "at most one '_'")
+
+	// The argument list is built per evaluation, so a piped call in a loop does
+	// not grow its own arguments.
+	if got := output(t, `let three = func (a, b, c) do [a, b, c] end
+for i in 1..2
+  println(i |> three(_, "b", "c"))
+end`); got != "[1, \"b\", \"c\"]\n[2, \"b\", \"c\"]\n" {
+		t.Errorf("got %q", got)
+	}
+}

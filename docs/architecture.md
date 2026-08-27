@@ -236,6 +236,22 @@ thing. It means both. A module that shadows a builtin of its own name carries it
 `String("x")` converts, `String.join(...)` reads a member, and `let S = String` gets a
 value that still does both.
 
+### `|>` takes a bare name, and `_` marks the slot
+
+The right side of a pipe used to have to be a function call, and the piped value always
+landed first. So `4 |> double()` worked while `4 |> double` did not — an empty argument
+list on a function that takes an argument reads as a mistake — and anything whose subject
+is not its first parameter fell out of a pipeline entirely.
+
+A right side that is not a call is applied to the piped value. A `_` among a piped call's
+arguments marks the slot the piped value goes into; the resolver rejects a second one,
+since it would have nothing to receive. That is the third position where `_` means
+something, alongside a switch case value and an append target.
+
+The argument list is still built at evaluation, not by rewriting the tree. The original
+prepended in place, so a piped call inside a loop grew its own argument list on every
+iteration.
+
 ### Collections are immutable
 
 Every operation on an array or dictionary returns a new value. Nothing is mutated in
@@ -357,7 +373,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 150 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 153 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash

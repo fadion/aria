@@ -98,11 +98,12 @@ var expectedResolveErrors = map[string]string{
 	"for-scope-leak.ari":       "3.3 reads a loop variable after the loop",
 	"undefined-module.ari":     "accesses a module that was never declared",
 
-	"toplevel-break.ari":           "breaks where no loop is running",
-	"toplevel-return.ari":          "returns from outside a function",
-	"break-inside-nested-func.ari": "breaks from a function nested in a loop",
-	"placeholder-as-value.ari":     "reads `_` where it means nothing",
-	"for-too-many-vars.ari":        "gives a for loop three variables",
+	"toplevel-break.ari":             "breaks where no loop is running",
+	"toplevel-return.ari":            "returns from outside a function",
+	"break-inside-nested-func.ari":   "breaks from a function nested in a loop",
+	"placeholder-as-value.ari":       "reads `_` where it means nothing",
+	"for-too-many-vars.ari":          "gives a for loop three variables",
+	"pipe-placeholder-duplicate.ari": "marks two slots for one piped value",
 }
 
 // Three cases that USED to fail now resolve cleanly, which is the point:

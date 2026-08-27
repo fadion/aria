@@ -537,19 +537,36 @@ func (i *Interp) evalSubscript(n *ast.Subscript, e *env) value.Value {
 }
 
 func (i *Interp) evalPipe(n *ast.Pipe, e *env) value.Value {
+	piped := i.eval(n.Left, e)
+
+	// A bare name on the right is applied to the piped value. `4 |> double()`
+	// worked, but an empty argument list on something that takes an argument
+	// reads as a mistake.
 	call, ok := n.Right.(*ast.FunctionCall)
 	if !ok {
-		i.fail(n.Right.Span(), "the right side of |> must be a function call")
+		return i.apply(i.eval(n.Right, e), []value.Value{piped}, n.Right.Span(), e)
 	}
 
-	// The piped value becomes the first argument. Building the argument list
-	// here rather than rewriting the AST keeps the tree reusable, which the
-	// original's in-place prepend did not — a piped call inside a loop grew its
-	// own argument list on every iteration.
+	// The piped value goes first, unless a `_` among the arguments marks where
+	// it belongs — which is the only way to pipe into a function whose subject
+	// is not its first parameter. The resolver has already proved at most one
+	// `_` appears.
+	//
+	// The argument list is built here rather than by rewriting the AST, which
+	// keeps the tree reusable: the original prepended in place, so a piped call
+	// inside a loop grew its own argument list on every iteration.
 	args := make([]value.Value, 0, len(call.Arguments.Elements)+1)
-	args = append(args, i.eval(n.Left, e))
+	placed := false
 	for _, a := range call.Arguments.Elements {
+		if _, slot := a.(*ast.Placeholder); slot {
+			args = append(args, piped)
+			placed = true
+			continue
+		}
 		args = append(args, i.eval(a, e))
+	}
+	if !placed {
+		args = append([]value.Value{piped}, args...)
 	}
 	return i.apply(i.eval(call.Function, e), args, call.Span(), e)
 }

@@ -357,7 +357,7 @@ func (r *Resolver) node(n ast.Node) {
 		r.node(n.Index)
 	case *ast.Pipe:
 		r.node(n.Left)
-		r.node(n.Right)
+		r.pipeTarget(n.Right)
 
 	case *ast.Is:
 		// Only the left side is a value; the right is a type name.
@@ -450,6 +450,34 @@ func (r *Resolver) node(n ast.Node) {
 		*ast.Integer, *ast.Float, *ast.String, *ast.Atom,
 		*ast.Boolean, *ast.Nil:
 		// Nothing to resolve.
+	}
+}
+
+// pipeTarget resolves the right side of a pipe.
+//
+// It is the third position where `_` means something: among a piped call's
+// arguments it marks the slot the piped value lands in, which is the only way
+// to pipe into a function whose subject is not its first parameter. At most one
+// may appear — two would leave the second with nothing to receive.
+func (r *Resolver) pipeTarget(n ast.Node) {
+	call, ok := n.(*ast.FunctionCall)
+	if !ok || call.Arguments == nil {
+		r.node(n)
+		return
+	}
+
+	r.node(call.Function)
+
+	slots := 0
+	for _, a := range call.Arguments.Elements {
+		if ph, slot := a.(*ast.Placeholder); slot {
+			slots++
+			if slots == 2 {
+				r.diags.Errorf(ph.Span(), "a piped call takes at most one '_', which marks where the piped value goes")
+			}
+			continue
+		}
+		r.node(a)
 	}
 }
 

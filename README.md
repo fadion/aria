@@ -951,6 +951,20 @@ add(2, 1) |> pow() |> substract()
 
 The pipe starts from left to right, evaluating each left expression and passing it automatically as the first parameter to the function on the right side. Basically, the result of `add` is passed to `pow`, and finally the result of `pow` to `substract`.
 
+A bare name works too, since an empty argument list on a function that takes an argument reads as a mistake:
+
+```swift
+let double = func (x) do x * 2 end
+println(4 |> double)
+```
+
+And when the piped value doesn't belong first, a `_` among the arguments marks where it goes. At most one may appear:
+
+```swift
+let subtract = func (a, b) do a - b end
+println(3 |> subtract(10, _)) // 7
+```
+
 It gets even more interesting when combined with standard library functions:
 
 ```swift
