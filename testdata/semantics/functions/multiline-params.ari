@@ -1,0 +1,25 @@
+// The parameter loop terminated on a newline unconditionally, so a wrapped
+// signature was a parse error — and the error blamed the closing `end`, several
+// lines from the actual problem.
+//
+// A parenthesised list may span lines; a bare one may not, since there a newline
+// is still the end of the signature.
+let add = func (
+  a,
+  b
+) do a + b end
+println(add(1, 2))
+
+let described = func (
+  a: Int,
+  b: Int = 10,
+  ...rest
+) -> Int
+  a + b + Enum.size(rest)
+end
+println(described(1))
+println(described(1, 2, 3, 4))
+
+// The bare form still works, on one line.
+let times = func a, b do a * b end
+println(times(3, 4))

@@ -1725,3 +1725,52 @@ println(outer)`); got != "shadowed\nkept\n" {
 		t.Errorf("got %q", got)
 	}
 }
+
+// A newline was a hard statement terminator everywhere except inside [...] and
+// call parentheses, so a long expression had to fit on one line.
+func TestLineContinuation(t *testing.T) {
+	// A line that ends with an operator continues: the operator has no right
+	// side yet.
+	if got := output(t, "let sum = 1 +\n  2 +\n  3\nprintln(sum)"); got != "6\n" {
+		t.Errorf("got %q", got)
+	}
+
+	// A line that begins with an unambiguous infix operator continues too.
+	if got := output(t, "let x = 1\n  + 2\n  * 3\nprintln(x)"); got != "7\n" {
+		t.Errorf("got %q", got)
+	}
+	if got := withStdlib(t, "println([1, -2, 3]\n  |> Enum.filter((v) -> v > 0)\n  |> Enum.map((v) -> v * 2))"); got != "[2, 6]" {
+		t.Errorf("got %q", got)
+	}
+	if got := output(t, "let cfg = [:db => [:host => \"h\"]]\nprintln(cfg\n  .db\n  .host)"); got != "h\n" {
+		t.Errorf("got %q", got)
+	}
+
+	// Unless the operator could also begin an expression: `-`, `(` and `[` are
+	// negation, a call and a subscript, so those stay new statements.
+	for _, src := range []string{
+		"let a = 1\n-2\nprintln(a)",
+		"let a = 1\n[1, 2]\nprintln(a)",
+		"let a = 1\n(2)\nprintln(a)",
+	} {
+		if got := output(t, src); got != "1\n" {
+			t.Errorf("%q: got %q, want %q", src, got, "1\n")
+		}
+	}
+}
+
+// A parenthesised parameter list may span lines; a bare one may not.
+func TestMultilineParameters(t *testing.T) {
+	if got := output(t, "let add = func (\n  a,\n  b\n) do a + b end\nprintln(add(1, 2))"); got != "3\n" {
+		t.Errorf("got %q", got)
+	}
+
+	if got := withStdlib(t, "let f = func (\n  a: Int,\n  b: Int = 10,\n  ...rest\n) -> Int\n  a + b + Enum.size(rest)\nend\nprintln(f(1, 2, 3, 4))"); got != "5" {
+		t.Errorf("got %q", got)
+	}
+
+	// The bare form still works on one line.
+	if got := output(t, "let times = func a, b do a * b end\nprintln(times(3, 4))"); got != "12\n" {
+		t.Errorf("got %q", got)
+	}
+}

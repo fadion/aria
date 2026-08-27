@@ -61,6 +61,40 @@ nil interface. A fuzzer found it in under a second.
 A `Bad` node always comes with a diagnostic already reported, so anything walking the
 tree stays quiet about it rather than adding a second message for the same mistake.
 
+### When a newline ends an expression
+
+A newline is a statement terminator, which is what lets Aria do without semicolons — and it
+used to be a hard one everywhere except inside `[...]` and call parentheses, so a long
+expression had to fit on one line. That is worst for pipelines, which is where the pressure
+to wrap is highest.
+
+Two rules, and both are needed because the two shapes read differently:
+
+**A line that ends with an operator continues.** The operator has no right side yet, so the
+newline cannot be terminating anything. Unambiguous by construction.
+
+**A line that begins with an infix operator continues, unless that operator could also begin
+an expression.** `-`, `(` and `[` could — they are negation, a call and a subscript — so a
+line starting with one of those is a new statement, exactly as it was. Everything else is
+unambiguous: no Aria expression starts with `|>`, `.`, `??` or `+`.
+
+```swift
+data
+  |> Enum.filter((x) -> x > 0)
+  |> Enum.map((x) -> x * 2)
+```
+
+Deciding this needs the parser to look past a run of newlines, which is the one place it
+reads further than one token ahead. It has to: the decision must be made *before* anything
+is consumed, since consuming and then deciding not to continue would eat the separator the
+enclosing block needs. The extra tokens are buffered, so the scanner is still read once,
+forwards, and the cursor invariant below holds.
+
+**A parenthesised parameter list may span lines**; a bare one may not. Inside `(` a newline
+is layout, and outside it is still the end of the signature. The loop used to terminate on a
+newline unconditionally, so a wrapped signature was a parse error that blamed the closing
+`end`, several lines from the actual problem.
+
 ### The cursor invariant
 
 Every parse method is entered with the cursor on the **first** token of the construct it
@@ -572,7 +606,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 187 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 189 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash

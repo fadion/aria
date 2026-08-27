@@ -49,6 +49,9 @@ type Parser struct {
 	sc   *scanner.Scanner
 	tok  token.Token // current
 	peek token.Token // one ahead
+	// buffer holds tokens read past peek by afterNewlines, so looking ahead
+	// does not read the scanner twice or move the cursor.
+	buffer []token.Token
 
 	depth int
 	// panicking suppresses cascading diagnostics: after an error, messages are
@@ -100,7 +103,55 @@ func (p *Parser) Parse() *ast.Program {
 
 func (p *Parser) advance() {
 	p.tok = p.peek
+	if len(p.buffer) > 0 {
+		p.peek, p.buffer = p.buffer[0], p.buffer[1:]
+		return
+	}
 	p.peek = p.sc.Scan()
+}
+
+// afterNewlines is the first token past a run of newlines starting at peek,
+// without moving the cursor.
+//
+// This is the one place the parser looks further than one token ahead. It has
+// to: whether a newline ends an expression depends on what comes after it, and
+// the decision must be made before anything is consumed — consuming and then
+// deciding not to continue would eat a statement separator the enclosing block
+// needs. The extra tokens are buffered, so the scanner is still read once,
+// forwards, and the cursor invariant holds.
+func (p *Parser) afterNewlines() token.Token {
+	if p.peek.Kind != token.Newline {
+		return p.peek
+	}
+	for _, t := range p.buffer {
+		if t.Kind != token.Newline {
+			return t
+		}
+	}
+	for {
+		t := p.sc.Scan()
+		p.buffer = append(p.buffer, t)
+		if t.Kind != token.Newline || t.Kind == token.EOF {
+			return t
+		}
+	}
+}
+
+// continuesLine reports whether a newline at peek is a line break inside an
+// expression rather than the end of one.
+//
+// The rule, recorded in docs/architecture.md: a line that BEGINS with an infix
+// operator continues the expression above it, unless that operator could also
+// begin an expression of its own. `-`, `(` and `[` could — they are negation, a
+// call and a subscript — so a line starting with one of those is a new
+// statement, exactly as it is today. Everything else is unambiguous: no Aria
+// expression starts with `|>`, `.`, `??` or `+`.
+func continuesLine(kind token.Kind) bool {
+	switch kind {
+	case token.Minus, token.LParen, token.LBracket:
+		return false
+	}
+	return lbp(kind) > lowest
 }
 
 // at reports whether the current token is one of kinds.
@@ -279,6 +330,14 @@ func (p *Parser) parseExpr(minPower int) ast.Node {
 	left := p.parsePrefix()
 
 	for {
+		// A line that begins with an unambiguous infix operator continues this
+		// expression rather than starting a new statement. The newlines are
+		// consumed only once that is decided, since consuming and then stopping
+		// would eat the separator the enclosing block needs.
+		if p.peek.Kind == token.Newline && continuesLine(p.afterNewlines().Kind) {
+			p.skipPeekSeparators()
+		}
+
 		power := lbp(p.peek.Kind)
 		if power <= minPower {
 			return left
@@ -391,6 +450,9 @@ func (p *Parser) parseInfixOp(left ast.Node) ast.Node {
 	operator := p.text(op)
 
 	p.advance()
+	// A line that ENDS with an operator continues too: the operator has no
+	// right side yet, so the newline cannot be terminating anything.
+	p.skipSeparators()
 	right := p.parseExpr(rightBindingPower(op.Kind))
 
 	return &ast.Infix{
@@ -910,6 +972,7 @@ func (p *Parser) parseAccess(left ast.Node, safe bool) ast.Node {
 // parsePipe reads `left |> right`.
 func (p *Parser) parsePipe(left ast.Node) ast.Node {
 	p.advance()
+	p.skipSeparators()
 	right := p.parseExpr(precPipe)
 	return &ast.Pipe{
 		Base:  ast.Base{Sp: span(left.Span(), right.Span())},
@@ -1254,10 +1317,31 @@ func (p *Parser) parseFunction() ast.Node {
 
 	p.advance()
 
-	for !p.at(token.Do, token.Newline, token.EOF) {
+	// A parenthesised parameter list may span lines; a bare one may not. The
+	// depth counter is what draws that line: inside `(`, a newline is layout,
+	// and outside it is still the end of the signature.
+	//
+	// The loop used to terminate on Newline unconditionally, so a wrapped
+	// signature was a parse error that blamed the closing `end`, several lines
+	// from the actual problem.
+	parens := 0
+
+	for !p.at(token.Do, token.EOF) {
+		if p.at(token.Newline) {
+			if parens == 0 {
+				break
+			}
+			p.advance()
+			continue
+		}
+
 		switch p.tok.Kind {
-		case token.LParen, token.RParen, token.Comma:
-			// Parentheses are optional and commas are separators.
+		case token.LParen:
+			parens++
+		case token.RParen:
+			parens--
+		case token.Comma:
+			// A separator.
 
 		case token.Ellipsis:
 			if node.Variadic {
