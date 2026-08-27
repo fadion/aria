@@ -1,4 +1,8 @@
 // Every panic() in the standard library raises against a span in <stdlib>.
 // Rendered against this file the offset usually lands past the end of it, so
 // the reader got a line number that does not exist and no caret at all.
-println(Dict.delete([:a => 1], :zz))
+//
+// Dict.delete used to be the trigger here; it answers a tagged result now, so
+// this uses one of the panics that stayed — passing the wrong kind of thing is
+// a mistake in the caller, not an outcome. See docs/architecture.md.
+println(Math.max("a", 1))

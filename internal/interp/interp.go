@@ -348,6 +348,8 @@ func (i *Interp) eval(n ast.Node, e *env) value.Value {
 		return i.evalFor(n, e)
 	case *ast.While:
 		return i.evalWhile(n, e)
+	case *ast.Try:
+		return i.evalTry(n, e)
 
 	case *ast.Function:
 		return &Function{Decl: n, Env: e, File: i.curFile()}
@@ -1606,4 +1608,83 @@ func (i *Interp) destructure(pattern *ast.ArrayPattern, v value.Value, e *env, s
 			e.define(el.Name.Value, value.NewArray(append([]value.Value{}, arr.Elems()[idx:arr.Len()-after]...)))
 		}
 	}
+}
+
+// evalTry runs a body and, if a runtime error unwinds out of it, runs the
+// rescue instead.
+//
+// Every runtime error is catchable, including one the runtime raised itself. The
+// line between "a fault" and "an expected failure" is the caller's to draw, not
+// the runtime's: the same division by zero is a bug in one program and a
+// validation outcome in another. What is not catchable is anything that is not a
+// runtime error — a parse or resolve failure means the program never started.
+//
+// Control signals pass straight through. A `return` inside the body is not a
+// failure, so it unwinds to its function as it would anywhere else.
+func (i *Interp) evalTry(n *ast.Try, e *env) value.Value {
+	depth := len(i.frames)
+
+	result, caught := i.attempt(n.Body, e)
+	if caught == nil {
+		return result
+	}
+
+	// Unwinding ran every deferred frame pop on the way out, but truncating is
+	// what makes that a guarantee rather than an assumption.
+	if len(i.frames) > depth {
+		i.frames = i.frames[:depth]
+	}
+	// The failure aborted whatever control transfer was in flight.
+	i.signal, i.breaking, i.retval = sigNone, 0, nil
+
+	scope := newEnv(e)
+	if n.Name != nil {
+		scope.define(n.Name.Value, i.errorValue(caught))
+	}
+	return i.evalBlock(n.Rescue, scope)
+}
+
+// attempt evaluates a block, returning the error that unwound out of it rather
+// than letting it reach the top.
+func (i *Interp) attempt(b *ast.Block, e *env) (result value.Value, caught *Error) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			return
+		}
+		re, ok := r.(*Error)
+		if !ok {
+			// Not ours: a Go bug, and swallowing it would hide one.
+			panic(r)
+		}
+		result, caught = value.NilValue, re
+	}()
+
+	return i.evalBlock(b, newEnv(e)), nil
+}
+
+// errorValue renders a runtime error as an ordinary Aria value.
+//
+// A dictionary rather than a string: the message is what a program usually
+// wants, but where it happened is what makes a rescue able to report anything
+// useful, and a dictionary is what dotted access already reads well on —
+// `e.message`, `e.line`.
+func (i *Interp) errorValue(err *Error) value.Value {
+	file := err.File
+	if file == nil {
+		file = i.file
+	}
+
+	name, line, col := "", 0, 0
+	if file != nil {
+		pos := file.Position(err.Span.Start)
+		name, line, col = file.Name, pos.Line, pos.Col
+	}
+
+	return value.NewDict([]value.Pair{
+		{Key: value.Atom("message"), Value: value.String(err.Msg)},
+		{Key: value.Atom("file"), Value: value.String(name)},
+		{Key: value.Atom("line"), Value: value.Int(line)},
+		{Key: value.Atom("column"), Value: value.Int(col)},
+	})
 }

@@ -1,0 +1,69 @@
+// Result is the tagged-result convention, written down.
+//
+// A fallible operation answers [:ok, value] or [:error, reason], which needs no
+// new syntax: `switch` with array patterns and `let` capture takes one apart.
+// These are here so the shape has a name and the common ways of consuming one
+// do not have to be rewritten at every call site.
+//
+// The convention is for outcomes a caller should expect — a key that is not
+// there, a file that does not exist. A genuine fault still raises, and `try` is
+// what catches that. See docs/architecture.md.
+module Result
+
+  let ok = func (value) -> Array
+    [:ok, value]
+  end
+
+  let error = func (reason) -> Array
+    [:error, reason]
+  end
+
+  let ok? = func (result) -> Bool
+    result is Array && Enum.size(result) == 2 && result[0] == :ok
+  end
+
+  let error? = func (result) -> Bool
+    result is Array && Enum.size(result) == 2 && result[0] == :error
+  end
+
+  // unwrap answers the value, or the fallback when the result is an error, so a
+  // caller who has a sensible default does not have to switch on the shape.
+  let unwrap = func (result, fallback = nil)
+    if Result.ok?(result)
+      return result[1]
+    end
+    fallback
+  end
+
+  // expect answers the value, or raises with the reason. It is the deliberate
+  // way to say "this cannot fail here", which is otherwise written by ignoring
+  // the tag and reading result[1] anyway.
+  let expect = func (result)
+    if Result.ok?(result)
+      return result[1]
+    end
+    if Result.error?(result)
+      panic(String(result[1]))
+    end
+    panic("Result.expect() expects an [:ok, value] or [:error, reason] pair")
+  end
+
+  // reason answers what went wrong, or nil for an ok result.
+  let reason = func (result)
+    if Result.error?(result)
+      return result[1]
+    end
+    nil
+  end
+
+  // attempt is the bridge between the two shapes: it runs fn and turns whatever
+  // it raises into an error result.
+  let attempt = func (fn: Function) -> Array
+    try
+      [:ok, fn()]
+    rescue e
+      [:error, e.message]
+    end
+  end
+
+end

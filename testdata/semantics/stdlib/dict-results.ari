@@ -1,0 +1,24 @@
+// Dict.insert, update and delete used to panic on the ordinary case, so the only
+// way to avoid it was to duplicate the check before every call. A key that is
+// already there, or one that is not, is an outcome a caller should be able to
+// handle.
+let d = [:a => 1]
+println(Dict.insert(d, :b, 2))
+println(Dict.insert(d, :a, 9))
+println(Dict.update(d, :a, 9))
+println(Dict.update(d, :zz, 9))
+println(Dict.delete(d, :a))
+println(Dict.delete(d, :zz))
+
+// A caller who knows the key's state says so; one with a default says that.
+println(Result.expect(Dict.insert(d, :b, 2)))
+println(Result.unwrap(Dict.delete(d, :zz), d))
+
+println(switch Dict.delete(d, :zz) do
+  case [:ok, let out] then out
+  case [:error, let why] then "could not: #{why}"
+end)
+
+// Passing the wrong kind of thing is still a mistake in the caller, not an
+// outcome, so it raises — and `try` is what catches that.
+println(try Math.max("a", 1) rescue e e.message end)

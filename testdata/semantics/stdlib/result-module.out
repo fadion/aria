@@ -1,0 +1,17 @@
+[:ok, 1]
+[:error, "nope"]
+true
+false
+true
+false
+false
+5
+0
+nil
+bad
+nil
+9
+[:error, "division by zero"]
+[:ok, 42]
+failed: division by zero
+--- exit: 0

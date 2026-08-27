@@ -106,6 +106,8 @@ const (
 	Default
 	Break
 	Continue
+	Try
+	Rescue
 	Module
 	Import
 )
@@ -195,6 +197,8 @@ var names = [...]string{
 	Default:  "default",
 	Break:    "break",
 	Continue: "continue",
+	Try:      "try",
+	Rescue:   "rescue",
 	Module:   "module",
 	Import:   "import",
 }
@@ -233,6 +237,8 @@ var keywords = map[string]Kind{
 	"default":  Default,
 	"break":    Break,
 	"continue": Continue,
+	"try":      Try,
+	"rescue":   Rescue,
 	"module":   Module,
 	"import":   Import,
 	// true, false and nil are keywords lexically, but carry a literal's kind

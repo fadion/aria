@@ -116,6 +116,7 @@ var expectedResolveErrors = map[string]string{
 	"default-type-violation.ari":     "gives a parameter a default its annotation forbids",
 	"switch-unknown-type-case.ari":   "matches against a name that is not a type",
 	"switch-capture-scope.ari":       "reads a capture outside its own arm",
+	"try-rescue-scope.ari":           "reads a rescued name outside its rescue",
 }
 
 // Three cases that USED to fail now resolve cleanly, which is the point:

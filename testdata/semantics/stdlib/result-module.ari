@@ -1,0 +1,28 @@
+// The tagged-result convention, written down. A fallible operation answers
+// [:ok, value] or [:error, reason], which needs no new syntax: switch with array
+// patterns and `let` capture takes one apart.
+println(Result.ok(1))
+println(Result.error("nope"))
+println(Result.ok?(Result.ok(1)))
+println(Result.ok?(Result.error("x")))
+println(Result.error?(Result.error("x")))
+println(Result.ok?([1, 2]))
+println(Result.ok?(5))
+
+println(Result.unwrap(Result.ok(5), 0))
+println(Result.unwrap(Result.error("x"), 0))
+println(Result.unwrap(Result.error("x")))
+println(Result.reason(Result.error("bad")))
+println(Result.reason(Result.ok(1)))
+println(Result.expect(Result.ok(9)))
+
+// attempt is the bridge between the two shapes: it turns whatever a function
+// raises into an error result.
+println(Result.attempt(() -> 1 / 0))
+println(Result.attempt(() -> 21 * 2))
+
+// And the shape reads well with switch capture.
+println(switch Result.attempt(() -> 1 / 0) do
+  case [:ok, let v] then "got #{v}"
+  case [:error, let why] then "failed: #{why}"
+end)

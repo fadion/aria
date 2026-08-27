@@ -1,0 +1,11 @@
+// A failure nobody catches still halts the program and exits non-zero. `try` is
+// what makes recovery possible, not what makes failure quiet.
+println("before")
+let safe = try
+  1 / 0
+rescue e
+  "handled"
+end
+println(safe)
+println(1 / 0)
+println("after")

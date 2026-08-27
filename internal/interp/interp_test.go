@@ -840,8 +840,8 @@ func TestStdlibDict(t *testing.T) {
 		{`println(Dict.size([:a => 1]))`, "1"},
 		{`println(Dict.contains?([:a => 1], :a))`, "true"},
 		{`println(Dict.empty?([=>]))`, "true"},
-		{`println(Dict.insert([:a => 1], :b, 2))`, "[:a => 1, :b => 2]"},
-		{`println(Dict.update([:a => 1], :a, 9))`, "[:a => 9]"},
+		{`println(Dict.insert([:a => 1], :b, 2))`, "[:ok, [:a => 1, :b => 2]]"},
+		{`println(Dict.update([:a => 1], :a, 9))`, "[:ok, [:a => 9]]"},
 	}
 	for _, test := range tests {
 		if got := withStdlib(t, test.src); got != test.want {
@@ -853,7 +853,7 @@ func TestStdlibDict(t *testing.T) {
 // Dict.insert must not modify its argument either.
 func TestStdlibDictInsertDoesNotMutate(t *testing.T) {
 	const src = `let d = [:a => 1]
-let e = Dict.insert(d, :b, 2)
+let e = Result.expect(Dict.insert(d, :b, 2))
 println(d)
 println(e)`
 	got := withStdlib(t, src)
@@ -928,7 +928,7 @@ f(0)`, "call depth")
 // <stdlib>, so rendering it against the user's file pointed at nothing.
 func TestRuntimeErrorCarriesItsOwnFile(t *testing.T) {
 	var out, errOut strings.Builder
-	_, err := interp.Eval("test.ari", `println(Dict.delete([:a => 1], :zz))`, interp.Options{
+	_, err := interp.Eval("test.ari", `println(Math.max("a", 1))`, interp.Options{
 		Out: &out, Err: &errOut, In: strings.NewReader(""),
 	})
 	if err == nil {
@@ -1307,7 +1307,7 @@ func TestStdlibDictCoverage(t *testing.T) {
 		{`println(Dict.has?([:a => 1], "a"))`, "true"},
 		{`println(Dict.has?([:a => 1], :zz))`, "false"},
 		{`println(Dict.has?([:a => nil], :a))`, "true"},
-		{`println(Dict.delete([:a => nil], :a))`, "[=>]"},
+		{`println(Dict.delete([:a => nil], :a))`, "[:ok, [=>]]"},
 		{`println(Dict.map([:a => 1], (k, v) -> v * 10))`, "[:a => 10]"},
 		{`println(Dict.filter([:a => 1, :b => 2], (k, v) -> v > 1))`, "[:b => 2]"},
 		{`println(Dict.toPairs([:a => 1]))`, "[[:a, 1]]"},
@@ -1911,4 +1911,102 @@ func TestSwitchCapture(t *testing.T) {
 
 	// A capture lives in its own arm and nowhere else.
 	fails(t, "switch 1 do\n  case let n then n\nend\nprintln(n)", "'n' is not defined")
+}
+
+// There was no way to recover from anything: panic was terminal and every
+// runtime fault unwound to the top of Run.
+func TestTryRescue(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`try 1 / 0 rescue e e.message end`, "division by zero"},
+		{`try 42 rescue e "never" end`, "42"},
+		{`try panic("boom") rescue e e.message end`, "boom"},
+		// Every runtime error is catchable, the runtime's own included.
+		{`try 5 + "x" rescue e e.message end`, `cannot apply '+' to Int and String`},
+		{"var a = [1]\ntry a[9] = 2 rescue e e.message end", "index 9 is out of bounds for length 1"},
+		// The name is optional.
+		{`try 1 / 0 rescue "went wrong" end`, "went wrong"},
+		// It nests, and a rescue may raise in turn.
+		{`try
+  try 1 / 0 rescue e panic("again: " + e.message) end
+rescue e
+  e.message
+end`, "again: division by zero"},
+	}
+	for _, test := range tests {
+		if got := str(t, test.src); got != test.want {
+			t.Errorf("%s: got %s, want %s", test.src, got, test.want)
+		}
+	}
+
+	// The error is a dictionary, so a rescue can report where as well as what.
+	if got := output(t, `try
+  1 / 0
+rescue e
+  println(e.message)
+  println(e.line)
+end`); got != "division by zero\n2\n" {
+		t.Errorf("got %q", got)
+	}
+
+	// A control signal is not a failure.
+	if got := output(t, `let f = func () do
+  try
+    return "through"
+  rescue e
+    "rescued"
+  end
+end
+println(f())`); got != "through\n" {
+		t.Errorf("got %q", got)
+	}
+
+	// The rescued name lives in the rescue block and nowhere else.
+	fails(t, "try 1 / 0 rescue e e end\nprintln(e)", "'e' is not defined")
+
+	// A failure nobody catches still halts.
+	fails(t, `println(1 / 0)`, "division by zero")
+}
+
+// The frame stack has to come back to where it was, or a caught failure would
+// leave the interpreter counting from the wrong place.
+func TestTryRestoresCallDepth(t *testing.T) {
+	if got := output(t, `let f = func (n) do f(n + 1) end
+println(try f(0) rescue "caught" end)
+let g = func (n) do
+  if n == 0 then return 0 end
+  g(n - 1)
+end
+println(g(100))
+println(try f(0) rescue "caught again" end)`); got != "caught\n0\ncaught again\n" {
+		t.Errorf("got %q", got)
+	}
+}
+
+// The tagged-result convention, and the library's line between data and misuse.
+func TestResultConvention(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`println(Result.ok(1))`, "[:ok, 1]"},
+		{`println(Result.ok?(Result.ok(1)))`, "true"},
+		{`println(Result.ok?([1, 2]))`, "false"},
+		{`println(Result.unwrap(Result.error("x"), 0))`, "0"},
+		{`println(Result.expect(Result.ok(9)))`, "9"},
+		{`println(Result.reason(Result.error("bad")))`, "bad"},
+		{`println(Result.attempt(() -> 1 / 0))`, `[:error, "division by zero"]`},
+		{`println(Result.attempt(() -> 42))`, "[:ok, 42]"},
+
+		// A key that is or is not there is an outcome, not a fault.
+		{`println(Dict.insert([:a => 1], :b, 2))`, "[:ok, [:a => 1, :b => 2]]"},
+		{`println(Dict.insert([:a => 1], :a, 2))`, `[:error, "Dictionary key 'a' already exists"]`},
+		{`println(Dict.delete([:a => 1], :zz))`, `[:error, "Dictionary key 'zz' doesn't exist"]`},
+	}
+	for _, test := range tests {
+		if got := withStdlib(t, test.src); got != test.want {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+
+	// Passing the wrong kind of thing still raises.
+	if got := withStdlib(t, `println(try Math.max("a", 1) rescue e e.message end)`); got != "Math.max() expects a Float or Int" {
+		t.Errorf("got %q", got)
+	}
 }

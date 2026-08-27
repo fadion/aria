@@ -1,0 +1,7 @@
+// The rescued name is bound for the rescue block and nowhere else.
+try
+  1 / 0
+rescue e
+  println(e.message)
+end
+println(e)

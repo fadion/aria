@@ -1,0 +1,4 @@
+try-rescue-scope.ari:7:9: error: 'e' is not defined
+  println(e)
+          ^
+--- exit: 1

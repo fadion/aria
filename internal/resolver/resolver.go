@@ -504,6 +504,22 @@ func (r *Resolver) node(n ast.Node) {
 
 	case *ast.For:
 		r.forLoop(n)
+	case *ast.Try:
+		r.node(n.Body)
+		// The rescue's name is bound for the rescue block and nowhere else, so
+		// it gets a scope of its own — the block's own Block would push a
+		// second one, so its contents are resolved directly.
+		r.push()
+		if n.Name != nil {
+			r.declare(n.Name, KindLet, false)
+		}
+		if n.Rescue != nil {
+			for _, node := range n.Rescue.Nodes {
+				r.node(node)
+			}
+		}
+		r.pop(n)
+
 	case *ast.While:
 		r.node(n.Condition)
 		r.loops++

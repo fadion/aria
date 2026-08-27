@@ -506,6 +506,26 @@ type Continue struct{ Base }
 
 func (n *Continue) Inspect() string { return "continue" }
 
+// Try runs Body and, if a runtime error unwinds out of it, runs Rescue instead
+// with Name bound to the error.
+//
+// An expression, like everything else in Aria: it evaluates to whichever block
+// ran. Name is optional, for a rescue that does not care why.
+type Try struct {
+	Base
+	Body   *Block
+	Name   *Identifier
+	Rescue *Block
+}
+
+func (n *Try) Inspect() string {
+	out := "try " + inspectOr(n.Body, "") + " rescue"
+	if n.Name != nil {
+		out += " " + n.Name.Inspect()
+	}
+	return out + " " + inspectOr(n.Rescue, "") + " end"
+}
+
 // While repeats a body while its condition holds. Until is the same node with
 // the condition negated, so the two share every rule.
 //
