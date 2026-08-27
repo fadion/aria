@@ -921,6 +921,18 @@ go test ./internal/scanner/ -run=Fuzz -fuzz=FuzzScan -fuzztime=30s
 go test ./internal/parser/  -run=Fuzz -fuzz=FuzzParse -fuzztime=30s
 ```
 
+## What a release promises
+
+[compatibility.md](compatibility.md) is the user-facing half of this file: what a version
+number covers, what it deliberately does not, and why the characterization suite is what
+makes the promise enforceable rather than aspirational.
+
+The one worth knowing while working in here: **diagnostic wording and position are not
+covered.** The suite records every message exactly, which makes a reworded error and a
+behavior change look identical in a diff, and that is a tool for the people writing the
+interpreter rather than a contract with the people using it. A golden moving is not by
+itself a compatibility break.
+
 ## Known gaps
 
 - **Slot-based scopes.** The resolver computes slot indices and scope sizes that the
