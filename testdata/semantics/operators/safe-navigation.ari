@@ -1,0 +1,13 @@
+// `?.` yields nil as soon as a link is nil, instead of failing on the next
+// access.
+let cfg = [:db => [:host => "localhost"]]
+println(cfg.db.host)
+println(cfg?.db?.host)
+println(cfg?.missing?.host)
+println(cfg?.db?.missing)
+println(cfg?.missing ?? "default")
+
+// The scanner absorbs a trailing `?` into a name — `empty?` is one token — but
+// not when a dot follows, or `cfg?.db` would read as a name called `cfg?`.
+println(Enum.empty?([]))
+println(Enum.empty?([1]))

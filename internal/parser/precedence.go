@@ -22,6 +22,7 @@ const (
 	precArrow  // ->
 	precTernary
 	precOr         // ||
+	precCoalesce   // ??
 	precAnd        // &&
 	precComparison // == != < <= > >=
 	precBitOr      // |
@@ -53,8 +54,9 @@ var leftBindingPower = [...]int{
 	token.Arrow:    precArrow,
 	token.Question: precTernary,
 
-	token.Or:  precOr,
-	token.And: precAnd,
+	token.Or:       precOr,
+	token.Coalesce: precCoalesce,
+	token.And:      precAnd,
 
 	token.BitOr:  precBitOr,
 	token.BitXor: precBitXor,
@@ -84,6 +86,7 @@ var leftBindingPower = [...]int{
 	token.LParen:   precCall,
 	token.LBracket: precCall,
 	token.Dot:      precCall,
+	token.SafeDot:  precCall,
 
 	token.Is: precTypeOp,
 	token.As: precTypeOp,
@@ -106,7 +109,7 @@ func rightBindingPower(kind token.Kind) int {
 	case token.Power:
 		// Right-associative: 2 ** 3 ** 2 is 2 ** (3 ** 2).
 		return precPower - 1
-	case token.Or, token.And:
+	case token.Or, token.And, token.Coalesce:
 		// Left-associative, so a && b && c is (a && b) && c.
 		return lbp(kind)
 	}

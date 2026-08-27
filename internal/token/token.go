@@ -69,6 +69,8 @@ const (
 	Arrow       // ->
 	FatArrow    // =>
 	Question    // ?
+	Coalesce    // ??
+	SafeDot     // ?.
 
 	// Delimiters.
 	Comma
@@ -160,6 +162,8 @@ var names = [...]string{
 	Arrow:       "->",
 	FatArrow:    "=>",
 	Question:    "?",
+	Coalesce:    "??",
+	SafeDot:     "?.",
 
 	Comma:      ",",
 	LParen:     "(",

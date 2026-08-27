@@ -1,0 +1,30 @@
+// Reading a missing key or index yields nil rather than failing, so threading
+// nil is an ordinary thing to be doing in Aria — but the only way to supply a
+// default was a ternary that named the subject twice, because `||` coerces to
+// Bool and `0 || 5` is true rather than 0.
+let cfg = [:host => "example.com", :retries => 0]
+println(cfg["port"] ?? 8080)
+println(cfg[:host] ?? "localhost")
+
+// nil, not falsy. That is the whole point of having it alongside `||`.
+println(cfg[:retries] ?? 3)
+println(0 ?? 5)
+println(0 || 5)
+println("" ?? "fallback")
+println(false ?? true)
+println(nil ?? "fallback")
+
+// It short-circuits, so the default is not evaluated when the left side is
+// there.
+var evaluated = 0
+let fallback = func () do
+  evaluated += 1
+  "computed"
+end
+println("present" ?? fallback())
+println(evaluated)
+println(nil ?? fallback())
+println(evaluated)
+
+// It binds tighter than || and looser than &&.
+println(nil ?? false || true)

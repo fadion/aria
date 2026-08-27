@@ -92,19 +92,20 @@ One table, in `internal/parser/precedence.go`, loosest to tightest:
 | 3 | `->` | right |
 | 4 | `? :` | right |
 | 5 | `\|\|` | left |
-| 6 | `&&` | left |
-| 7 | `==` `!=` `<` `<=` `>` `>=` | left |
-| 8 | `\|` | left |
-| 9 | `^` | left |
-| 10 | `&` | left |
-| 11 | `..` | left |
-| 12 | `<<` `>>` | left |
-| 13 | `+` `-` | left |
-| 14 | `*` `/` `%` | left |
-| 15 | `**` | **right** |
-| 16 | prefix `!` `~` `-` | — |
-| 17 | `(` call, `[` index, `.` access | left |
-| 18 | `is` `as` | left |
+| 6 | `??` | left |
+| 7 | `&&` | left |
+| 8 | `==` `!=` `<` `<=` `>` `>=` | left |
+| 9 | `\|` | left |
+| 10 | `^` | left |
+| 11 | `&` | left |
+| 12 | `..` | left |
+| 13 | `<<` `>>` | left |
+| 14 | `+` `-` | left |
+| 15 | `*` `/` `%` | left |
+| 16 | `**` | **right** |
+| 17 | prefix `!` `~` `-` | — |
+| 18 | `(` call, `[` index, `.` and `?.` access | left |
+| 19 | `is` `as` | left |
 
 Three of these are worth explaining, because each was wrong before and each is easy to
 get wrong again.
@@ -113,7 +114,7 @@ get wrong again.
 grouped as `false && (false || true)` and evaluated to `false` where every other language
 gives `true`. A silent wrong answer with no error attached.
 
-**Bitwise binds tighter than comparison** (levels 7–10). This is Python's ordering and the
+**Bitwise binds tighter than comparison** (levels 8–11). This is Python's ordering and the
 inverse of C's, and it is easy to write down backwards. `6 & 3 == 3` groups as
 `(6 & 3) == 3`. Under C's ordering it groups as `6 & (3 == 3)`, which in Aria is a type
 error rather than a subtle bug — but a type error on valid-looking code is still bad.
@@ -467,6 +468,30 @@ spends a section on. A count needs no new token, where a label would; it reads p
 two, but two is the case that comes up. The resolver counts the loops a `break` is inside,
 so `break 3` inside two is a diagnostic rather than an unwind out of the enclosing function.
 
+## Nil is threaded, not tested for truth
+
+Reading a missing array index or dictionary key yields `nil` rather than failing, so
+threading nil is an ordinary thing to be doing in Aria — and there was nothing to do it
+with. `||` cannot substitute because it coerces: `0 || 5` is `true`, not `0`.
+
+`a ?? b` yields `a` unless it is `nil`, and short-circuits, so the default is not evaluated
+when the left side is there. It tests for `nil` specifically rather than for truthiness,
+which is the whole point of having it alongside `||`.
+
+`a?.b` yields `nil` as soon as a link is `nil`, and answers `nil` for a missing key too —
+subscripting already answers `nil` for the same read, and `?.` is how a caller says it
+expects one.
+
+The scanner absorbs a trailing `?` into a name, since `empty?` is one token — but not when
+a dot follows, or `cfg?.db` would read as a name called `cfg?`. That makes `empty?.x`
+unwritable as a member access on the result of `empty?`; parenthesise it. That is the side
+of the ambiguity worth losing, since the other side is every safe navigation there is.
+
+**`do ... end` is an expression** with its own scope, yielding its last value. Everything in
+Aria is expression-valued except a block, which was the one place the claim was not true.
+`ast.Block` and `evalBlock` already did exactly this; it needed a prefix parse and nothing
+else.
+
 ## Ranges and slicing
 
 `..` builds an array. It is a value like any other, so `Array(1..5)`, `Enum.map(1..5, f)`
@@ -547,7 +572,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 184 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 187 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash
