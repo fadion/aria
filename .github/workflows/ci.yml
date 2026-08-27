@@ -3,9 +3,22 @@ name: CI
 on:
   # Only master on push. A branch with a PR open is covered by pull_request,
   # and listening for both ran every one of them twice.
+  #
+  # paths-ignore lists the files nothing here reads. README.md is deliberately
+  # not among them: the language job runs every one of its code blocks through
+  # the interpreter, so it is executable and a change to it can fail CI.
+  # Anchors would say this once, but Actions does not expand them.
   push:
     branches: [master]
+    paths-ignore:
+      - 'docs/**'
+      - 'CLAUDE.md'
+      - 'LICENSE'
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - 'CLAUDE.md'
+      - 'LICENSE'
   workflow_dispatch:
 
 permissions:
