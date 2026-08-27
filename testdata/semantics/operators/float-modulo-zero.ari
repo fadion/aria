@@ -1,0 +1,6 @@
+// Int / 0, Int % 0 and Float / 0.0 all error. Float % 0.0 fell through to
+// math.Mod and returned NaN, which propagates through arithmetic and compares
+// false against everything including itself, so the mistake surfaced a long
+// way from its cause.
+println(5.0 % 2.0)
+println(5.0 % 0.0)

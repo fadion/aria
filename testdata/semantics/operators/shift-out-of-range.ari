@@ -1,0 +1,7 @@
+// Go shifts a count of 64 or more all the way out, so `1 << 100` was 0 — an
+// answer that looks computed and is not. A left shift that pushes bits past the
+// sign bit is the same silent wrap as any other overflow.
+println(1 << 4)
+println(255 >> 4)
+println(1 << 62)
+println(1 << 100)

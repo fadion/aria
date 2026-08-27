@@ -1,0 +1,11 @@
+// `**` was math.Pow through float64: above 2^53 the float lost precision, and
+// past int64's range the conversion was undefined — on amd64 it landed on
+// MinInt64, a plausible-looking negative number with nothing attached to say it
+// was wrong. 3 ** 40 is 12157665459056928801, which does not fit.
+println(2 ** 10)
+println(10 ** 18)
+println(2 ** 62)
+println(2 ** -1)
+println(0 ** 0)
+println((-2) ** 3)
+println(3 ** 40)

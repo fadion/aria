@@ -1,0 +1,7 @@
+16
+15
+4611686018427387904
+shift-out-of-range.ari:7:9: error: bitwise shift count must be less than 64, got 100
+  println(1 << 100)
+          ^^^^^^^^
+--- exit: 1

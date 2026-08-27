@@ -229,6 +229,14 @@ The operand *types* decide the result type, never the operand values. That's wha
 10 / 4.0 // 2.5
 ```
 
+Integer arithmetic never wraps. An `Int` is a 64-bit signed integer, and an operation whose result doesn't fit in one is an error rather than a plausible-looking negative number:
+
+```swift
+2 ** 62 // 4611686018427387904
+```
+
+Floats are IEEE 754 and are left as they are, so overflow there reaches `Inf`. Division and modulo by zero are errors on both.
+
 ### Float
 
 Floating point numbers are used in a very similar way to Integers. In fact, they can be mixed and matched, like `3 + 0.2` or `5.0 + 2`, where the result will always be a Float.
@@ -492,7 +500,7 @@ true == true
 false != true
 ```
 
-Bitwise and bitshift operator apply only to Integers. Float values can't be used, even those that "look" as Integers, like `1.0` or `5.0`.
+Bitwise and bitshift operator apply only to Integers. Float values can't be used, even those that "look" as Integers, like `1.0` or `5.0`. A shift count has to be between 0 and 63, and a left shift that would push bits past the sign bit is an error like any other overflow.
 
 ```swift
 10 >> 1

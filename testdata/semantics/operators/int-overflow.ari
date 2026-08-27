@@ -1,0 +1,6 @@
+// Integer arithmetic fails rather than wrapping. Aria's Int is one fixed-width
+// signed integer with no unsigned counterpart, so a program has no way to
+// observe or intend a wrap: a wrapped result is a wrong answer that looks like
+// a computed one.
+println(9223372036854775807 - 1)
+println(9223372036854775807 + 1)

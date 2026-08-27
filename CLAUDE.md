@@ -30,13 +30,19 @@ scripts/               the suite's runner
 
 ```bash
 go build ./... && go vet ./... && gofmt -l . && go test ./...
+golangci-lint run ./...
 bash scripts/characterize.sh verify
 bash scripts/check-readme.sh
 ```
 
-The last one is the important one. `go test` covers the Go code; the characterization
-suite covers *the language*, and it is the thing that catches a change you did not intend
-to make.
+CI runs `golangci-lint` at a pinned version, and it checks things `go vet` does not —
+`ineffassign` and `predeclared` have both failed a branch that passed everything else.
+Install it with `go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.1`
+to match.
+
+The characterization suite is the important one. `go test` covers the Go code; the suite
+covers *the language*, and it is the thing that catches a change you did not intend to
+make.
 
 After touching the scanner or parser, also run the fuzzers for 30 seconds each. They are
 cheap and they have both found real bugs:
@@ -48,7 +54,7 @@ go test ./internal/parser/  -run=Fuzz -fuzz=FuzzParse -fuzztime=30s
 
 ## The characterization suite is the arbiter
 
-`testdata/semantics/` holds 139 `.ari` files, each with a `.out` golden recording exactly
+`testdata/semantics/` holds 143 `.ari` files, each with a `.out` golden recording exactly
 what the interpreter prints and what it exits with.
 
 **If a golden changes, you changed the language.** That is either the point of your change

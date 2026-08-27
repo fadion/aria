@@ -1,0 +1,5 @@
+9223372036854775806
+int-overflow.ari:6:9: error: Int overflow: 9223372036854775807 + 1 does not fit in an Int
+  println(9223372036854775807 + 1)
+          ^^^^^^^^^^^^^^^^^^^^^^^
+--- exit: 1

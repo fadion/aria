@@ -960,3 +960,53 @@ println(d)`); got != "1\n1\n[:a => 1]\n" {
 		t.Errorf("got %q", got)
 	}
 }
+
+// Integer arithmetic fails rather than wrapping: Aria's Int is one fixed-width
+// signed integer with no unsigned counterpart, so a program has no way to
+// observe or intend a wrap.
+func TestIntArithmeticFailsOnOverflow(t *testing.T) {
+	const intMax = "9223372036854775807"
+	const intMin = "-9223372036854775807 - 1"
+
+	for _, src := range []string{
+		`println(` + intMax + ` + 1)`,
+		`println(` + intMax + ` * 2)`,
+		`println((` + intMin + `) - 1)`,
+		`println(-(` + intMin + `))`,
+		`println((` + intMin + `) / -1)`,
+		`println(3 ** 40)`,
+		`println(2 ** 63)`,
+		`println(1 << 63)`,
+	} {
+		fails(t, src, "Int overflow")
+	}
+
+	// A shift count of 64 or more has no answer; Go's is 0.
+	fails(t, `println(1 << 100)`, "shift count must be less than 64")
+
+	// Everything that does fit is exact, including the powers that used to
+	// round through float64.
+	tests := []struct{ src, want string }{
+		{`println(2 ** 62)`, "4611686018427387904"},
+		{`println(10 ** 18)`, "1000000000000000000"},
+		{`println((-2) ** 3)`, "-8"},
+		{`println(0 ** 0)`, "1"},
+		{`println(2 ** -1)`, "0"},
+		{`println(1 ** -3)`, "1"},
+		{`println((-1) ** -3)`, "-1"},
+		{`println((` + intMin + `) % -1)`, "0"},
+		{`println(1 << 62)`, "4611686018427387904"},
+	}
+	for _, test := range tests {
+		if got := output(t, test.src); got != test.want+"\n" {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+}
+
+// Float % 0.0 fell through to math.Mod and returned NaN while every sibling
+// divide-by-zero raised.
+func TestFloatModuloByZeroFails(t *testing.T) {
+	fails(t, `println(5.0 % 0.0)`, "division by zero")
+	fails(t, `println(0 ** -1)`, "division by zero")
+}
