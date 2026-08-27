@@ -103,9 +103,6 @@ type Info struct {
 	refs  map[*ast.Identifier]Ref
 	decls map[*ast.Identifier]*Binding
 	sizes map[ast.Node]int
-	// unresolved is set when the program imports another file, whose bindings
-	// this pass cannot see.
-	unresolved bool
 }
 
 // Lookup returns the binding a name reference resolved to.
@@ -122,10 +119,6 @@ func (i *Info) Declaration(id *ast.Identifier) (*Binding, bool) {
 
 // ScopeSize returns how many slots the scope owned by n needs.
 func (i *Info) ScopeSize(n ast.Node) int { return i.sizes[n] }
-
-// Incomplete reports whether resolution had to give up on undefined-name
-// checking, because the program imports a file this pass did not read.
-func (i *Info) Incomplete() bool { return i.unresolved }
 
 // scope is one lexical level.
 type scope struct {
@@ -163,9 +156,6 @@ type Resolver struct {
 	// predeclared by the caller. Modules are hoisted: the README states their
 	// members can reference each other regardless of order.
 	modules map[string]bool
-	// hasImport suppresses undefined-name errors, since an import can bring in
-	// names this pass cannot see.
-	hasImport bool
 
 	// hoisted holds top-level function bindings declared before their `let` was
 	// reached, so binding knows to fill one in rather than report it as a
@@ -233,6 +223,63 @@ func (r *Resolver) predeclare(name string, kind Kind) {
 
 // Resolve walks prog and reports any name problems into the Bag.
 func (r *Resolver) Resolve(prog *ast.Program) *Info {
+	r.unit(prog)
+	r.info.sizes[prog] = r.current.slots
+	return r.info
+}
+
+// Include resolves an imported unit into the same global scope, reporting into
+// that unit's own bag so its diagnostics render against its own text.
+//
+// An imported file used to be parsed and evaluated and never resolved, so inside
+// one every guarantee this pass provides was absent — and a single `import`
+// anywhere turned undefined-name checking off for the importing file too,
+// because there was no way to know what the import had brought in. Resolving the
+// whole graph as one compilation removes both at once.
+//
+// Units come in the order their names have to become visible, so nothing here
+// needs a second pass.
+func (r *Resolver) Include(file *source.File, prog *ast.Program, diags *diag.Bag) {
+	outerFile, outerDiags := r.file, r.diags
+	r.file, r.diags = file, diags
+	defer func() { r.file, r.diags = outerFile, outerDiags }()
+
+	r.unit(prog)
+	r.info.sizes[prog] = r.current.slots
+}
+
+// IncludeNamespaced resolves an imported unit whose names live under an alias,
+// so they do not join the importing scope. A module IS a namespace, so an alias
+// needs no machinery the language does not already have.
+func (r *Resolver) IncludeNamespaced(file *source.File, prog *ast.Program, diags *diag.Bag, alias string) {
+	outerFile, outerDiags := r.file, r.diags
+	r.file, r.diags = file, diags
+	defer func() { r.file, r.diags = outerFile, outerDiags }()
+
+	r.push()
+	r.unit(prog)
+	members := []string{}
+	for _, n := range prog.Nodes {
+		switch n := n.(type) {
+		case *ast.Let:
+			if n.Name != nil {
+				members = append(members, n.Name.Value)
+			}
+		case *ast.Var:
+			if n.Name != nil {
+				members = append(members, n.Name.Value)
+			}
+		}
+	}
+	r.pop(prog)
+
+	r.modules[alias] = true
+	r.predeclare(alias, KindLet)
+	r.moduleMembers[r.current.names[alias]] = members
+}
+
+// unit resolves one program's nodes into the current scope.
+func (r *Resolver) unit(prog *ast.Program) {
 	// Modules are hoisted, so collect their names before resolving anything.
 	r.collectModules(prog.Nodes)
 	r.hoistFunctions(prog.Nodes)
@@ -240,14 +287,9 @@ func (r *Resolver) Resolve(prog *ast.Program) *Info {
 	for _, n := range prog.Nodes {
 		r.node(n)
 	}
-
-	r.info.sizes[prog] = r.current.slots
-	r.info.unresolved = r.hasImport
-	return r.info
 }
 
-// collectModules records module names declared at this level, and notes whether
-// the program imports anything.
+// collectModules records module names declared at this level.
 func (r *Resolver) collectModules(nodes []ast.Node) {
 	for _, n := range nodes {
 		switch n := n.(type) {
@@ -279,8 +321,6 @@ func (r *Resolver) collectModules(nodes []ast.Node) {
 					}
 				}
 			}
-		case *ast.Import:
-			r.hasImport = true
 		}
 	}
 }
@@ -384,12 +424,6 @@ func (r *Resolver) resolveName(id *ast.Identifier) {
 			return
 		}
 		hops++
-	}
-
-	// An import can introduce names this pass never saw, so reporting here
-	// would be a guess. Import resolution would remove this exception.
-	if r.hasImport {
-		return
 	}
 
 	r.diags.Errorf(id.Span(), "'%s' is not defined", id.Value)

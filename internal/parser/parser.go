@@ -54,6 +54,9 @@ type Parser struct {
 	buffer []token.Token
 
 	depth int
+	// blocks counts the enclosing block bodies, so a construct that belongs at
+	// the top level of a file can say so.
+	blocks int
 	// panicking suppresses cascading diagnostics: after an error, messages are
 	// held until the parser reaches a token it can resynchronise on.
 	panicking bool
@@ -1181,7 +1184,25 @@ func (p *Parser) parseImport() ast.Node {
 	if p.tok.Kind == token.String && len(name) >= 2 {
 		name = name[1 : len(name)-1]
 	}
-	return &ast.Import{Base: ast.Base{Sp: span(start, p.tok.Span)}, File: name}
+	node := &ast.Import{Base: ast.Base{Sp: span(start, p.tok.Span)}, File: name}
+
+	// `import "geometry" as Geo` namespaces what it brings in.
+	if p.atPeek(token.As) {
+		p.advance()
+		if !p.expectPeek(token.Ident) {
+			return &ast.Bad{Base: ast.Base{Sp: span(start, p.tok.Span)}, Text: "import"}
+		}
+		node.Alias = &ast.Identifier{Base: ast.Base{Sp: p.tok.Span}, Value: p.text(p.tok)}
+		node.Sp = span(start, p.tok.Span)
+	}
+
+	// An import is a declaration, not an expression. `if x then import "y" end`
+	// used to parse and import conditionally at runtime, which no pass can see
+	// through — and seeing through it is the whole point of resolving imports.
+	if p.blocks > 0 {
+		return p.bad(node.Sp, "an import belongs at the top level of a file")
+	}
+	return node
 }
 
 // parseIf reads `if cond [then|do] body [else body] end`.
@@ -1219,6 +1240,8 @@ func (p *Parser) parseIf() ast.Node {
 func (p *Parser) parseBlock(terminators ...token.Kind) *ast.Block {
 	start := p.tok.Span
 	block := &ast.Block{Base: ast.Base{Sp: start}}
+	p.blocks++
+	defer func() { p.blocks-- }()
 
 	stop := append([]token.Kind{token.EOF}, terminators...)
 

@@ -1,0 +1,4 @@
+import-checks-importer.ari:6:9: error: 'nope' is not defined
+  println(nope)
+          ^^^^
+--- exit: 1

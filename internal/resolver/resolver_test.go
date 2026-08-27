@@ -224,23 +224,17 @@ func TestPredeclaredModules(t *testing.T) {
 
 // An import can bring in names this pass cannot see, so undefined-name checking
 // has to stand down rather than guess.
-func TestImportSuppressesUndefinedErrors(t *testing.T) {
-	_, info, bag := resolve(t, "import \"other\"\nsomethingFromOther")
-	if bag.HasErrors() {
-		t.Errorf("unexpected diagnostics:\n%s", bag.Render())
-	}
-	if !info.Incomplete() {
-		t.Error("Incomplete() = false, want true when the program imports")
-	}
-
-	// Without an import the same name is reported.
-	_, info, _ = resolve(t, "let a = 1")
-	if info.Incomplete() {
-		t.Error("Incomplete() = true for a program with no imports")
+// An import no longer turns undefined-name checking off. Every imported file is
+// a unit of the same compilation, resolved into the same scope, so a name that
+// is not there is reported like any other — the resolver's headline benefit used
+// to be off for exactly the programs large enough to need it.
+func TestImportDoesNotSuppressUndefinedErrors(t *testing.T) {
+	_, _, bag := resolve(t, "import \"other\"\nsomethingFromOther")
+	if !bag.HasErrors() {
+		t.Error("an undefined name went unreported in a file that imports")
 	}
 }
 
-// Type names are not variable references and must not be resolved as such.
 func TestTypeNamesAreNotResolvedAsValues(t *testing.T) {
 	resolveOK(t, "let a = 1\na is Int")
 	resolveOK(t, "let a = 1\na as String")

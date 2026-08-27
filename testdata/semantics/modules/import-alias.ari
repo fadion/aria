@@ -1,0 +1,12 @@
+// An imported file's names used to be spliced into the caller's scope with no
+// prefix and no way to rename, so two files could not both define `size`.
+//
+// `as` namespaces them. A module IS a namespace, so this needs no machinery the
+// language does not already have — and an alias is checked like any other
+// module, members included.
+import "_geometry" as Geo
+println(Geo.size)
+println(Geo.area(3, 4))
+
+// The names do not join this scope, so Enum.size is still Enum.size.
+println(Enum.size([1, 2, 3]))

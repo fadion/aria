@@ -1,0 +1,4 @@
+import-alias-scope.ari:3:9: error: 'size' is not defined
+  println(size)
+          ^^^^
+--- exit: 1

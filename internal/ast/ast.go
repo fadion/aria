@@ -646,9 +646,19 @@ func (n *Access) Inspect() string {
 type Import struct {
 	Base
 	File string
+	// Alias namespaces the imported file's own top-level bindings under a
+	// module of that name, so two files can both define `size`. A module IS a
+	// namespace, so this needs no machinery the language does not already have.
+	Alias *Identifier
 }
 
-func (n *Import) Inspect() string { return "import " + n.File }
+func (n *Import) Inspect() string {
+	out := "import " + n.File
+	if n.Alias != nil {
+		out += " as " + n.Alias.Inspect()
+	}
+	return out
+}
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -1,0 +1,4 @@
+_undefined.ari:2:14: error: 'missingName' is not defined
+  let broken = missingName
+               ^^^^^^^^^^^
+--- exit: 1

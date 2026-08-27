@@ -1,0 +1,7 @@
+// A cycle terminates: the loader records every file it has pulled in, and a
+// second import of one is a no-op, since its names are already in scope. Nothing
+// is reported, because nothing is wrong — the files are one compilation either
+// way.
+import "_cycle_a"
+println(fromA)
+println(fromB)
