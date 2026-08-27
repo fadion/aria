@@ -1,0 +1,15 @@
+// contains? walked every entry comparing with Equal, so it answered for an atom
+// key given the equal string while dict[key] did not. It goes through the
+// dictionary's index now, so the two agree — and since an Atom keys as the
+// String of its text, both spellings find the entry.
+let d = [:a => 1]
+println(Dict.contains?(d, :a))
+println(Dict.contains?(d, "a"))
+println(d["a"])
+println(Dict.has?(d, :zz))
+
+// insert, update and delete asked `dict[key] != nil`, which cannot tell a
+// missing key from one whose value is nil.
+let n = [:a => nil]
+println(Dict.has?(n, :a))
+println(Dict.delete(n, :a))

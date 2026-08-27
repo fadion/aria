@@ -39,10 +39,14 @@ module Enum
     purged
   end
 
+  // An explicit accumulator rather than the bare `for` whose collected results
+  // were the return value: what map builds should be visible in map.
   let map = func (array: Array, fn: Function) -> Array
+    var mapped = []
     for v in array
-      fn(v)
+      mapped[] = fn(v)
     end
+    mapped
   end
 
   let filter = func (array: Array, fn: Function) -> Array
@@ -97,6 +101,209 @@ module Enum
     // runtime_rand is the builtin; there has never been a bare `rand`.
     var rnd = runtime_rand(0, size(array) - 1)
     array[rnd]
+  end
+
+  // sort orders with the language's own `<`: numbers among numbers, text among
+  // text. A pair `<` cannot compare is an error here too, rather than an
+  // invented ordering across types. See docs/architecture.md.
+  let sort = func (array: Array) -> Array
+    runtime_sort(array, array)
+  end
+
+  // sortBy takes a key function, not a comparator: a comparator has to answer
+  // in three values, which the language has no convention for, and a key
+  // composes with the same `<` sort already uses.
+  let sortBy = func (array: Array, fn: Function) -> Array
+    var keys = []
+    for v in array
+      keys[] = fn(v)
+    end
+    runtime_sort(keys, array)
+  end
+
+  // each runs fn for its effect and answers nil, so a loop written for its
+  // side effects does not build an array nobody reads.
+  let each = func (array: Array, fn: Function)
+    for v in array
+      fn(v)
+    end
+    nil
+  end
+
+  let sum = func (array: Array)
+    var total = 0
+    for v in array
+      total += v
+    end
+    total
+  end
+
+  let min = func (array: Array)
+    if empty?(array)
+      panic("Enum.min() expects a non-empty array")
+    end
+
+    var smallest = array[0]
+    for v in array
+      if v < smallest
+        smallest = v
+      end
+    end
+    smallest
+  end
+
+  let max = func (array: Array)
+    if empty?(array)
+      panic("Enum.max() expects a non-empty array")
+    end
+
+    var largest = array[0]
+    for v in array
+      if v > largest
+        largest = v
+      end
+    end
+    largest
+  end
+
+  let count = func (array: Array, fn: Function) -> Int
+    var found = 0
+    for v in array
+      if fn(v)
+        found += 1
+      end
+    end
+    found
+  end
+
+  let any? = func (array: Array, fn: Function) -> Bool
+    for v in array
+      if fn(v)
+        return true
+      end
+    end
+    false
+  end
+
+  let all? = func (array: Array, fn: Function) -> Bool
+    for v in array
+      if !fn(v)
+        return false
+      end
+    end
+    true
+  end
+
+  // take and drop clamp rather than failing, the way slicing a string does.
+  let take = func (array: Array, n: Int) -> Array
+    if n <= 0
+      return []
+    end
+
+    runtime_slice(array, 0, n)
+  end
+
+  let drop = func (array: Array, n: Int) -> Array
+    if n <= 0
+      return array
+    end
+
+    runtime_slice(array, n, size(array))
+  end
+
+  let takeWhile = func (array: Array, fn: Function) -> Array
+    var taken = 0
+    for v in array
+      if !fn(v)
+        break
+      end
+      taken += 1
+    end
+    take(array, taken)
+  end
+
+  let dropWhile = func (array: Array, fn: Function) -> Array
+    var dropped = 0
+    for v in array
+      if !fn(v)
+        break
+      end
+      dropped += 1
+    end
+    drop(array, dropped)
+  end
+
+  let indexOf = func (array: Array, search) -> Int
+    for i, v in array
+      if v == search
+        return i
+      end
+    end
+    -1
+  end
+
+  // zip stops at the shorter array, so neither side is padded with nil.
+  let zip = func (first: Array, second: Array) -> Array
+    let shortest = Math.min(size(first), size(second))
+    var pairs = []
+    for i, v in first
+      if i < shortest
+        pairs[] = [v, second[i]]
+      end
+    end
+    pairs
+  end
+
+  let concat = func (first: Array, second: Array) -> Array
+    first + second
+  end
+
+  // flatten is deep: nesting at any depth comes out flat, which is what the
+  // name means everywhere it exists.
+  let flatten = func (array: Array) -> Array
+    var flat = []
+    for v in array
+      if v is Array
+        for inner in flatten(v)
+          flat[] = inner
+        end
+      else
+        flat[] = v
+      end
+    end
+    flat
+  end
+
+  let groupBy = func (array: Array, fn: Function) -> Dictionary
+    var groups = [=>]
+    for v in array
+      let key = fn(v)
+      if runtime_has_key(groups, key)
+        groups[key] = groups[key] + [v]
+      else
+        groups[key] = [v]
+      end
+    end
+    groups
+  end
+
+  // The last chunk is short rather than padded.
+  let chunk = func (array: Array, n: Int) -> Array
+    if n <= 0
+      panic("Enum.chunk() expects a positive size")
+    end
+
+    let total = size(array)
+    var chunks = []
+    var start = 0
+    for
+      if start >= total
+        break
+      end
+      chunks[] = runtime_slice(array, start, n)
+      start += n
+    end
+    chunks
   end
 
 end

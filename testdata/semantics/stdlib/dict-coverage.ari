@@ -1,0 +1,11 @@
+let d = [:a => 1, :b => 2]
+println(Dict.keys(d))
+println(Dict.values(d))
+println(Dict.get(d, :a))
+println(Dict.get(d, :zz, "none"))
+println(Dict.get(d, :zz))
+println(Dict.merge(d, [:c => 3]))
+println(Dict.map(d, (k, v) -> v * 10))
+println(Dict.filter(d, (k, v) -> v > 1))
+println(Dict.toPairs(d))
+println(Dict.fromPairs([[:x, 1], [:y, 2]]))

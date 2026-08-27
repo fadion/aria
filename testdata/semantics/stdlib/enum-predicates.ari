@@ -1,0 +1,14 @@
+println(Enum.sum([1, 2, 3]))
+println(Enum.min([3, 1, 2]))
+println(Enum.max([3, 1, 2]))
+println(Enum.min(["b", "a"]))
+println(Enum.count([1, 2, 3, 4], (v) -> v % 2 == 0))
+println(Enum.any?([1, 2], (v) -> v > 1))
+println(Enum.all?([1, 2], (v) -> v > 1))
+println(Enum.all?([], (v) -> false))
+println(Enum.indexOf([1, 2, 3], 2))
+println(Enum.indexOf([1, 2, 3], 9))
+
+// each runs for effect and answers nil, rather than building an array nobody
+// reads.
+println(Enum.each([1, 2], (v) -> println(v)))

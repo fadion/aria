@@ -1,0 +1,11 @@
+[1, 2, 3]
+[1.5, 2, 3]
+["apple", "fig", "pear"]
+[:a, :b]
+[]
+["a", "cc", "bbb"]
+[[1, "y"], [2, "x"]]
+<stdlib>/enum.ari:110:5: error: cannot order String and Int
+      runtime_sort(array, array)
+      ^^^^^^^^^^^^^^^^^^^^^^^^^^
+--- exit: 1

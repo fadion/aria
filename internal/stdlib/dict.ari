@@ -3,13 +3,16 @@ module Dict
     runtime_len(dict)
   end
 
+  // Through the dictionary's own index, so it agrees with subscript lookup and
+  // costs O(1). It used to walk every entry comparing with Equal, which found
+  // an atom key given the equal string while dict[key] did not — the two
+  // disagreeing about what a key is.
   let contains? = func (dict: Dictionary, key) -> Bool
-    for k, v in dict
-      if k == key
-        return true
-      end
-    end
-    false
+    runtime_has_key(dict, key)
+  end
+
+  let has? = func (dict: Dictionary, key) -> Bool
+    runtime_has_key(dict, key)
   end
 
   let empty? = func (dict: Dictionary) -> Bool
@@ -17,7 +20,8 @@ module Dict
   end
 
   let insert = func (dict: Dictionary, key, value) -> Dictionary
-    if dict[key] != nil
+    // The index, not `dict[key] != nil`: a key whose value is nil exists.
+    if has?(dict, key)
       panic("Dictionary key '" + String(key) + "' already exists")
     end
 
@@ -25,7 +29,7 @@ module Dict
   end
 
   let update = func (dict: Dictionary, key, value) -> Dictionary
-    if dict[key] == nil
+    if !has?(dict, key)
       panic("Dictionary key '" + String(key) + "' doesn't exist")
     end
 
@@ -33,7 +37,7 @@ module Dict
   end
 
   let delete = func (dict: Dictionary, key) -> Dictionary
-    if dict[key] == nil
+    if !has?(dict, key)
       panic("Dictionary key '" + String(key) + "' doesn't exist")
     end
 
@@ -44,5 +48,74 @@ module Dict
       end
     end
     purged
+  end
+
+  let keys = func (dict: Dictionary) -> Array
+    var out = []
+    for k, v in dict
+      out[] = k
+    end
+    out
+  end
+
+  let values = func (dict: Dictionary) -> Array
+    var out = []
+    for k, v in dict
+      out[] = v
+    end
+    out
+  end
+
+  // get answers the fallback when the key is absent, which `dict[key]` cannot
+  // distinguish from a key whose value is nil. `default` is a keyword, hence
+  // the name.
+  let get = func (dict: Dictionary, key, fallback = nil)
+    if has?(dict, key)
+      return dict[key]
+    end
+    fallback
+  end
+
+  let merge = func (first: Dictionary, second: Dictionary) -> Dictionary
+    first + second
+  end
+
+  // fn receives the key and the value and answers the new value; the keys are
+  // the dictionary's own.
+  let map = func (dict: Dictionary, fn: Function) -> Dictionary
+    var out = [=>]
+    for k, v in dict
+      out[k] = fn(k, v)
+    end
+    out
+  end
+
+  let filter = func (dict: Dictionary, fn: Function) -> Dictionary
+    var out = [=>]
+    for k, v in dict
+      if fn(k, v)
+        out[k] = v
+      end
+    end
+    out
+  end
+
+  let toPairs = func (dict: Dictionary) -> Array
+    var out = []
+    for k, v in dict
+      out[] = [k, v]
+    end
+    out
+  end
+
+  let fromPairs = func (pairs: Array) -> Dictionary
+    var out = [=>]
+    for pair in pairs
+      if !(pair is Array) || Enum.size(pair) != 2
+        panic("Dict.fromPairs() expects an array of [key, value] pairs")
+      end
+      out[pair[0]] = pair[1]
+    end
+    out
   end
 end

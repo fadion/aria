@@ -1,0 +1,17 @@
+// There was no sort anywhere in the language: value.SortedKeys existed in Go and
+// was unexported to Aria, so a program had no way to order a collection at all.
+//
+// Ordering is the language's own `<` — numbers among numbers, text among text.
+println(Enum.sort([3, 1, 2]))
+println(Enum.sort([3, 1.5, 2]))
+println(Enum.sort(["pear", "apple", "fig"]))
+println(Enum.sort([:b, :a]))
+println(Enum.sort([]))
+
+// sortBy takes a key function, not a comparator, and is stable.
+println(Enum.sortBy(["bbb", "a", "cc"], (s) -> String.count(s)))
+println(Enum.sortBy([[2, "x"], [1, "y"]], (p) -> p[0]))
+
+// A pair `<` cannot compare is an error here too, rather than an invented
+// ordering across types.
+println(Enum.sort([1, "a"]))
