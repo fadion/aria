@@ -1,0 +1,4 @@
+break-too-many-levels.ari:6:5: error: 'break 3' inside 2 loop(s)
+      break 3
+      ^^^^^^^
+--- exit: 1

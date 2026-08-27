@@ -1,0 +1,8 @@
+// `break 3` inside two loops has nothing to leave, and would otherwise unwind
+// out of the enclosing function at runtime. The resolver counts the loops it is
+// inside, so it is knowable before the program starts.
+for a in [1]
+  for b in [1]
+    break 3
+  end
+end

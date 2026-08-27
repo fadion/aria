@@ -117,6 +117,9 @@ func Children(n Node) []Node {
 		}
 		node(n.Enumerable)
 		block(n.Body)
+	case *While:
+		node(n.Condition)
+		block(n.Body)
 	case *Return:
 		node(n.Value)
 

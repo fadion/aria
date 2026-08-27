@@ -1452,3 +1452,122 @@ println(calls)`); got != "12\n1\n" {
 		t.Errorf("got %q", got)
 	}
 }
+
+// while and until evaluate to nil: there is no per-iteration value worth
+// collecting, which is why they exist alongside `for`.
+func TestWhileAndUntil(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`var i = 0
+while i < 5
+  i += 1
+end
+println(i)`, "5"},
+		{`var i = 0
+until i == 3 do
+  i += 1
+end
+println(i)`, "3"},
+		{`println(while false do 1 end)`, "nil"},
+		{`println(until true do 1 end)`, "nil"},
+		{`var k = 0
+while true
+  k += 1
+  if k == 2 then break end
+end
+println(k)`, "2"},
+		{`var odds = []
+var n = 0
+while n < 5
+  n += 1
+  if n % 2 == 0 then continue end
+  odds[] = n
+end
+println(odds)`, "[1, 3, 5]"},
+		// A return unwinds out of a while, as it does out of a for.
+		{`let f = func () do
+  while true
+    return 7
+  end
+end
+println(f())`, "7"},
+	}
+	for _, test := range tests {
+		if got := output(t, test.src); got != test.want+"\n" {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+}
+
+// Breaking out of two loops needed a flag variable, which needs a `var`.
+func TestNestedBreak(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`var found = nil
+for row in [[1, 2], [3, 4]]
+  for cell in row
+    if cell == 3
+      found = cell
+      break 2
+    end
+  end
+end
+println(found)`, "3"},
+		// One level still stops only the inner loop.
+		{`var seen = []
+for a in [1, 2]
+  for b in [1, 2]
+    seen[] = b
+    break
+  end
+end
+println(seen)`, "[1, 1]"},
+		// It crosses loop kinds, since a loop is a loop.
+		{`var n = 0
+while true
+  for i in 1..10
+    n = i
+    break 2
+  end
+end
+println(n)`, "1"},
+	}
+	for _, test := range tests {
+		if got := output(t, test.src); got != test.want+"\n" {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+
+	fails(t, `for a in [1]
+  break 2
+end`, "'break 2' inside 1 loop(s)")
+}
+
+// A `for` whose value nobody reads collects nothing. Invisible to a program;
+// the difference is that the result array is never built.
+func TestForValueDiscarded(t *testing.T) {
+	// Not the last node of its block, so discarded.
+	if got := output(t, `var count = 0
+for i in 1..5
+  count += i
+end
+println(count)`); got != "15\n" {
+		t.Errorf("got %q", got)
+	}
+
+	// The last node of a block is left alone, because the block evaluates to it.
+	if got := output(t, `let f = func () do
+  for i in 1..3
+    i * 2
+  end
+end
+println(f())`); got != "[2, 4, 6]\n" {
+		t.Errorf("got %q", got)
+	}
+
+	// And a `for` in expression position still collects.
+	if got := output(t, `let squares = for i in 1..4
+  i * i
+end
+println(squares)`); got != "[1, 4, 9, 16]\n" {
+		t.Errorf("got %q", got)
+	}
+}

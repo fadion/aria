@@ -93,6 +93,8 @@ const (
 	If
 	Else
 	For
+	While
+	Until
 	In
 	Is
 	As
@@ -178,6 +180,8 @@ var names = [...]string{
 	If:       "if",
 	Else:     "else",
 	For:      "for",
+	While:    "while",
+	Until:    "until",
 	In:       "in",
 	Is:       "is",
 	As:       "as",
@@ -216,6 +220,8 @@ var keywords = map[string]Kind{
 	"if":       If,
 	"else":     Else,
 	"for":      For,
+	"while":    While,
+	"until":    Until,
 	"in":       In,
 	"is":       Is,
 	"as":       As,

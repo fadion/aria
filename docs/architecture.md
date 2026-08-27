@@ -415,6 +415,27 @@ a bad escape is a diagnostic rather than a surprising string later.
 iteration decoded runes correctly while raw subscripting indexed bytes, so
 `String.reverse` produced mojibake for non-ASCII input while `String.count` was right.
 
+## Loops cost what they use
+
+`for` is an expression: it evaluates to an array of every iteration's value. `loop` built
+that array unconditionally, whether anything read it or not, so a two-million-iteration
+side-effect loop peaked at 98.9 MB of results discarded the moment it ended.
+
+**A `for` whose value nobody reads collects nothing.** The parser knows: a `for` that is
+not the last node of its block cannot be that block's value. The last node is left alone,
+because a block evaluates to it and its own caller may well want it. Same loop, 14.4 MB.
+
+**`while` and `until` evaluate to `nil`.** There is no per-iteration value worth
+collecting, which is the whole reason they exist alongside `for`: the infinite `for` plus
+`break` was the substitute, and that is exactly the shape with the memory problem. `until`
+is `while` with its condition negated — one node, one flag — so the two share every rule.
+
+**`break N` leaves N enclosing loops**, and plain `break` is `break 1`. Breaking out of two
+loops needed a flag variable, which needs a `var`, which fights the immutability the README
+spends a section on. A count needs no new token, where a label would; it reads poorly past
+two, but two is the case that comes up. The resolver counts the loops a `break` is inside,
+so `break 3` inside two is a diagnostic rather than an unwind out of the enclosing function.
+
 ## Ranges and slicing
 
 `..` builds an array. It is a value like any other, so `Array(1..5)`, `Enum.map(1..5, f)`
@@ -495,7 +516,7 @@ something the author of an Aria program can act on.
 
 ## The characterization suite
 
-`testdata/semantics/` holds 173 cases. Each `.ari` file has a `.out` golden recording
+`testdata/semantics/` holds 179 cases. Each `.ari` file has a `.out` golden recording
 exactly what the interpreter prints and what it exits with.
 
 ```bash

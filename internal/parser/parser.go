@@ -81,6 +81,7 @@ func (p *Parser) Parse() *ast.Program {
 
 		node := p.parseNode()
 		prog.Nodes = append(prog.Nodes, node)
+		markDiscarded(prog.Nodes)
 
 		// A construct ends on its last token, so step off it. If the parse
 		// failed we may already be on a separator, which the loop head handles.
@@ -223,6 +224,7 @@ func (p *Parser) recover() {
 func startsConstruct(kind token.Kind) bool {
 	switch kind {
 	case token.Let, token.Var, token.Func, token.If, token.Switch, token.For,
+		token.While, token.Until,
 		token.Module, token.Import, token.Return, token.Break, token.Continue,
 		token.Case, token.Default, token.End:
 		return true
@@ -253,8 +255,7 @@ func (p *Parser) parseNode() ast.Node {
 	case token.Return:
 		return p.parseReturn()
 	case token.Break:
-		n := &ast.Break{Base: ast.Base{Sp: p.tok.Span}}
-		return n
+		return p.parseBreak()
 	case token.Continue:
 		n := &ast.Continue{Base: ast.Base{Sp: p.tok.Span}}
 		return n
@@ -333,6 +334,10 @@ func (p *Parser) parsePrefix() ast.Node {
 		return p.parseIf()
 	case token.Switch:
 		return p.parseSwitch()
+	case token.While:
+		return p.parseWhile(false)
+	case token.Until:
+		return p.parseWhile(true)
 	case token.For:
 		return p.parseFor()
 	case token.Module:
@@ -1058,6 +1063,7 @@ func (p *Parser) parseBlock(terminators ...token.Kind) *ast.Block {
 		}
 		node := p.parseNode()
 		block.Nodes = append(block.Nodes, node)
+		markDiscarded(block.Nodes)
 
 		// Step off the construct's last token before re-testing for a
 		// terminator. Testing first would misread a nested construct's own
@@ -1071,6 +1077,69 @@ func (p *Parser) parseBlock(terminators ...token.Kind) *ast.Block {
 
 	block.Sp = span(start, p.tok.Span)
 	return block
+}
+
+// markDiscarded flags every `for` in nodes but the last as producing a value
+// nobody reads, so the evaluator can skip collecting one.
+//
+// The last node is left alone because a block evaluates to its last node's
+// value, which its own caller may well want. Called after each append rather
+// than once at the end, so the flag is right whichever node turns out to be
+// last.
+func markDiscarded(nodes []ast.Node) {
+	for i, n := range nodes {
+		if loop, ok := n.(*ast.For); ok {
+			loop.Discard = i < len(nodes)-1
+		}
+	}
+}
+
+// parseBreak reads `break` or `break N`, where N is how many enclosing loops to
+// leave. The count is on the same line by construction: a newline ends the
+// construct, so `break` followed by a line starting with a number is two nodes.
+func (p *Parser) parseBreak() ast.Node {
+	n := &ast.Break{Base: ast.Base{Sp: p.tok.Span}, Levels: 1}
+
+	if p.atPeek(token.Int) {
+		p.advance()
+		levels, err := strconv.ParseInt(strings.ReplaceAll(p.text(p.tok), "_", ""), 0, 64)
+		if err != nil || levels < 1 {
+			return p.bad(span(n.Sp, p.tok.Span), "break takes a positive number of loops to leave")
+		}
+		n.Levels = int(levels)
+		n.Sp = span(n.Sp, p.tok.Span)
+	}
+	return n
+}
+
+// parseWhile reads `while cond [do] body end`, or the same with `until`, which
+// is the identical loop with its condition negated.
+func (p *Parser) parseWhile(until bool) ast.Node {
+	start := p.tok.Span
+	node := &ast.While{Base: ast.Base{Sp: start}, Until: until}
+
+	p.advance()
+	node.Condition = p.parseExpr(lowest)
+	p.advance()
+
+	if p.at(token.Do) {
+		p.advance()
+	}
+
+	node.Body = p.parseBlock(token.End)
+	if !p.at(token.End) {
+		return p.bad(span(start, p.tok.Span), "missing 'end' to close '%s'", keywordOf(until))
+	}
+
+	node.Sp = span(start, p.tok.Span)
+	return node
+}
+
+func keywordOf(until bool) string {
+	if until {
+		return "until"
+	}
+	return "while"
 }
 
 // parseFor reads `for [names in enumerable] [do] body end`.

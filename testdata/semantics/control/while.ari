@@ -1,0 +1,37 @@
+// The infinite `for` plus `break` was the substitute for this, and it is the
+// shape with the memory problem: `for` is an expression that collects every
+// iteration's value, so a side-effect loop paid for a result nobody read.
+//
+// `while` evaluates to nil. There is no per-iteration value worth collecting,
+// which is the whole reason it exists alongside `for`.
+var i = 0
+while i < 5
+  i += 1
+end
+println(i)
+
+// `do` is optional, as it is for `for`.
+var j = 0
+while j < 3 do
+  j += 1
+end
+println(j)
+
+// break and continue work as they do in a `for`.
+var k = 0
+while true
+  k += 1
+  if k == 2 then break end
+end
+println(k)
+
+var odds = []
+var n = 0
+while n < 5
+  n += 1
+  if n % 2 == 0 then continue end
+  odds[] = n
+end
+println(odds)
+
+println(while false do 1 end)

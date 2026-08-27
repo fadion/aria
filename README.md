@@ -947,6 +947,38 @@ for i in 1..10
 end
 ```
 
+`break` also takes a count, which is how a nested loop breaks outward without a flag variable:
+
+```swift
+let rows = [[1, 2], [3, 4]]
+for row in rows
+  for cell in row
+    if cell == 3
+      println("found it")
+      break 2
+    end
+  end
+end
+```
+
+## While and Until
+
+`while` repeats a body for as long as its condition holds, and `until` for as long as it doesn't. Both take the same optional `do` and `end`-terminated shape as `for`:
+
+```swift
+var i = 0
+while i < 5
+  i += 1
+end
+
+var j = 10
+until j <= 0 do
+  j -= 2
+end
+```
+
+Unlike `for`, they evaluate to `nil`. A `for` collects every iteration's value into an array, which is worth having when you want it and worth avoiding when you don't — these are for when you don't.
+
 *The `for` loop is currently naively parsed. It works for most cases, but still, it's not robust enough. I'm working to find a better solution.*
 
 ## Range Operator

@@ -112,6 +112,8 @@ type Interp struct {
 
 	signal signal
 	retval value.Value
+	// breaking is how many more loops a pending break still has to leave.
+	breaking int
 
 	// frames is the call stack. Each frame names the file its function's body
 	// lives in, so a fault inside it is reported against that file, and its
@@ -331,6 +333,8 @@ func (i *Interp) eval(n ast.Node, e *env) value.Value {
 		return i.evalSwitch(n, e)
 	case *ast.For:
 		return i.evalFor(n, e)
+	case *ast.While:
+		return i.evalWhile(n, e)
 
 	case *ast.Function:
 		return &Function{Decl: n, Env: e, File: i.curFile()}
@@ -354,7 +358,7 @@ func (i *Interp) eval(n ast.Node, e *env) value.Value {
 		i.signal, i.retval = sigReturn, v
 		return v
 	case *ast.Break:
-		i.signal = sigBreak
+		i.signal, i.breaking = sigBreak, max(n.Levels, 1)
 		return value.NilValue
 	case *ast.Continue:
 		i.signal = sigContinue
@@ -868,13 +872,16 @@ func forever() iter {
 }
 
 // loop runs the body once per item next yields. It collects each iteration's
-// value, which is what a `for` evaluates to.
+// value, which is what a `for` evaluates to — unless the parser marked the loop
+// as producing a value nobody reads, in which case nothing is collected. A
+// two-million-iteration side-effect loop peaked at 137 MB of results that were
+// discarded the moment it ended.
 //
 // Loop variables are defined in a scope created per iteration, inside the loop's
 // own scope. The original wrote them into the ENCLOSING scope, so they outlived
 // the loop.
 func (i *Interp) loop(n *ast.For, e *env, next iter) value.Value {
-	results := []value.Value{}
+	var results []value.Value
 	names := []string{}
 	if n.Arguments != nil {
 		for _, id := range n.Arguments.Elements {
@@ -905,7 +912,7 @@ func (i *Interp) loop(n *ast.For, e *env, next iter) value.Value {
 
 		switch i.signal {
 		case sigBreak:
-			i.signal = sigNone
+			i.absorbBreak()
 			return false
 		case sigContinue:
 			i.signal = sigNone
@@ -914,7 +921,9 @@ func (i *Interp) loop(n *ast.For, e *env, next iter) value.Value {
 			return false // leave the signal set; the caller unwinds
 		}
 
-		results = append(results, v)
+		if !n.Discard {
+			results = append(results, v)
+		}
 		return true
 	}
 
@@ -928,7 +937,49 @@ func (i *Interp) loop(n *ast.For, e *env, next iter) value.Value {
 	if i.signal == sigReturn {
 		return i.retval
 	}
+	if n.Discard {
+		return value.NilValue
+	}
 	return value.NewArray(results)
+}
+
+// evalWhile runs a body while its condition holds, or until it does.
+//
+// It evaluates to nil. There is no per-iteration value worth collecting, which
+// is the whole reason it exists alongside `for`: the infinite `for` plus `break`
+// was the substitute, and that is the shape with the memory problem.
+func (i *Interp) evalWhile(n *ast.While, e *env) value.Value {
+	for {
+		holds := value.Truthy(i.eval(n.Condition, e))
+		if n.Until {
+			holds = !holds
+		}
+		if !holds {
+			return value.NilValue
+		}
+
+		i.evalBlock(n.Body, newEnv(e))
+
+		switch i.signal {
+		case sigBreak:
+			i.absorbBreak()
+			return value.NilValue
+		case sigContinue:
+			i.signal = sigNone
+		case sigReturn:
+			return i.retval // leave the signal set; the caller unwinds
+		}
+	}
+}
+
+// absorbBreak takes one level off a pending break. `break 2` leaves the signal
+// set on the way out of the inner loop, so the next one out sees it too.
+func (i *Interp) absorbBreak() {
+	i.breaking--
+	if i.breaking <= 0 {
+		i.breaking = 0
+		i.signal = sigNone
+	}
 }
 
 // ---------------------------------------------------------------------------

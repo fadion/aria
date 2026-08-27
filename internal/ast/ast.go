@@ -11,6 +11,7 @@
 package ast
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/fadion/aria/internal/source"
@@ -381,11 +382,18 @@ func (n *IdentifierList) Inspect() string {
 }
 
 // For is a loop. Enumerable is nil for the infinite form.
+//
+// Discard says the loop's value is thrown away — it is not the last node of the
+// block it sits in — so the evaluator can skip collecting one. `for` is an
+// expression that evaluates to an array of every iteration's value, and building
+// that array unconditionally made a two-million-iteration side-effect loop peak
+// at 137 MB of results nobody read.
 type For struct {
 	Base
 	Arguments  *IdentifierList
 	Enumerable Node
 	Body       *Block
+	Discard    bool
 }
 
 func (n *For) Inspect() string {
@@ -409,14 +417,46 @@ type Return struct {
 func (n *Return) Inspect() string { return "return " + inspectOr(n.Value, "") }
 
 // Break exits a loop.
-type Break struct{ Base }
+// Break leaves Levels enclosing loops. `break` is `break 1`; a count is what
+// lets a nested loop break outward without a flag variable, which would need a
+// `var` and fight the immutability the README spends a section on.
+type Break struct {
+	Base
+	Levels int
+}
 
-func (n *Break) Inspect() string { return "break" }
+func (n *Break) Inspect() string {
+	if n.Levels > 1 {
+		return "break " + strconv.Itoa(n.Levels)
+	}
+	return "break"
+}
 
 // Continue skips to the next iteration.
 type Continue struct{ Base }
 
 func (n *Continue) Inspect() string { return "continue" }
+
+// While repeats a body while its condition holds. Until is the same node with
+// the condition negated, so the two share every rule.
+//
+// It evaluates to nil rather than to a collected array: there is no
+// per-iteration value worth keeping, which is the whole reason it exists
+// alongside `for`.
+type While struct {
+	Base
+	Condition Node
+	Until     bool
+	Body      *Block
+}
+
+func (n *While) Inspect() string {
+	keyword := "while "
+	if n.Until {
+		keyword = "until "
+	}
+	return keyword + inspectOr(n.Condition, "") + " do " + inspectOr(n.Body, "") + " end"
+}
 
 // ---------------------------------------------------------------------------
 // Functions and modules
