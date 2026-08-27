@@ -1,0 +1,4 @@
+default-type-violation.ari:3:24: error: parameter 'n' is declared Int but defaults to String
+  let f = func (n: Int = "oops") do n end
+                         ^^^^^^
+--- exit: 1

@@ -1,0 +1,16 @@
+// `Any` is a name a hint may use. Without it, the way to say "accepts anything"
+// was to say nothing, so an unannotated parameter was ambiguous between that and
+// "not yet annotated".
+let f = func (v: Any) -> Any do v end
+println(f(1))
+println(f("x"))
+println(f([1, 2]))
+println(5 is Any)
+println("x" is Any)
+println(nil is Any)
+println(5 as Any)
+
+// A default still has to match a real annotation.
+let g = func (n: Int = 3) -> Int do n * 2 end
+println(g())
+println(g(5))

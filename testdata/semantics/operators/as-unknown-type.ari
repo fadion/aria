@@ -1,0 +1,2 @@
+// `as` reported "unknown type" at runtime for the same knowable mistake.
+println(5 as Banana)

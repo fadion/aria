@@ -1571,3 +1571,65 @@ println(squares)`); got != "[1, 4, 9, 16]\n" {
 		t.Errorf("got %q", got)
 	}
 }
+
+// Aria has type annotations and almost nothing used to look at them before the
+// program ran.
+func TestTypeAnnotationsAreChecked(t *testing.T) {
+	// `is` was a string comparison with the right side never resolved, so a
+	// typo was a permanently-false test.
+	fails(t, `println(5 is Banana)`, "'Banana' is not a type")
+	fails(t, `println(5 as Banana)`, "'Banana' is not a type")
+	fails(t, `let f = func (n: Banana) do n end`, "'Banana' is not a type")
+	fails(t, `let f = func () -> Fruit do 1 end`, "'Fruit' is not a type")
+
+	// A default was bound unchecked, so the hint was a lie for every caller
+	// that omitted the argument.
+	fails(t, `let f = func (n: Int = "oops") do n end`, "declared Int but defaults to String")
+
+	// A mistyped module member was a runtime error for something knowable
+	// before the program starts.
+	withStdlibFails(t, `println(Enum.sizze([1, 2]))`, "module 'Enum' has no member 'sizze'")
+	fails(t, `module M
+  let a = 1
+end
+println(M.nope)`, "module 'M' has no member 'nope'")
+
+	// A dictionary reached with a dot is not a module, and is not checked.
+	if got := output(t, `let cfg = [:a => 1]
+println(cfg.a)`); got != "1\n" {
+		t.Errorf("got %q", got)
+	}
+}
+
+// `Any` is a name a hint may use: without it, the way to say "accepts anything"
+// was to say nothing.
+func TestAnyAnnotation(t *testing.T) {
+	tests := []struct{ src, want string }{
+		{`let f = func (v: Any) -> Any do v end
+println(f([1, 2]))`, "[1, 2]"},
+		{`println(5 is Any)`, "true"},
+		{`println(nil is Any)`, "true"},
+		{`println(5 as Any)`, "5"},
+	}
+	for _, test := range tests {
+		if got := output(t, test.src); got != test.want+"\n" {
+			t.Errorf("%s: got %q, want %q", test.src, got, test.want)
+		}
+	}
+}
+
+// withStdlibFails requires src to fail with the standard library loaded.
+func withStdlibFails(t *testing.T, src, want string) {
+	t.Helper()
+	var out, errOut strings.Builder
+	_, err := interp.Eval("test.ari", src, interp.Options{
+		Out: &out, Err: &errOut, In: strings.NewReader(""),
+	})
+	if err == nil {
+		t.Errorf("%q: expected a failure mentioning %q, but it succeeded", src, want)
+		return
+	}
+	if !strings.Contains(err.Error(), want) {
+		t.Errorf("%q: failure did not mention %q:\n%v", src, want, err)
+	}
+}

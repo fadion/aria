@@ -58,9 +58,7 @@ func Run(file *source.File, opts Options) bool {
 	}
 
 	r := resolver.New(file, bag)
-	for _, name := range stdlib.Names() {
-		r.PredeclareModule(name)
-	}
+	i.predeclareModules(r)
 	for name := range i.globals.vars {
 		r.Predeclare(name)
 	}
@@ -81,6 +79,23 @@ func Run(file *source.File, opts Options) bool {
 		return false
 	}
 	return true
+}
+
+// predeclareModules tells a resolver about every module that exists, with the
+// members each one declares, so an access to a missing member is a diagnostic
+// rather than a runtime error. The standard library is already evaluated by the
+// time this runs, so its members are real values rather than a guess.
+func (i *Interp) predeclareModules(r *resolver.Resolver) {
+	for _, name := range stdlib.Names() {
+		if m, ok := i.modules[name]; ok {
+			r.PredeclareModule(name, m.Names()...)
+			continue
+		}
+		r.PredeclareModule(name)
+	}
+	for name, m := range i.modules {
+		r.PredeclareModule(name, m.Names()...)
+	}
 }
 
 // loadStdlib parses, resolves and evaluates the embedded library.
@@ -157,9 +172,7 @@ func Eval(name, src string, opts Options) (value.Value, error) {
 	}
 
 	r := resolver.New(file, bag)
-	for _, n := range stdlib.Names() {
-		r.PredeclareModule(n)
-	}
+	i.predeclareModules(r)
 	for n := range i.globals.vars {
 		r.Predeclare(n)
 	}
@@ -235,19 +248,15 @@ func (s *Session) Eval(src string) (value.Value, error) {
 	}
 
 	r := resolver.New(file, bag)
-	for _, name := range stdlib.Names() {
-		r.PredeclareModule(name)
-	}
 	for name := range s.interp.globals.vars {
 		r.Predeclare(name)
 	}
 	for name := range s.declared {
 		r.Predeclare(name)
 	}
-	// A module declared on an earlier line is still declared.
-	for name := range s.interp.modules {
-		r.PredeclareModule(name)
-	}
+	// A module declared on an earlier line is still declared, and its members
+	// are known, so an access to one is checked like any other.
+	s.interp.predeclareModules(r)
 
 	info := r.Resolve(prog)
 	if bag.HasErrors() {
